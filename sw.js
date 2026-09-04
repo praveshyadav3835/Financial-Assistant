@@ -1,16 +1,37 @@
-// Minimal service worker — its only job is to exist and handle fetch events,
-// which is what Chrome actually checks for full "Install app" eligibility
-// (as opposed to a plain bookmark/shortcut with the browser badge).
+const CACHE_NAME = 'fin-assist-v1';
+
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll([
+        './',
+        './index.html',
+        './manifest.json',
+        './icon-192.png',
+        './icon-512.png'
+      ]);
+    }).then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (event) => {
-  self.clients.claim();
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', (event) => {
-  // Simple pass-through — always fetch from the network. No offline caching
-  // is attempted here; this just satisfies Chrome's installability check.
-  event.respondWith(fetch(event.request));
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
+    })
+  );
 });
