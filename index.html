@@ -1489,12 +1489,12 @@ function parseBankSMS(text){
   // whole email into one continuous string with no separation between the transaction line and
   // everything after it.
   const windowStart = amtMatch ? Math.max(0, amtMatch.index - 40) : 0;
-  const windowEnd = amtMatch ? Math.min(clean.length, amtMatch.index + 200) : clean.length;
+  const windowEnd = amtMatch ? Math.min(clean.length, amtMatch.index + 80) : clean.length;
   const payeeSearchText = amtMatch ? clean.slice(windowStart, windowEnd) : clean;
 
   let payee = '';
   let m;
-  if((m = payeeSearchText.match(/\bat\s+([A-Z0-9 &._-]{2,30}?)(?:\s+on\b|\.|,|$)/i))) payee = m[1];
+  if((m = payeeSearchText.match(/\bat\s+([A-Z0-9 &._-]{2,20}?)(?:\s+on\b|\.|,|$)/i))) payee = m[1];
   else if((m = payeeSearchText.match(/to\s+VPA\s+([a-zA-Z0-9._-]+)@/i))) payee = m[1];
   else if((m = payeeSearchText.match(/for\s+UPI-([A-Za-z0-9 .-]{2,30}?)-/i))) payee = m[1];
   else if((m = payeeSearchText.match(/\bfrom\s+([A-Z][A-Za-z ]{2,30}?)(?:\s+on\b|\s+via\b|\.|,|$)/))) payee = m[1];
