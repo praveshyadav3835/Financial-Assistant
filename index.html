@@ -300,6 +300,10 @@
       <p class="section-sub" style="margin-top:8px;">A snapshot PDF of accounts, budget, people, and investments — good for record-keeping or sharing with family.</p>
 
       <div id="adj-log-wrap"></div>
+
+      <div class="divider-label" style="color:var(--debt);">Danger zone</div>
+      <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
+      <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
     </section>
   </main>
 
@@ -337,6 +341,11 @@
       <span class="rs">₹</span><span class="val" id="amount-val">0</span>
     </div>
     <div class="keypad" id="keypad"></div>
+
+    <div class="field">
+      <label>Date</label>
+      <input id="tx-date" type="date">
+    </div>
 
     <div id="tx-single-fields">
       <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;" id="cat-label">What was it for?</label>
@@ -1603,6 +1612,7 @@ document.getElementById('fab-add').addEventListener('click', ()=>{
   txAmount=''; updateAmountDisplay();
   document.getElementById('tx-payee').value='';
   document.getElementById('tx-transfer-note').value='';
+  document.getElementById('tx-date').value = new Date().toISOString().slice(0,10);
   document.getElementById('paste-sms-box').classList.add('hide');
   document.getElementById('sms-paste-text').value='';
   userTouchedCategory = false; userTouchedAccount = false;
@@ -1625,20 +1635,28 @@ document.getElementById('tx-payee').addEventListener('blur', ()=>{
 document.getElementById('tx-cancel').addEventListener('click', ()=> txBackdrop.classList.remove('open'));
 txBackdrop.addEventListener('click', e=>{ if(e.target===txBackdrop) txBackdrop.classList.remove('open'); });
 
+function buildTsFromDateInput(inputId){
+  const dateVal = document.getElementById(inputId).value;
+  const now = new Date();
+  if(!dateVal) return now.toISOString();
+  const [y,m,d] = dateVal.split('-').map(Number);
+  return new Date(y, m-1, d, now.getHours(), now.getMinutes(), now.getSeconds()).toISOString();
+}
 document.getElementById('tx-save').addEventListener('click', async ()=>{
   const amount = parseFloat(txAmount);
   if(!amount || amount<=0){ alert('Pop in an amount first.'); return; }
   const type = txCurrentType();
+  const ts = buildTsFromDateInput('tx-date');
 
   if(type==='transfer'){
     if(txFrom===txTo){ alert('Pick two different accounts.'); return; }
-    state.transactions.push({id:genId('tx'), ts:new Date().toISOString(), type:'transfer', from:txFrom, to:txTo, amount, remarks:document.getElementById('tx-transfer-note').value.trim()});
+    state.transactions.push({id:genId('tx'), ts, type:'transfer', from:txFrom, to:txTo, amount, remarks:document.getElementById('tx-transfer-note').value.trim()});
   } else {
     const payeeInput = document.getElementById('tx-payee').value.trim();
     const payee = payeeInput || (type==='income'?'Income':'Expense');
     const tx = {
       id: genId('tx'),
-      ts: new Date().toISOString(), type,
+      ts, type,
       account: txSelectedAccount,
       payee, category: txSelectedCat, amount,
       household: type==='expense' ? segValue('tx-household')==='yes' : false,
@@ -2010,6 +2028,22 @@ function generateMonthEndReport(){
   showToast('📊 Report ready!');
 }
 document.getElementById('gen-report-btn').addEventListener('click', generateMonthEndReport);
+document.getElementById('clear-since-btn').addEventListener('click', async ()=>{
+  const defaultDate = (typeof HISTORY_START_DATE!=='undefined') ? HISTORY_START_DATE : new Date().toISOString().slice(0,10);
+  const dateStr = prompt('Clear all logged expenses, income, and transfers from this date onward (YYYY-MM-DD):', defaultDate);
+  if(!dateStr) return;
+  const cutoff = new Date(dateStr);
+  if(isNaN(cutoff.getTime())){ alert('Could not read that date — please use YYYY-MM-DD.'); return; }
+  const matching = state.transactions.filter(t=> new Date(t.ts) >= cutoff);
+  if(!matching.length){ alert('No transactions found on or after ' + dateStr + '.'); return; }
+  const typed = prompt(`This will permanently delete ${matching.length} transaction(s) logged on or after ${dateStr}. Your account balances, budget settings, and People Ledger are untouched. This cannot be undone.\n\nType DELETE to confirm:`);
+  if(typed !== 'DELETE'){ showToast('Cancelled — nothing was deleted.'); return; }
+  state.transactions = state.transactions.filter(t=> new Date(t.ts) < cutoff);
+  recomputeBudgetActuals();
+  await saveState();
+  render();
+  showToast(`🗑️ Cleared ${matching.length} transaction(s) since ${dateStr}.`);
+});
 
 // ---- RECONCILIATION ----
 // ---- MANUAL BALANCE ADJUSTMENT (also used as reconciliation "suspense" fix) ----
