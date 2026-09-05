@@ -1483,13 +1483,22 @@ function parseBankSMS(text){
     if(found) result.accountId = found.id;
   }
 
+  // Restrict payee-extraction to a window around the actual transaction amount. Without this,
+  // patterns like "at X" can match footer/signature boilerplate anywhere else in the email
+  // (e.g. "...available at all times. Warm regards...") since whitespace-collapsing merges the
+  // whole email into one continuous string with no separation between the transaction line and
+  // everything after it.
+  const windowStart = amtMatch ? Math.max(0, amtMatch.index - 40) : 0;
+  const windowEnd = amtMatch ? Math.min(clean.length, amtMatch.index + 200) : clean.length;
+  const payeeSearchText = amtMatch ? clean.slice(windowStart, windowEnd) : clean;
+
   let payee = '';
   let m;
-  if((m = clean.match(/\bat\s+([A-Z0-9 &._-]{2,30}?)(?:\s+on\b|\.|,|$)/i))) payee = m[1];
-  else if((m = clean.match(/to\s+VPA\s+([a-zA-Z0-9._-]+)@/i))) payee = m[1];
-  else if((m = clean.match(/for\s+UPI-([A-Za-z0-9 .-]{2,30}?)-/i))) payee = m[1];
-  else if((m = clean.match(/\bfrom\s+([A-Z][A-Za-z ]{2,30}?)(?:\s+on\b|\.|,|$)/))) payee = m[1];
-  else if((m = clean.match(/\binfo:\s*([A-Za-z0-9 .-]{2,30}?)(?:\.|,|$)/i))) payee = m[1];
+  if((m = payeeSearchText.match(/\bat\s+([A-Z0-9 &._-]{2,30}?)(?:\s+on\b|\.|,|$)/i))) payee = m[1];
+  else if((m = payeeSearchText.match(/to\s+VPA\s+([a-zA-Z0-9._-]+)@/i))) payee = m[1];
+  else if((m = payeeSearchText.match(/for\s+UPI-([A-Za-z0-9 .-]{2,30}?)-/i))) payee = m[1];
+  else if((m = payeeSearchText.match(/\bfrom\s+([A-Z][A-Za-z ]{2,30}?)(?:\s+on\b|\s+via\b|\.|,|$)/))) payee = m[1];
+  else if((m = payeeSearchText.match(/\binfo:\s*([A-Za-z0-9 .-]{2,30}?)(?:\.|,|$)/i))) payee = m[1];
   result.payee = payee.trim();
   result.category = guessCategory(clean, result.payee, result.type);
 
@@ -2456,7 +2465,10 @@ async function runGmailCheck(fullSweep){
       }catch(e){ console.error('Fetch failed for', account.email, e); }
     }
 
-    const classified = classifyImportCandidates(allCandidates, state.pendingImports);
+    const alreadySeenMessageIds = new Set(state.pendingImports.map(p=>p.gmailMessageId).filter(Boolean));
+    const freshCandidates = allCandidates.filter(c=> !alreadySeenMessageIds.has(c.gmailMessageId));
+
+    const classified = classifyImportCandidates(freshCandidates, state.pendingImports);
     state.pendingImports.push(...classified);
     state.lastGmailFetch = new Date().toISOString();
     await saveState();
@@ -2491,7 +2503,7 @@ function renderPendingReview(){
       return `<div class="row" data-reviewimport="${it.id}" style="cursor:pointer;">
         <div style="display:flex; align-items:center; gap:11px; ${isDup?'opacity:0.55;':''}">
           <div class="chip-icon" style="background:${meta.bg};">${meta.em}</div>
-          <div><div class="name">${it.payee}</div><div class="sub">${new Date(it.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}${it.sourceEmail?' · '+it.sourceEmail:''}</div></div>
+          <div><div class="name">${it.payee}</div><div class="sub">${new Date(it.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}${it.sourceEmail?' · '+it.sourceEmail:''}</div></div>
         </div>
         <div style="text-align:right;">
           <div class="amt ${it.type==='income'?'pos':'neg'}">${fmt(it.amount)}</div>
@@ -2548,7 +2560,7 @@ function openReviewImport(id){
   activeImportId = id;
   riSelectedCat = imp.category;
   riSelectedAccount = imp.accountId;
-  const sourceLine = 'Found in ' + (imp.sourceEmail||'your email') + ' · ' + new Date(imp.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  const sourceLine = 'Found in ' + (imp.sourceEmail||'your email') + ' · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
   document.getElementById('ri-source-note').textContent = imp.status==='duplicate'
     ? '⚠️ Looks like this may already be in your ledger. Check before adding — if it\'s genuinely separate, just approve it. ' + sourceLine
     : sourceLine;
