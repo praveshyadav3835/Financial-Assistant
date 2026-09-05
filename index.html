@@ -1484,22 +1484,33 @@ function parseBankSMS(text){
   }
 
   // Restrict payee-extraction to a window around the actual transaction amount. Without this,
-  // patterns like "at X" can match footer/signature boilerplate anywhere else in the email
-  // (e.g. "...available at all times. Warm regards...") since whitespace-collapsing merges the
-  // whole email into one continuous string with no separation between the transaction line and
-  // everything after it.
+  // patterns like "at X" can match footer/signature boilerplate anywhere else in the email.
+  // Window widened to 160 chars based on real examples — IDFC's longest observed merchant
+  // names ("PARAS HEALTH CARE P", "Pappa Curry Paras GG") need ~95-100 chars to reach the
+  // "on <date>" terminator, so anything tighter truncates real merchant names.
   const windowStart = amtMatch ? Math.max(0, amtMatch.index - 40) : 0;
-  const windowEnd = amtMatch ? Math.min(clean.length, amtMatch.index + 80) : clean.length;
+  const windowEnd = amtMatch ? Math.min(clean.length, amtMatch.index + 160) : clean.length;
   const payeeSearchText = amtMatch ? clean.slice(windowStart, windowEnd) : clean;
 
   let payee = '';
   let m;
-  if((m = payeeSearchText.match(/\bat\s+([A-Z0-9 &._-]{2,20}?)(?:\s+on\b|\.|,|$)/i))) payee = m[1];
+  let upiRef = null;
+  // Most reliable when present: Axis-style "Transaction Info: UPI/P2A/<ref>/NAME[/BANKCODE/UPI]".
+  // The name is always ALL CAPS here, which naturally bounds the match — real prose that follows
+  // (e.g. "If this transaction...") starts with a capital+lowercase word, so the all-caps
+  // requirement stops there without needing a fragile character cap.
+  const upiInfoMatch = payeeSearchText.match(/UPI\/P2A\/(\d+)\/([A-Z][A-Z ]{1,25}[A-Z])(?:\/|\s+[A-Z][a-z]|\.|,|$)/);
+  if(upiInfoMatch){
+    upiRef = upiInfoMatch[1];
+    payee = upiInfoMatch[2];
+  }
+  else if((m = payeeSearchText.match(/\bat\s+([A-Z0-9 &._'-]{2,40}?)(?:\s+on\s+\d|\.|,|$)/i))) payee = m[1];
   else if((m = payeeSearchText.match(/to\s+VPA\s+([a-zA-Z0-9._-]+)@/i))) payee = m[1];
   else if((m = payeeSearchText.match(/for\s+UPI-([A-Za-z0-9 .-]{2,30}?)-/i))) payee = m[1];
   else if((m = payeeSearchText.match(/\bfrom\s+([A-Z][A-Za-z ]{2,30}?)(?:\s+on\b|\s+via\b|\.|,|$)/))) payee = m[1];
   else if((m = payeeSearchText.match(/\binfo:\s*([A-Za-z0-9 .-]{2,30}?)(?:\.|,|$)/i))) payee = m[1];
   result.payee = payee.trim();
+  result.upiRef = upiRef;
   result.category = guessCategory(clean, result.payee, result.type);
 
   // Learned history takes priority over the generic keyword guess — it's specific to
@@ -2292,6 +2303,13 @@ function extractEmailBody(payload){
 function isDuplicateOf(candidate, existing, toleranceMinutes){
   const sameAmount = Math.abs(candidate.amount - existing.amount) < 1;
   if(!sameAmount) return false;
+  // Authoritative check first: if both sides carry a UPI reference number, that alone decides
+  // it — verified against real data that distinct transactions (e.g. three separate ₹2,000
+  // transfers from the same person) can land under a minute apart, which a time-window alone
+  // cannot safely distinguish.
+  if(candidate.upiRef && existing.upiRef){
+    return candidate.upiRef === existing.upiRef;
+  }
   const minutesDiff = Math.abs(new Date(candidate.ts) - new Date(existing.ts)) / (60*1000);
   if(minutesDiff > toleranceMinutes) return false;
   const existingAccount = existing.account || existing.accountId;
@@ -2425,7 +2443,7 @@ async function fetchGmailCandidatesForAccount(account, afterStr){
       id: genId('imp'), gmailMessageId: m.id, sourceEmail: account.email, ts,
       amount: parsed.amount, type: parsed.type,
       payee: parsed.payee || 'Unknown', category: parsed.category || 'Other',
-      accountId: parsed.accountId || null
+      accountId: parsed.accountId || null, upiRef: parsed.upiRef || null
     });
   }
   return candidates;
