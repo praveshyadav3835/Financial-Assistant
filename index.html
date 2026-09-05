@@ -305,7 +305,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v20-matching-fixes</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v21-sync-migration-fix</p>
     </section>
   </main>
 
@@ -870,6 +870,15 @@ async function initCloudSync(onFirstData){
       const migrated = await migrateOldSingleDocIfPresent();
       if(!migrated){
         await writeFullStateToCloud(pluckFullState(state)); // brand-new setup — seed from local/SEED state
+      }
+    } else {
+      // Existing cloud data. If a migration just ran locally (during loadState(), before this
+      // function was called) and bumped our schemaVersion past what the cloud has, push the
+      // migrated meta fields up now — otherwise the listener we're about to attach would
+      // immediately read the stale cloud copy and silently revert this device's migration.
+      const cloudMeta = metaSnap.data();
+      if((cloudMeta.schemaVersion||0) < state.schemaVersion){
+        await hh('meta').set({ _type:'meta', ...Object.fromEntries(META_FIELDS.map(k=>[k, state[k]])) });
       }
     }
     attachAllListeners();
