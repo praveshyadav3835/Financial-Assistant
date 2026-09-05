@@ -228,6 +228,7 @@
       <h2 class="section-title">Overview</h2>
       <p class="section-sub" id="home-date"></p>
       <div id="pending-review-wrap"></div>
+      <div id="learning-match-wrap"></div>
       <div class="bento">
         <div class="bento-tile"><div class="bt-top"><div class="bt-icon" style="background:var(--sage-dim);">💵</div><div class="bt-label">Liquid Bank Cash</div></div><div class="bt-value" id="ov-cash">—</div></div>
         <div class="bento-tile"><div class="bt-top"><div class="bt-icon" style="background:var(--rose-dim);">💳</div><div class="bt-label">Credit Card Dues</div></div><div class="bt-value neg" id="ov-cards">—</div></div>
@@ -447,6 +448,14 @@
     <div class="field">
       <label>Account</label>
       <div class="acct-row" id="ri-acct-row"></div>
+      <div class="section-sub" id="ri-acct-note" style="color:var(--debt); margin-top:4px;"></div>
+    </div>
+    <div class="field" id="ri-household-row">
+      <label>Family expense?</label>
+      <div class="seg" style="max-width:150px;" id="ri-household">
+        <button data-v="yes" class="on">Yes</button>
+        <button data-v="no">Just me</button>
+      </div>
     </div>
     <div class="field"><label>Who / what was this?</label><input id="ri-payee"></div>
     <div class="field"><label>Amount (₹)</label><input id="ri-amount" type="number" inputmode="decimal"></div>
@@ -1123,6 +1132,7 @@ function showToast(msg){
 
 function render(){
   renderPendingReview();
+  renderLearningMatches();
   const t = totals();
   document.getElementById('hdr-net').textContent = fmt(t.net);
   document.getElementById('hdr-net').className = 'netvalue' + (t.net<0?' neg':'');
@@ -1583,6 +1593,7 @@ wireSeg('tx-type', (v)=>{
   renderTxFormLists();
 });
 wireSeg('tx-household');
+wireSeg('ri-household');
 wireSeg('person-dir', ()=> renderPersonAcctChips());
 wireSeg('ap-dir');
 renderKeypad();
@@ -2505,6 +2516,72 @@ async function runGmailCheck(fullSweep){
 async function checkGmailTransactions(){ return runGmailCheck(false); }
 async function runFullGmailSweep(){ return runGmailCheck(true); }
 
+function computeLearningMatches(){
+  // Pairs each manually-entered transaction (since Sep 2, not itself from an email import)
+  // with any still-pending/duplicate email candidate that plausibly describes the SAME
+  // real-world event — matched by amount + same calendar day + type. Time-of-day is
+  // deliberately not used here: a manual entry's timestamp is "when you tapped save," which
+  // can be hours after the email's actual send time.
+  const cutoff = new Date(HISTORY_START_DATE);
+  const manualTx = state.transactions.filter(t =>
+    t.type !== 'transfer' && new Date(t.ts) >= cutoff && t.remarks !== 'Imported from email'
+  );
+  const candidates = state.pendingImports || [];
+  const pairs = [];
+  const usedCandidateIds = new Set();
+  manualTx.forEach(tx=>{
+    const txDay = new Date(tx.ts).toDateString();
+    const match = candidates.find(c=>
+      !usedCandidateIds.has(c.id) &&
+      c.type === tx.type &&
+      Math.abs(c.amount - tx.amount) < 1 &&
+      new Date(c.ts).toDateString() === txDay
+    );
+    if(match){ usedCandidateIds.add(match.id); pairs.push({tx, candidate: match}); }
+  });
+  return pairs;
+}
+function renderLearningMatches(){
+  const wrap = document.getElementById('learning-match-wrap');
+  if(!wrap) return;
+  const pairs = computeLearningMatches();
+  if(!pairs.length){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `<div class="card" style="border-color:var(--sage); border-width:2px; margin-bottom:16px;">
+    <div class="row"><div><div class="name">🧠 ${pairs.length} entr${pairs.length>1?'ies':'y'} matched to email — learn from these?</div><div class="sub">Confirms each pairing and teaches the system your actual categorization</div></div></div>
+    ${pairs.map((p,i)=>`<div class="row" style="align-items:flex-start;">
+      <div style="flex:1;">
+        <div class="sub" style="margin-bottom:4px;">You entered:</div>
+        <div class="name">${p.tx.payee} · ${p.tx.category.split(' (')[0]}</div>
+        <div class="sub" style="margin:8px 0 4px;">Email said:</div>
+        <div class="name" style="opacity:0.7;">${p.candidate.payee}${p.candidate.category?' · '+p.candidate.category.split(' (')[0]:''}</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
+        <div class="amt neg">${fmt(p.tx.amount)}</div>
+        <button class="link-btn" data-learn-confirm="${i}">✓ Confirm & learn</button>
+        <button class="link-btn" style="color:var(--sub);" data-learn-skip="${i}">Skip</button>
+      </div>
+    </div>`).join('')}
+  </div>`;
+  wrap.querySelectorAll('[data-learn-confirm]').forEach(el=>{
+    el.addEventListener('click', async ()=>{
+      const p = pairs[parseInt(el.dataset.learnConfirm)];
+      recordPayeeLearning(p.candidate.payee, p.tx.category, p.tx.account, 3);
+      state.pendingImports = state.pendingImports.filter(x=>x.id!==p.candidate.id);
+      await saveState();
+      render();
+      showToast('Learned ✓');
+    });
+  });
+  wrap.querySelectorAll('[data-learn-skip]').forEach(el=>{
+    el.addEventListener('click', async ()=>{
+      const p = pairs[parseInt(el.dataset.learnSkip)];
+      state.pendingImports = state.pendingImports.filter(x=>x.id!==p.candidate.id);
+      await saveState();
+      render();
+    });
+  });
+}
+
 function renderPendingReview(){
   const wrap = document.getElementById('pending-review-wrap');
   if(!state.pendingImports || !state.pendingImports.length){ wrap.innerHTML=''; return; }
@@ -2564,10 +2641,13 @@ function renderReviewChips(imp){
   });
 
   const targets = imp.type==='expense' ? [...state.accounts, ...state.cards] : state.accounts;
-  if(!targets.find(a=>a.id===riSelectedAccount)) riSelectedAccount = imp.accountId && targets.find(a=>a.id===imp.accountId) ? imp.accountId : targets[0].id;
+  const detected = imp.accountId && targets.find(a=>a.id===imp.accountId);
+  if(!targets.find(a=>a.id===riSelectedAccount)) riSelectedAccount = detected ? imp.accountId : null;
   document.getElementById('ri-acct-row').innerHTML = targets.map(a=>
     `<div class="acct-chip ${a.id===riSelectedAccount?'on':''}" data-riacct="${a.id}">${a.em||'🏦'} ${a.name}</div>`
   ).join('');
+  const acctNote = document.getElementById('ri-acct-note');
+  if(acctNote) acctNote.textContent = riSelectedAccount ? '' : "⚠️ Couldn't auto-detect the account from this email — please choose one.";
   document.querySelectorAll('#ri-acct-row .acct-chip').forEach(el=>{
     el.addEventListener('click', ()=>{ riSelectedAccount = el.dataset.riacct; renderReviewChips(imp); });
   });
@@ -2584,6 +2664,8 @@ function openReviewImport(id){
     : sourceLine;
   document.getElementById('ri-payee').value = imp.payee;
   document.getElementById('ri-amount').value = imp.amount;
+  document.getElementById('ri-household-row').classList.toggle('hide', imp.type!=='expense');
+  document.querySelectorAll('#ri-household button').forEach(b=> b.classList.toggle('on', b.dataset.v==='no'));
   renderReviewChips(imp);
   reviewImportBackdrop.classList.add('open');
 }
@@ -2595,13 +2677,14 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
   if(!imp) return;
   const amount = parseFloat(document.getElementById('ri-amount').value);
   if(!amount || amount<=0){ alert('Enter a valid amount.'); return; }
+  if(!riSelectedAccount){ alert('Please choose an account or card first.'); return; }
   const payee = document.getElementById('ri-payee').value.trim() || imp.payee;
   const wasEdited = (riSelectedCat !== imp.category) || (riSelectedAccount !== imp.accountId) || (amount !== imp.amount) || (payee !== imp.payee);
 
   const tx = {
     id: genId('tx'), ts: imp.ts, type: imp.type,
     account: riSelectedAccount, payee, category: riSelectedCat, amount,
-    household: false, remarks: 'Imported from email'
+    household: imp.type==='expense' ? segValue('ri-household')==='yes' : false, remarks: 'Imported from email'
   };
   state.transactions.push(tx);
   recomputeBudgetActuals();
