@@ -305,7 +305,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v19-danger-zone</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v20-matching-fixes</p>
     </section>
   </main>
 
@@ -560,8 +560,9 @@ const CAT_META = {
 };
 function catMeta(cat){ return CAT_META[cat] || CAT_META['Other']; }
 
+const OTHER_EXPENSE_CAT = "Other / Uncategorized";
 const SEED = {
-  schemaVersion: 11,
+  schemaVersion: 12,
   accounts: [
     {id:'pravesh_axis', name:'Pravesh Axis Spending', tag:'...12687', opening:219671, em:'🏦'},
     {id:'mil', name:'Mother-in-Law Account', tag:'operated by Pravesh', opening:209000, em:'🏦'},
@@ -634,7 +635,8 @@ const SEED = {
     {cat:"Personal (Divya)", budget:17500, actual:7047},
     {cat:"Personal (Pravesh)", budget:17500, actual:10},
     {cat:"Wealth SIPs (Pravesh ₹5k + Divya ₹8k)", budget:13000, actual:0},
-    {cat:"Sinking Fund (Maintenance, LIC, Term)", budget:20000, actual:0}
+    {cat:"Sinking Fund (Maintenance, LIC, Term)", budget:20000, actual:0},
+    {cat:OTHER_EXPENSE_CAT, budget:0, actual:0}
   ],
   transactions: [
     {id:'seed1', ts:'2026-09-02T14:18:30', type:'expense', account:'divya_indusind', payee:'Vijeta Mummy', category:"Mother's Monthly Transfer", amount:40000, household:true, remarks:''},
@@ -729,6 +731,13 @@ function migrateState(){
     if(state.lastFetchSummary === undefined) state.lastFetchSummary = null;
     if(state.lastGmailFetch === undefined) state.lastGmailFetch = null;
     state.schemaVersion = 11;
+  }
+  if(state.schemaVersion < 12){
+    if(!state.budget.find(b=>b.cat===OTHER_EXPENSE_CAT)){
+      state.budget.push({cat:OTHER_EXPENSE_CAT, budget:0, actual:0});
+    }
+    recomputeBudgetActuals();
+    state.schemaVersion = 12;
   }
 }
 
@@ -1021,7 +1030,7 @@ function recomputeBudgetActuals(){
   state.budget.forEach(b=> b.actual = 0);
   state.transactions.forEach(t=>{
     if(t.type==='transfer') return;
-    const b = state.budget.find(x=>x.cat===t.category);
+    const b = state.budget.find(x=>x.cat===t.category) || state.budget.find(x=>x.cat===OTHER_EXPENSE_CAT);
     if(b) b.actual += t.amount;
   });
 }
@@ -1399,7 +1408,7 @@ function renderTxFormLists(){
   document.getElementById('acct-label').textContent = type==='income' ? 'Into which account?' : 'Paid from where?';
 
   const catOptions = type==='income' ? state.budget.filter(b=>b.income).map(b=>b.cat) : [...state.budget.filter(b=>!b.income).map(b=>b.cat)];
-  const cats = [...catOptions, 'Other'];
+  const cats = [...catOptions, OTHER_EXPENSE_CAT];
   if(!cats.includes(txSelectedCat)) txSelectedCat = cats[0];
   const baseLabels = cats.map(c => c.split(' (')[0].split(',')[0]);
   document.getElementById('cat-grid').innerHTML = cats.map((c,i)=>{
@@ -1683,7 +1692,7 @@ let editSelectedAccount = null;
 function renderEditChips(){
   if(!editingTx) return;
   const catOptions = editingTx.type==='income' ? state.budget.filter(b=>b.income).map(b=>b.cat) : state.budget.filter(b=>!b.income).map(b=>b.cat);
-  const cats = [...catOptions, 'Other'];
+  const cats = [...catOptions, OTHER_EXPENSE_CAT];
   if(!cats.includes(editSelectedCat)) editSelectedCat = editingTx.category;
   const baseLabels = cats.map(c => c.split(' (')[0].split(',')[0]);
   document.getElementById('edit-cat-grid').innerHTML = cats.map((c,i)=>{
@@ -2347,29 +2356,33 @@ function extractEmailBody(payload){
   const result = walk(payload);
   return result ? result.text : '';
 }
-function isDuplicateOf(candidate, existing, toleranceMinutes){
+function isDuplicateOf(candidate, existing, toleranceMinutes, requireAccountMatch){
   const sameAmount = Math.abs(candidate.amount - existing.amount) < 1;
   if(!sameAmount) return false;
-  // Authoritative check first: if both sides carry a UPI reference number, that alone decides
-  // it — verified against real data that distinct transactions (e.g. three separate ₹2,000
-  // transfers from the same person) can land under a minute apart, which a time-window alone
-  // cannot safely distinguish.
   if(candidate.upiRef && existing.upiRef){
     return candidate.upiRef === existing.upiRef;
   }
   const minutesDiff = Math.abs(new Date(candidate.ts) - new Date(existing.ts)) / (60*1000);
   if(minutesDiff > toleranceMinutes) return false;
-  const existingAccount = existing.account || existing.accountId;
-  if(candidate.accountId && existingAccount && candidate.accountId !== existingAccount) return false;
+  if(requireAccountMatch){
+    const existingAccount = existing.account || existing.accountId;
+    if(candidate.accountId && existingAccount && candidate.accountId !== existingAccount) return false;
+  }
   return true;
 }
 function buildExistingCashEventsPool(){
-  // Real cash movements can be logged two ways in this app: as a normal transaction,
-  // or as a People Ledger entry (e.g. "took ₹10,000 from Aman"). Both must count when
-  // checking whether a fetched email describes something already recorded.
+  // Real cash movements can be logged three ways in this app: a normal transaction, a transfer
+  // between two of your own accounts, or a People Ledger entry (e.g. "took ₹10,000 from Aman").
+  // All three must count when checking whether a fetched email describes something already
+  // recorded — transfers and account-less People Ledger entries were previously excluded here,
+  // which is why manually-logged transfers and person-ledger entries with no linked account kept
+  // showing up as "needs approval" even though they were already logged.
   const fromTx = state.transactions.filter(t=>t.type!=='transfer').map(t=>({amount:t.amount, ts:t.ts, account:t.account}));
-  const fromPersonLedger = state.personLedger.filter(e=>e.account).map(e=>({amount:Math.abs(e.delta), ts:e.ts, account:e.account}));
-  return [...fromTx, ...fromPersonLedger];
+  const fromTransfers = state.transactions.filter(t=>t.type==='transfer').flatMap(t=>[
+    {amount:t.amount, ts:t.ts, account:t.from}, {amount:t.amount, ts:t.ts, account:t.to}
+  ]);
+  const fromPersonLedger = state.personLedger.map(e=>({amount:Math.abs(e.delta), ts:e.ts, account:e.account||null}));
+  return [...fromTx, ...fromTransfers, ...fromPersonLedger];
 }
 const DUP_TOLERANCE_LEDGER_MIN = 3*24*60;  // 3 days — manual log entries are often timestamped hours after the real event
 const DUP_TOLERANCE_EMAIL_MIN = 30;        // 30 minutes — two emails about the SAME real transaction arrive close together;
@@ -2380,8 +2393,8 @@ function classifyImportCandidates(candidates, existingPending){
   const pool = buildExistingCashEventsPool();
   const accepted = [];
   return candidates.map(c=>{
-    const isDupVsLedger = pool.some(e=>isDuplicateOf(c,e,DUP_TOLERANCE_LEDGER_MIN));
-    const isDupVsBatch = accepted.some(a=>isDuplicateOf(c,a,DUP_TOLERANCE_EMAIL_MIN)) || existingPending.some(p=>isDuplicateOf(c,p,DUP_TOLERANCE_EMAIL_MIN));
+    const isDupVsLedger = pool.some(e=>isDuplicateOf(c,e,DUP_TOLERANCE_LEDGER_MIN,false));
+    const isDupVsBatch = accepted.some(a=>isDuplicateOf(c,a,DUP_TOLERANCE_EMAIL_MIN,true)) || existingPending.some(p=>isDuplicateOf(c,p,DUP_TOLERANCE_EMAIL_MIN,true));
     const isDup = isDupVsLedger || isDupVsBatch;
     if(!isDup) accepted.push(c);
     return {...c, status: isDup ? 'duplicate' : 'pending'};
@@ -2489,7 +2502,7 @@ async function fetchGmailCandidatesForAccount(account, afterStr){
     candidates.push({
       id: genId('imp'), gmailMessageId: m.id, sourceEmail: account.email, ts,
       amount: parsed.amount, type: parsed.type,
-      payee: parsed.payee || 'Unknown', category: parsed.category || 'Other',
+      payee: parsed.payee || 'Unknown', category: parsed.category || OTHER_EXPENSE_CAT,
       accountId: parsed.accountId || null, upiRef: parsed.upiRef || null
     });
   }
@@ -2631,10 +2644,12 @@ function renderPendingReview(){
     ${items.map(it=>{
       const meta = catMeta(it.category);
       const isDup = it.status==='duplicate';
+      const acctObj = it.accountId ? [...state.accounts, ...state.cards].find(a=>a.id===it.accountId) : null;
+      const acctLabel = acctObj ? acctObj.name : '⚠️ account not detected';
       return `<div class="row" data-reviewimport="${it.id}" style="cursor:pointer;">
         <div style="display:flex; align-items:center; gap:11px; ${isDup?'opacity:0.55;':''}">
           <div class="chip-icon" style="background:${meta.bg};">${meta.em}</div>
-          <div><div class="name">${it.payee}</div><div class="sub">${new Date(it.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}${it.sourceEmail?' · '+it.sourceEmail:''}</div></div>
+          <div><div class="name">${it.payee}</div><div class="sub">${new Date(it.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}${it.sourceEmail?' · '+it.sourceEmail:''}</div><div class="sub" style="color:${acctObj?'inherit':'var(--debt)'};">${acctLabel}</div></div>
         </div>
         <div style="text-align:right;">
           <div class="amt ${it.type==='income'?'pos':'neg'}">${fmt(it.amount)}</div>
@@ -2660,7 +2675,7 @@ let activeImportId = null;
 let riSelectedCat = null, riSelectedAccount = null;
 function renderReviewChips(imp){
   const catOptions = imp.type==='income' ? state.budget.filter(b=>b.income).map(b=>b.cat) : state.budget.filter(b=>!b.income).map(b=>b.cat);
-  const cats = [...catOptions, 'Other'];
+  const cats = [...catOptions, OTHER_EXPENSE_CAT];
   if(!cats.includes(riSelectedCat)) riSelectedCat = cats.includes(imp.category) ? imp.category : cats[0];
   const baseLabels = cats.map(c => c.split(' (')[0].split(',')[0]);
   document.getElementById('ri-cat-grid').innerHTML = cats.map((c,i)=>{
