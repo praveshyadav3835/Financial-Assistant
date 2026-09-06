@@ -308,7 +308,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v29-transfer-section-split</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v30-salon-commitment</p>
     </section>
   </main>
 
@@ -583,7 +583,7 @@ function catMeta(cat){ return CAT_META[cat] || CAT_META['Other']; }
 
 const OTHER_EXPENSE_CAT = "Other / Uncategorized";
 const SEED = {
-  schemaVersion: 14,
+  schemaVersion: 15,
   accounts: [
     {id:'pravesh_axis', name:'Pravesh Axis Spending', tag:'...12687', opening:219671, em:'🏦'},
     {id:'mil', name:'Mother-in-Law Account', tag:'operated by Pravesh', opening:209000, em:'🏦'},
@@ -638,7 +638,8 @@ const SEED = {
     {name:'Pravesh Term Plan', freq:'Yearly (May)', due:'May 2027', amount:45000},
     {name:'Divya Term Plan', freq:'Yearly (June)', due:'June 2027', amount:36000},
     {name:'Baleno Car Insurance', freq:'Yearly (June)', due:'June 2027', amount:17000},
-    {name:'Home Appliance Service (5 ACs + 1 RO)', freq:'Yearly', due:'Pre-summer', amount:6000}
+    {name:'Home Appliance Service (5 ACs + 1 RO)', freq:'Yearly', due:'Pre-summer', amount:6000},
+    {name:'Salon Subscription', freq:'Half-Yearly', due:'Mar 2027', amount:10000}
   ],
   budget: [
     {cat:"Divya Salary", budget:160000, actual:0, income:true},
@@ -784,6 +785,12 @@ function migrateState(){
     });
     recomputeBudgetActuals();
     state.schemaVersion = 14;
+  }
+  if(state.schemaVersion < 15){
+    if(!state.commitments.find(c=>c.name==='Salon Subscription')){
+      state.commitments.push({name:'Salon Subscription', freq:'Half-Yearly', due:'Mar 2027', amount:10000});
+    }
+    state.schemaVersion = 15;
   }
 }
 
