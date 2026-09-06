@@ -308,7 +308,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v23-month-view</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v27-email-account-mapping</p>
     </section>
   </main>
 
@@ -533,6 +533,15 @@
   </div>
 </div>
 
+<div class="sheet-backdrop" id="acctstatement-backdrop">
+  <div class="sheet" style="max-height:85vh; overflow-y:auto;">
+    <h3 id="acctstatement-title">Statement</h3>
+    <p class="section-sub" id="acctstatement-sub"></p>
+    <div id="acctstatement-list"></div>
+    <button class="btn-ghost" id="acctstatement-close">Close</button>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -574,7 +583,7 @@ function catMeta(cat){ return CAT_META[cat] || CAT_META['Other']; }
 
 const OTHER_EXPENSE_CAT = "Other / Uncategorized";
 const SEED = {
-  schemaVersion: 12,
+  schemaVersion: 13,
   accounts: [
     {id:'pravesh_axis', name:'Pravesh Axis Spending', tag:'...12687', opening:219671, em:'🏦'},
     {id:'mil', name:'Mother-in-Law Account', tag:'operated by Pravesh', opening:209000, em:'🏦'},
@@ -662,6 +671,7 @@ const SEED = {
   payeeMemory: {},
   pendingImports: [],
   gmailConnectedEmails: [],
+  processedGmailIds: [],
   lastFetchSummary: null,
   lastGmailFetch: null
 };
@@ -751,6 +761,17 @@ function migrateState(){
     recomputeBudgetActuals();
     state.schemaVersion = 12;
   }
+  if(state.schemaVersion < 13){
+    if(!state.processedGmailIds) state.processedGmailIds = [];
+    const existingIds = new Set(state.processedGmailIds.map(p=>p.id));
+    (state.pendingImports||[]).forEach(p=>{
+      if(p.gmailMessageId && !existingIds.has(p.gmailMessageId)){
+        state.processedGmailIds.push({id:p.gmailMessageId});
+        existingIds.add(p.gmailMessageId);
+      }
+    });
+    state.schemaVersion = 13;
+  }
 }
 
 async function loadState(){
@@ -792,10 +813,11 @@ const COLLECTION_FIELDS = {
   people: 'person',
   balanceAdjustments: 'balanceAdjustment',
   accounts: 'account',
-  cards: 'card'
+  cards: 'card',
+  processedGmailIds: 'processedGmailId'
 };
 const META_FIELDS = ['budget','mutualFunds','equities','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion'];
-let previousArrays = { transactions:[], personLedger:[], pendingImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[] };
+let previousArrays = { transactions:[], personLedger:[], pendingImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[] };
 
 function setSyncStatus(text, ok){
   const el = document.getElementById(SYNC_LABEL_ID);
@@ -1261,13 +1283,13 @@ function render(){
 
   document.getElementById('accounts-list').innerHTML = state.accounts.map(a=>{
     const bal = accountBalance(a);
-    return `<div class="row"><div style="display:flex; align-items:center; gap:11px;"><div class="chip-icon" style="background:var(--peri-dim);">${a.em||'🏦'}</div><div><div class="name">${a.name}</div><div class="sub">${a.tag}</div></div></div>
+    return `<div class="row" data-acctstatement="${a.id}" data-iscard="0" style="cursor:pointer;"><div style="display:flex; align-items:center; gap:11px;"><div class="chip-icon" style="background:var(--peri-dim);">${a.em||'🏦'}</div><div><div class="name">${a.name}</div><div class="sub">${a.tag}</div></div></div>
       <div class="row-actions" style="flex-direction:column; align-items:flex-end; gap:5px;"><div class="amt ${bal<0?'neg':''}">${fmt(bal)}</div><div style="display:flex; gap:10px;"><button class="link-btn" data-adjust="${a.id}" data-adjiscard="0">Adjust</button><button class="link-btn" data-recon="${a.id}" data-iscard="0">Reconcile</button></div></div>
     </div>`;
   }).join('');
   document.getElementById('cards-list').innerHTML = state.cards.map(c=>{
     const due = cardDue(c);
-    return `<div class="row"><div style="display:flex; align-items:center; gap:11px;"><div class="chip-icon" style="background:var(--rose-dim);">${c.em||'💳'}</div><div><div class="name">${c.name}</div><div class="sub">${c.tag}</div></div></div>
+    return `<div class="row" data-acctstatement="${c.id}" data-iscard="1" style="cursor:pointer;"><div style="display:flex; align-items:center; gap:11px;"><div class="chip-icon" style="background:var(--rose-dim);">${c.em||'💳'}</div><div><div class="name">${c.name}</div><div class="sub">${c.tag}</div></div></div>
       <div class="row-actions" style="flex-direction:column; align-items:flex-end; gap:5px;"><div class="amt neg">${fmt(due)}</div><div style="display:flex; gap:10px;"><button class="link-btn" data-adjust="${c.id}" data-adjiscard="1">Adjust</button><button class="link-btn" data-recon="${c.id}" data-iscard="1">Reconcile</button></div></div>
     </div>`;
   }).join('');
@@ -1521,7 +1543,17 @@ function guessCategory(clean, payee, type){
   return null;
 }
 
-function parseBankSMS(text){
+// Definitive mapping of which bank/card notifications arrive at which inbox, as confirmed
+// directly. This is a hard constraint, not a hint — an email from one address can NEVER be
+// matched to an account outside its list, regardless of what digits appear in the body. This
+// is what should have prevented the Aman/Divya IndusInd mismatch: praveshyadav3835@gmail.com
+// can never legitimately produce a Divya-owned account.
+const EMAIL_ACCOUNT_MAP = {
+  'divya9477@gmail.com': ['divya_indusind', 'divya_icici', 'divya_axis'],
+  'praveshyadav3835@gmail.com': ['pravesh_axis', 'sib', 'sbi_card'],
+  'pravesh35yadav@gmail.com': ['idfc_card', 'cousin', 'mil']
+};
+function parseBankSMS(text, sourceEmail){
   const result = {amount:null, type:'expense', payee:'', accountId:null, category:null};
   const clean = text.replace(/\s+/g,' ').trim();
 
@@ -1545,7 +1577,8 @@ function parseBankSMS(text){
     if(acctMatch) smsDigits = acctMatch[1];
   }
   if(smsDigits){
-    const allTargets = [...state.accounts, ...state.cards];
+    const allowedIds = sourceEmail && EMAIL_ACCOUNT_MAP[sourceEmail] ? EMAIL_ACCOUNT_MAP[sourceEmail] : null;
+    const allTargets = [...state.accounts, ...state.cards].filter(t=> !allowedIds || allowedIds.includes(t.id));
     const found = allTargets.find(t=>{
       const tagDigits = extractDigits(t.tag||'');
       return tagDigits && (tagDigits.endsWith(smsDigits) || smsDigits.endsWith(tagDigits));
@@ -2197,6 +2230,68 @@ document.getElementById('see-all-month-btn').addEventListener('click', ()=>{
   monthviewBackdrop.classList.add('open');
 });
 document.getElementById('monthview-close').addEventListener('click', ()=> monthviewBackdrop.classList.remove('open'));
+
+const acctstatementBackdrop = document.getElementById('acctstatement-backdrop');
+function renderAcctStatement(targetId, isCard){
+  const target = isCard ? state.cards.find(c=>c.id===targetId) : state.accounts.find(a=>a.id===targetId);
+  if(!target) return;
+  document.getElementById('acctstatement-title').textContent = target.name + ' — statement';
+
+  // Anchor on the most recent balance adjustment for this account/card, if any — that's the
+  // last point we know the number was definitely correct. Everything listed below it is what
+  // the app added on top to reach the current total.
+  const adj = (state.balanceAdjustments||[]).filter(a=>a.targetId===targetId).sort((a,b)=>new Date(b.ts)-new Date(a.ts))[0];
+  const anchorTs = adj ? new Date(adj.ts) : null;
+  const anchorVal = adj ? adj.newValue : (isCard ? target.openingDue : target.opening);
+
+  const entries = [];
+  state.transactions.forEach(t=>{
+    if(anchorTs && new Date(t.ts) < anchorTs) return;
+    if(isCard){
+      if(t.type==='expense' && t.account===targetId) entries.push({ts:t.ts, label:t.payee+' · '+t.category, delta:t.amount});
+      if(t.type==='transfer' && t.to===targetId) entries.push({ts:t.ts, label:'Payment from '+targetName(t.from), delta:-t.amount});
+      return;
+    }
+    if(t.type==='transfer'){
+      if(t.from===targetId) entries.push({ts:t.ts, label:'Transfer to '+targetName(t.to), delta:-t.amount});
+      if(t.to===targetId) entries.push({ts:t.ts, label:'Transfer from '+targetName(t.from), delta:t.amount});
+    } else if(t.account===targetId){
+      entries.push({ts:t.ts, label:t.payee+' · '+t.category, delta: t.type==='income'?t.amount:-t.amount});
+    }
+  });
+  if(!isCard){
+    state.personLedger.forEach(e=>{
+      if(e.account===targetId && (!anchorTs || new Date(e.ts)>=anchorTs)){
+        entries.push({ts:e.ts, label:'People ledger entry', delta:-e.delta});
+      }
+    });
+  }
+  entries.sort((a,b)=> new Date(a.ts)-new Date(b.ts));
+
+  let running = anchorVal;
+  const rows = entries.map(e=>{ running += e.delta; return {...e, running}; });
+  const liveTotal = isCard ? cardDue(target) : accountBalance(target);
+
+  document.getElementById('acctstatement-sub').textContent = adj
+    ? `Anchored on your adjustment of ${fmt(anchorVal)} on ${anchorTs.toLocaleDateString('en-IN',{day:'numeric',month:'short'})} — ${entries.length} entr${entries.length===1?'y':'ies'} since`
+    : `No adjustment on record — showing everything ever logged (opening balance ${fmt(anchorVal)})`;
+
+  document.getElementById('acctstatement-list').innerHTML = `
+    <div class="row"><div class="name">${adj?'Adjusted to':'Opening'}</div><div class="amt">${fmt(anchorVal)}</div></div>
+    ${rows.map(r=>`<div class="row"><div><div class="name">${r.label}</div><div class="sub">${new Date(r.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div>
+      <div style="text-align:right;"><div class="amt ${r.delta<0?'neg':'pos'}">${r.delta<0?'':'+'}${fmt(r.delta)}</div><div class="sub">→ ${fmt(r.running)}</div></div>
+    </div>`).join('')}
+    <div class="row" style="border-top:2px solid var(--peri); margin-top:8px; padding-top:12px;"><div class="name">Current (live)</div><div class="amt" style="font-weight:700;">${fmt(liveTotal)}</div></div>
+    ${Math.abs(running-liveTotal)>=1 ? `<p class="section-sub" style="color:var(--debt); margin-top:8px;">⚠️ ${fmt(Math.abs(running-liveTotal))} unaccounted for between what's listed above and the live total — check for entries dated before this anchor that shouldn't be, or a missed adjustment.</p>` : ''}
+  `;
+}
+document.addEventListener('click', (e)=>{
+  const row = e.target.closest('[data-acctstatement]');
+  if(!row || e.target.closest('button')) return;
+  renderAcctStatement(row.dataset.acctstatement, row.dataset.iscard==='1');
+  acctstatementBackdrop.classList.add('open');
+});
+document.getElementById('acctstatement-close').addEventListener('click', ()=> acctstatementBackdrop.classList.remove('open'));
 reconBackdrop.addEventListener('click', e=>{ if(e.target===reconBackdrop) reconBackdrop.classList.remove('open'); });
 
 function parseDateLoose(str){
@@ -2464,11 +2559,11 @@ function classifyImportCandidates(candidates, existingPending){
   const pool = buildExistingCashEventsPool();
   const accepted = [];
   return candidates.map(c=>{
-    const isDupVsLedger = pool.some(e=>isDuplicateOf(c,e,DUP_TOLERANCE_LEDGER_MIN,false));
+    const ledgerMatch = pool.find(e=>isDuplicateOf(c,e,DUP_TOLERANCE_LEDGER_MIN,false));
     const isDupVsBatch = accepted.some(a=>isDuplicateOf(c,a,DUP_TOLERANCE_EMAIL_MIN,true)) || existingPending.some(p=>isDuplicateOf(c,p,DUP_TOLERANCE_EMAIL_MIN,true));
-    const isDup = isDupVsLedger || isDupVsBatch;
+    const isDup = !!ledgerMatch || isDupVsBatch;
     if(!isDup) accepted.push(c);
-    return {...c, status: isDup ? 'duplicate' : 'pending'};
+    return {...c, status: isDup ? 'duplicate' : 'pending', matchedAccount: ledgerMatch ? ledgerMatch.account : null};
   });
 }
 function filterNewImportCandidates(candidates, existingTransactions, existingPending){
@@ -2567,7 +2662,7 @@ async function fetchGmailCandidatesForAccount(account, afterStr){
     const msgData = await msgRes.json();
     const bodyText = extractEmailBody(msgData.payload);
     if(!bodyText) continue;
-    const parsed = parseBankSMS(bodyText);
+    const parsed = parseBankSMS(bodyText, account.email);
     if(!parsed.amount) continue;
     const ts = msgData.internalDate ? new Date(parseInt(msgData.internalDate)).toISOString() : new Date().toISOString();
     candidates.push({
@@ -2614,11 +2709,16 @@ async function runGmailCheck(fullSweep){
       }catch(e){ console.error('Fetch failed for', account.email, e); }
     }
 
-    const alreadySeenMessageIds = new Set(state.pendingImports.map(p=>p.gmailMessageId).filter(Boolean));
+    const alreadySeenMessageIds = new Set([
+      ...(state.processedGmailIds||[]).map(p=>p.id),
+      ...state.pendingImports.map(p=>p.gmailMessageId).filter(Boolean)
+    ]);
     const freshCandidates = allCandidates.filter(c=> !alreadySeenMessageIds.has(c.gmailMessageId));
 
     const classified = classifyImportCandidates(freshCandidates, state.pendingImports);
     state.pendingImports.push(...classified);
+    if(!state.processedGmailIds) state.processedGmailIds = [];
+    classified.forEach(c=>{ if(c.gmailMessageId) state.processedGmailIds.push({id:c.gmailMessageId}); });
     state.lastGmailFetch = new Date().toISOString();
     await saveState();
     render();
@@ -2717,10 +2817,13 @@ function renderPendingReview(){
       const isDup = it.status==='duplicate';
       const acctObj = it.accountId ? [...state.accounts, ...state.cards].find(a=>a.id===it.accountId) : null;
       const acctLabel = acctObj ? acctObj.name : '⚠️ account not detected';
+      const matchedObj = it.matchedAccount ? [...state.accounts, ...state.cards].find(a=>a.id===it.matchedAccount) : null;
+      const mismatchNote = (isDup && matchedObj && matchedObj.id !== it.accountId)
+        ? `<div class="sub" style="color:var(--peri);">Matched to your entry in ${matchedObj.name} instead</div>` : '';
       return `<div class="row" data-reviewimport="${it.id}" style="cursor:pointer;">
         <div style="display:flex; align-items:center; gap:11px; ${isDup?'opacity:0.55;':''}">
           <div class="chip-icon" style="background:${meta.bg};">${meta.em}</div>
-          <div><div class="name">${it.payee}</div><div class="sub">${new Date(it.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}${it.sourceEmail?' · '+it.sourceEmail:''}</div><div class="sub" style="color:${acctObj?'inherit':'var(--debt)'};">${acctLabel}</div></div>
+          <div><div class="name">${it.payee}</div><div class="sub">${new Date(it.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}${it.sourceEmail?' · '+it.sourceEmail:''}</div><div class="sub" style="color:${acctObj?'inherit':'var(--debt)'};">Email says: ${acctLabel}</div>${mismatchNote}</div>
         </div>
         <div style="text-align:right;">
           <div class="amt ${it.type==='income'?'pos':'neg'}">${fmt(it.amount)}</div>
@@ -2732,6 +2835,7 @@ function renderPendingReview(){
   document.getElementById('clear-all-pending-btn').addEventListener('click', async ()=>{
     if(!confirm(`Clear all ${items.length} pending items? This just empties the review queue — nothing gets added to your ledger, and you can always re-fetch fresh ones afterward.`)) return;
     state.pendingImports = [];
+    state.processedGmailIds = [];
     await saveState();
     render();
     showToast('Cleared.');
