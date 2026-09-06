@@ -243,7 +243,7 @@
         <div class="row"><div class="name">Expenses logged</div><div class="amt neg" id="mo-expense">—</div></div>
         <div class="row"><div class="name">Net cash flow</div><div class="amt" id="mo-net">—</div></div>
       </div>
-      <div class="divider-label">Spending trend</div>
+      <div class="divider-label">This month's spending pace</div>
       <div class="card" id="trend-chart-wrap"></div>
       <div class="divider-label" style="display:flex; justify-content:space-between; align-items:center;">
         <span>Recent activity</span>
@@ -308,7 +308,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v27-email-account-mapping</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v28-budget-cats-and-chart</p>
     </section>
   </main>
 
@@ -583,7 +583,7 @@ function catMeta(cat){ return CAT_META[cat] || CAT_META['Other']; }
 
 const OTHER_EXPENSE_CAT = "Other / Uncategorized";
 const SEED = {
-  schemaVersion: 13,
+  schemaVersion: 14,
   accounts: [
     {id:'pravesh_axis', name:'Pravesh Axis Spending', tag:'...12687', opening:219671, em:'🏦'},
     {id:'mil', name:'Mother-in-Law Account', tag:'operated by Pravesh', opening:209000, em:'🏦'},
@@ -657,7 +657,11 @@ const SEED = {
     {cat:"Personal (Pravesh)", budget:17500, actual:10},
     {cat:"Wealth SIPs (Pravesh ₹5k + Divya ₹8k)", budget:13000, actual:0},
     {cat:"Sinking Fund (Maintenance, LIC, Term)", budget:20000, actual:0},
-    {cat:OTHER_EXPENSE_CAT, budget:0, actual:0}
+    {cat:OTHER_EXPENSE_CAT, budget:0, actual:0},
+    {cat:"House Help", budget:0, actual:0},
+    {cat:"Medical", budget:0, actual:0},
+    {cat:"Parties", budget:0, actual:0},
+    {cat:"Other Investments", budget:0, actual:0}
   ],
   transactions: [
     {id:'seed1', ts:'2026-09-02T14:18:30', type:'expense', account:'divya_indusind', payee:'Vijeta Mummy', category:"Mother's Monthly Transfer", amount:40000, household:true, remarks:''},
@@ -771,6 +775,15 @@ function migrateState(){
       }
     });
     state.schemaVersion = 13;
+  }
+  if(state.schemaVersion < 14){
+    ["House Help", "Medical", "Parties", "Other Investments"].forEach(catName=>{
+      if(!state.budget.find(b=>b.cat===catName)){
+        state.budget.push({cat:catName, budget:0, actual:0});
+      }
+    });
+    recomputeBudgetActuals();
+    state.schemaVersion = 14;
   }
 }
 
@@ -1152,29 +1165,46 @@ function monthTotals(){
 }
 
 function buildTrendChartSVG(){
-  const map = {};
-  state.transactions.forEach(t=>{
-    if(t.type !== 'expense') return;
+  const now = new Date();
+  const totalBudget = state.budget.filter(b=>!b.income).reduce((s,b)=>s+b.budget,0);
+  const monthExpenses = state.transactions.filter(t=>{
+    if(t.type!=='expense') return false;
     const d = new Date(t.ts);
-    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-    map[key] = (map[key]||0) + t.amount;
+    return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
   });
-  let keys = Object.keys(map).sort();
-  keys = keys.slice(-6);
-  if(keys.length === 0){
+  if(!monthExpenses.length){
     return '<div class="empty" style="padding:20px 0;">Log a few expenses to see your spending trend here.</div>';
   }
-  const values = keys.map(k=>map[k]);
-  const labels = keys.map(k=>{
-    const [y,mo] = k.split('-');
-    return new Date(+y, +mo-1, 1).toLocaleDateString('en-IN',{month:'short'});
-  });
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const today = now.getDate();
+  const dailyTotals = new Array(daysInMonth+1).fill(0);
+  monthExpenses.forEach(t=>{ dailyTotals[new Date(t.ts).getDate()] += t.amount; });
+
+  const cumulative = [];
+  let running = 0;
+  for(let d=1; d<=today; d++){ running += dailyTotals[d]; cumulative.push(running); }
+  const totalSpent = running;
+  const pct = totalBudget>0 ? Math.round((totalSpent/totalBudget)*100) : 0;
+  const remaining = totalBudget - totalSpent;
+  const overBudget = remaining < 0;
+
+  const headlineHtml = `
+    <div style="margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline;">
+        <span style="font-size:13px; color:var(--ink-soft);">${pct}% of ${now.toLocaleDateString('en-IN',{month:'short'})} budget used</span>
+        <span style="font-size:13px; font-weight:700; color:${overBudget?'var(--debt)':'var(--sage)'};">${overBudget ? fmt(Math.abs(remaining))+' over budget' : fmt(remaining)+' left'}</span>
+      </div>
+      <div style="height:8px; background:var(--line); border-radius:4px; margin-top:6px; overflow:hidden;">
+        <div style="height:100%; width:${Math.min(100,pct)}%; background:${overBudget?'var(--debt)':'var(--peri)'}; border-radius:4px;"></div>
+      </div>
+    </div>`;
+
   const W = 320, H = 110, padX = 10, padY = 12;
-  const max = Math.max(...values, 1);
-  const stepX = values.length>1 ? (W-2*padX)/(values.length-1) : 0;
-  const points = values.map((v,i)=>{
-    const x = values.length>1 ? padX + i*stepX : W/2;
-    const y = H - padY - (v/max)*(H-2*padY);
+  const maxVal = Math.max(...cumulative, totalBudget, 1);
+  const stepX = cumulative.length>1 ? (W-2*padX)/(cumulative.length-1) : 0;
+  const points = cumulative.map((v,i)=>{
+    const x = cumulative.length>1 ? padX + i*stepX : W/2;
+    const y = H - padY - (v/maxVal)*(H-2*padY);
     return [x,y];
   });
   let path = `M ${points[0][0]},${points[0][1]}`;
@@ -1187,21 +1217,23 @@ function buildTrendChartSVG(){
   const areaPath = points.length>1
     ? path + ` L ${points[points.length-1][0]},${H-padY} L ${points[0][0]},${H-padY} Z`
     : '';
-  const dots = points.map(([x,y])=> `<circle cx="${x}" cy="${y}" r="4" style="fill:#fff; stroke:var(--peri); stroke-width:2.5;"/>`).join('');
-  const labelsHtml = points.map(([x],i)=> `<text x="${x}" y="${H+11}" text-anchor="middle" style="font-size:10px; fill:var(--ink-soft); font-family:'Manrope',sans-serif;">${labels[i]}</text>`).join('');
-  const valueLabels = points.map(([x,y],i)=> `<text x="${x}" y="${y-9}" text-anchor="middle" style="font-size:9.5px; font-weight:700; fill:var(--ink); font-family:'Manrope',sans-serif;">${Math.round(values[i]/1000)}k</text>`).join('');
+  const budgetY = H - padY - (totalBudget/maxVal)*(H-2*padY);
+  const budgetLine = totalBudget>0 ? `<line x1="${padX}" y1="${budgetY}" x2="${W-padX}" y2="${budgetY}" style="stroke:var(--rose); stroke-width:1.5; stroke-dasharray:4,3;"/><text x="${W-padX}" y="${budgetY-4}" text-anchor="end" style="font-size:9px; fill:var(--rose); font-family:'Manrope',sans-serif;">Budget</text>` : '';
+  const dayLabelIdx = [...new Set([0, Math.floor((today-1)/2), today-1])];
+  const labelsHtml = dayLabelIdx.map(i=> `<text x="${points[i][0]}" y="${H+11}" text-anchor="middle" style="font-size:10px; fill:var(--ink-soft); font-family:'Manrope',sans-serif;">${i+1}</text>`).join('');
 
-  return `<svg viewBox="0 0 ${W} ${H+16}" style="width:100%; height:auto; display:block; overflow:visible;">
+  const svg = `<svg viewBox="0 0 ${W} ${H+16}" style="width:100%; height:auto; display:block; overflow:visible;">
     <defs><linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" style="stop-color:var(--peri); stop-opacity:0.35;"/>
       <stop offset="100%" style="stop-color:var(--peri); stop-opacity:0;"/>
     </linearGradient></defs>
     ${areaPath ? `<path d="${areaPath}" style="fill:url(#trendFill);"/>` : ''}
+    ${budgetLine}
     <path d="${path}" style="fill:none; stroke:var(--peri); stroke-width:2.5; stroke-linecap:round;"/>
-    ${dots}
-    ${valueLabels}
     ${labelsHtml}
   </svg>`;
+
+  return headlineHtml + svg;
 }
 
 function showToast(msg){
