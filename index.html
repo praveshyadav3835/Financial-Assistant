@@ -308,7 +308,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v28-budget-cats-and-chart</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v29-transfer-section-split</p>
     </section>
   </main>
 
@@ -2240,17 +2240,29 @@ function renderMonthView(){
     .filter(t=> new Date(t.ts).getMonth()===now.getMonth() && new Date(t.ts).getFullYear()===now.getFullYear())
     .sort((a,b)=> new Date(b.ts)-new Date(a.ts));
   monthviewTxRefs = monthTx;
-  document.getElementById('monthview-title').textContent = now.toLocaleDateString('en-IN',{month:'long', year:'numeric'}) + ' — all transactions';
-  document.getElementById('monthview-sub').textContent = `${monthTx.length} entr${monthTx.length===1?'y':'ies'} · tap any to edit, including moving it to a different account`;
-  const listEl = document.getElementById('monthview-list');
-  listEl.innerHTML = monthTx.length ? monthTx.map((tx,i)=>{
-    if(tx.type==='transfer'){
-      return `<div class="tx-item"><div class="chip-icon" style="background:var(--peri-dim);">🔄</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${targetName(tx.from)} → ${targetName(tx.to)}</span><span class="tx-amt">${fmt(tx.amount)}</span></div><div class="tx-meta">${new Date(tx.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${tx.remarks||'internal transfer'}</div></div></div>`;
-    }
+  const spendTx = monthTx.filter(t=>t.type!=='transfer');
+  const transferTx = monthTx.filter(t=>t.type==='transfer');
+
+  document.getElementById('monthview-title').textContent = now.toLocaleDateString('en-IN',{month:'long', year:'numeric'});
+  document.getElementById('monthview-sub').textContent = `Tap any entry to edit it, including moving it to a different account`;
+
+  const spendHtml = spendTx.length ? spendTx.map(tx=>{
+    const i = monthviewTxRefs.indexOf(tx);
     const meta = catMeta(tx.category);
     return `<div class="tx-item" data-editmonth="${i}" style="cursor:pointer;"><div class="chip-icon" style="background:${meta.bg};">${meta.em}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${tx.payee}</span><span class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmt(tx.amount)}</span></div><div class="tx-meta">${new Date(tx.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${targetName(tx.account)} · ${tx.category}</div></div></div>`;
-  }).join('') : '<div class="empty">No transactions logged this month yet.</div>';
-  listEl.querySelectorAll('[data-editmonth]').forEach(el=>{
+  }).join('') : '<div class="empty" style="padding:14px 0;">No income or expenses logged this month yet.</div>';
+
+  const transferHtml = transferTx.length ? transferTx.map(tx=>{
+    const i = monthviewTxRefs.indexOf(tx);
+    return `<div class="tx-item" data-editmonth="${i}" style="cursor:pointer; opacity:0.75;"><div class="chip-icon" style="background:var(--peri-dim);">🔄</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${targetName(tx.from)} → ${targetName(tx.to)}</span><span class="tx-amt">${fmt(tx.amount)}</span></div><div class="tx-meta">${new Date(tx.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${tx.remarks||'internal transfer'}</div></div></div>`;
+  }).join('') : '';
+
+  document.getElementById('monthview-list').innerHTML = `
+    <div class="divider-label">Income &amp; Expenses</div>
+    ${spendHtml}
+    ${transferTx.length ? `<div class="divider-label" style="margin-top:16px;">Transfers between your own accounts — not counted as spending</div>${transferHtml}` : ''}
+  `;
+  document.getElementById('monthview-list').querySelectorAll('[data-editmonth]').forEach(el=>{
     el.addEventListener('click', ()=>{
       monthviewBackdrop.classList.remove('open');
       openEditTx(monthviewTxRefs[parseInt(el.getAttribute('data-editmonth'))]);
