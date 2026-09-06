@@ -245,7 +245,10 @@
       </div>
       <div class="divider-label">Spending trend</div>
       <div class="card" id="trend-chart-wrap"></div>
-      <div class="divider-label">Recent activity</div>
+      <div class="divider-label" style="display:flex; justify-content:space-between; align-items:center;">
+        <span>Recent activity</span>
+        <button class="link-btn" id="see-all-month-btn" style="font-size:12px;">See all this month →</button>
+      </div>
       <div class="card" id="recent-list"></div>
     </section>
 
@@ -305,7 +308,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v21-sync-migration-fix</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v23-month-view</p>
     </section>
   </main>
 
@@ -518,6 +521,15 @@
     <button class="btn-primary" id="recon-run">Compare with app</button>
     <div id="recon-results"></div>
     <button class="btn-ghost" id="recon-close">Close</button>
+  </div>
+</div>
+
+<div class="sheet-backdrop" id="monthview-backdrop">
+  <div class="sheet" style="max-height:85vh; overflow-y:auto;">
+    <h3 id="monthview-title">This month's transactions</h3>
+    <p class="section-sub" id="monthview-sub"></p>
+    <div id="monthview-list"></div>
+    <button class="btn-ghost" id="monthview-close">Close</button>
   </div>
 </div>
 
@@ -778,10 +790,12 @@ const COLLECTION_FIELDS = {
   personLedger: 'personLedger',
   pendingImports: 'pendingImport',
   people: 'person',
-  balanceAdjustments: 'balanceAdjustment'
+  balanceAdjustments: 'balanceAdjustment',
+  accounts: 'account',
+  cards: 'card'
 };
-const META_FIELDS = ['accounts','cards','budget','mutualFunds','equities','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion'];
-let previousArrays = { transactions:[], personLedger:[], pendingImports:[], people:[], balanceAdjustments:[] };
+const META_FIELDS = ['budget','mutualFunds','equities','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion'];
+let previousArrays = { transactions:[], personLedger:[], pendingImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[] };
 
 function setSyncStatus(text, ok){
   const el = document.getElementById(SYNC_LABEL_ID);
@@ -882,6 +896,20 @@ async function initCloudSync(onFirstData){
       }
     }
     attachAllListeners();
+
+    // One-time backfill: accounts and cards used to live inside the shared meta document;
+    // they now live as individual documents (the actual fix for balance adjustments getting
+    // silently overwritten). If the cloud doesn't have them as documents yet but this device
+    // has real local data, push them now — don't wait for some unrelated future save to
+    // incidentally trigger it.
+    const acctCheck = await db.collection('household').where('_type','==','account').get();
+    if(acctCheck.docs.length === 0 && state.accounts && state.accounts.length){
+      const batch = db.batch();
+      state.accounts.forEach(a=> batch.set(hh(a.id), {...a, _type:'account'}));
+      (state.cards||[]).forEach(c=> batch.set(hh(c.id), {...c, _type:'card'}));
+      await batch.commit();
+    }
+
     cloudReady = true;
     setSyncStatus('Synced ✓', true);
   }catch(e){
@@ -1035,11 +1063,14 @@ function totals(){
   const sink = accountBalance(state.accounts.find(a=>a.id==='sinking_fund'));
   return {cash, cardTotal, net: cash-cardTotal, recv, pay, gap: recv+pay, invest: mf+eq, mf, eq, sink};
 }
+function findBudgetRowForCategory(category){
+  return state.budget.find(b=>b.cat===category) || state.budget.find(b=>b.cat===OTHER_EXPENSE_CAT);
+}
 function recomputeBudgetActuals(){
   state.budget.forEach(b=> b.actual = 0);
   state.transactions.forEach(t=>{
     if(t.type==='transfer') return;
-    const b = state.budget.find(x=>x.cat===t.category) || state.budget.find(x=>x.cat===OTHER_EXPENSE_CAT);
+    const b = findBudgetRowForCategory(t.category);
     if(b) b.actual += t.amount;
   });
 }
@@ -1321,7 +1352,7 @@ function render(){
     const over = b.budget>0 && b.actual>b.budget;
     const meta = catMeta(b.cat);
     const isOpen = expandedCats.has(b.cat);
-    const catTx = state.transactions.filter(t=>t.type!=='transfer' && t.category===b.cat).sort((a,b2)=> new Date(b2.ts)-new Date(a.ts));
+    const catTx = state.transactions.filter(t=>t.type!=='transfer' && findBudgetRowForCategory(t.category)===b).sort((a,b2)=> new Date(b2.ts)-new Date(a.ts));
     const chevron = catTx.length ? `<span style="font-size:11px; color:var(--ink-soft); margin-left:4px;">${isOpen?'▲':'▼'}</span>` : '';
     const entriesHtml = isOpen ? `<div class="cat-entries">${
       catTx.length ? catTx.map(t=>`
@@ -2135,6 +2166,37 @@ function openReconSheet(id, isCard){
   reconBackdrop.classList.add('open');
 }
 document.getElementById('recon-close').addEventListener('click', ()=> reconBackdrop.classList.remove('open'));
+
+const monthviewBackdrop = document.getElementById('monthview-backdrop');
+let monthviewTxRefs = [];
+function renderMonthView(){
+  const now = new Date();
+  const monthTx = state.transactions
+    .filter(t=> new Date(t.ts).getMonth()===now.getMonth() && new Date(t.ts).getFullYear()===now.getFullYear())
+    .sort((a,b)=> new Date(b.ts)-new Date(a.ts));
+  monthviewTxRefs = monthTx;
+  document.getElementById('monthview-title').textContent = now.toLocaleDateString('en-IN',{month:'long', year:'numeric'}) + ' — all transactions';
+  document.getElementById('monthview-sub').textContent = `${monthTx.length} entr${monthTx.length===1?'y':'ies'} · tap any to edit, including moving it to a different account`;
+  const listEl = document.getElementById('monthview-list');
+  listEl.innerHTML = monthTx.length ? monthTx.map((tx,i)=>{
+    if(tx.type==='transfer'){
+      return `<div class="tx-item"><div class="chip-icon" style="background:var(--peri-dim);">🔄</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${targetName(tx.from)} → ${targetName(tx.to)}</span><span class="tx-amt">${fmt(tx.amount)}</span></div><div class="tx-meta">${new Date(tx.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${tx.remarks||'internal transfer'}</div></div></div>`;
+    }
+    const meta = catMeta(tx.category);
+    return `<div class="tx-item" data-editmonth="${i}" style="cursor:pointer;"><div class="chip-icon" style="background:${meta.bg};">${meta.em}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${tx.payee}</span><span class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmt(tx.amount)}</span></div><div class="tx-meta">${new Date(tx.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${targetName(tx.account)} · ${tx.category}</div></div></div>`;
+  }).join('') : '<div class="empty">No transactions logged this month yet.</div>';
+  listEl.querySelectorAll('[data-editmonth]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      monthviewBackdrop.classList.remove('open');
+      openEditTx(monthviewTxRefs[parseInt(el.getAttribute('data-editmonth'))]);
+    });
+  });
+}
+document.getElementById('see-all-month-btn').addEventListener('click', ()=>{
+  renderMonthView();
+  monthviewBackdrop.classList.add('open');
+});
+document.getElementById('monthview-close').addEventListener('click', ()=> monthviewBackdrop.classList.remove('open'));
 reconBackdrop.addEventListener('click', e=>{ if(e.target===reconBackdrop) reconBackdrop.classList.remove('open'); });
 
 function parseDateLoose(str){
