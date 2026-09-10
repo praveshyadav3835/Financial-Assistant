@@ -230,10 +230,10 @@
       <div id="pending-review-wrap"></div>
       <div id="learning-match-wrap"></div>
       <div class="bento">
-        <div class="bento-tile"><div class="bt-top"><div class="bt-icon" style="background:var(--sage-dim);">💵</div><div class="bt-label">Liquid Bank Cash</div></div><div class="bt-value" id="ov-cash">—</div></div>
+        <div class="bento-tile"><div class="bt-top"><div class="bt-icon" style="background:var(--sage-dim);">💵</div><div class="bt-label">Liquid Bank Cash</div></div><div class="bt-value pos" id="ov-cash">—</div></div>
         <div class="bento-tile"><div class="bt-top"><div class="bt-icon" style="background:var(--rose-dim);">💳</div><div class="bt-label">Credit Card Dues</div></div><div class="bt-value neg" id="ov-cards">—</div></div>
         <div class="bento-tile"><div class="bt-top"><div class="bt-icon" style="background:var(--gold-dim);">🏦</div><div class="bt-label">Sinking Fund</div></div><div class="bt-value" id="ov-sink">—</div></div>
-        <div class="bento-tile"><div class="bt-top"><div class="bt-icon" style="background:var(--peri-dim);">📈</div><div class="bt-label">Investments</div></div><div class="bt-value" id="ov-invest">—</div></div>
+        <div class="bento-tile"><div class="bt-top"><div class="bt-icon" style="background:var(--peri-dim);">📈</div><div class="bt-label">Investments</div></div><div class="bt-value pos" id="ov-invest">—</div></div>
         <div class="bento-tile"><div class="bt-top"><div class="bt-icon" style="background:var(--sage-dim);">🤝</div><div class="bt-label">Receivables</div></div><div class="bt-value pos" id="ov-recv">—</div></div>
         <div class="bento-tile"><div class="bt-top"><div class="bt-icon" style="background:var(--rose-dim);">📤</div><div class="bt-label">Family Payables</div></div><div class="bt-value neg" id="ov-pay">—</div></div>
       </div>
@@ -308,7 +308,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v31-statement-diagnostic</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v34-full-history-list</p>
     </section>
   </main>
 
@@ -538,6 +538,7 @@
     <h3 id="acctstatement-title">Statement</h3>
     <p class="section-sub" id="acctstatement-sub"></p>
     <div id="acctstatement-list"></div>
+    <button class="btn-primary" id="acctstatement-reset" style="background:var(--sage);">🔄 Reset statement — start fresh from today</button>
     <button class="btn-ghost" id="acctstatement-close">Close</button>
   </div>
 </div>
@@ -583,7 +584,7 @@ function catMeta(cat){ return CAT_META[cat] || CAT_META['Other']; }
 
 const OTHER_EXPENSE_CAT = "Other / Uncategorized";
 const SEED = {
-  schemaVersion: 15,
+  schemaVersion: 16,
   accounts: [
     {id:'pravesh_axis', name:'Pravesh Axis Spending', tag:'...12687', opening:219671, em:'🏦'},
     {id:'mil', name:'Mother-in-Law Account', tag:'operated by Pravesh', opening:209000, em:'🏦'},
@@ -598,7 +599,7 @@ const SEED = {
   ],
   cards: [
     {id:'sib', name:'SIB OneCard', tag:'...0677', openingDue:77152, em:'💳'},
-    {id:'idfc_card', name:'IDFC Rupay / Millennia', tag:'...7231', openingDue:37546, em:'💳'},
+    {id:'idfc_card', name:'IDFC Rupay / Millennia', tag:'...7865', openingDue:37546, em:'💳'},
     {id:'sbi_card', name:'SBI Club Vistara Prime', tag:'...XX53', openingDue:5419, em:'💳'}
   ],
   people: [
@@ -791,6 +792,11 @@ function migrateState(){
       state.commitments.push({name:'Salon Subscription', freq:'Half-Yearly', due:'Mar 2027', amount:10000});
     }
     state.schemaVersion = 15;
+  }
+  if(state.schemaVersion < 16){
+    const idfc = state.cards.find(c=>c.id==='idfc_card');
+    if(idfc && idfc.tag==='...7231') idfc.tag = '...7865';
+    state.schemaVersion = 16;
   }
 }
 
@@ -1258,17 +1264,17 @@ function render(){
   document.getElementById('hdr-net').textContent = fmt(t.net);
   document.getElementById('hdr-net').className = 'netvalue' + (t.net<0?' neg':'');
   document.getElementById('hdr-cash').textContent = fmt(t.cash);
-  document.getElementById('hdr-cards').textContent = fmt(-t.cardTotal);
+  document.getElementById('hdr-cards').textContent = fmt(Math.abs(t.cardTotal));
   document.getElementById('hdr-cards').className = 'v neg';
-  document.getElementById('hdr-gap').textContent = fmt(t.gap);
-  document.getElementById('hdr-gap').className = 'v' + (t.gap<0?' neg':'');
+  document.getElementById('hdr-gap').textContent = fmt(Math.abs(t.gap));
+  document.getElementById('hdr-gap').className = 'v' + (t.gap<0?' neg':' pos');
 
   document.getElementById('home-date').textContent = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
   document.getElementById('ov-cash').textContent = fmt(t.cash);
-  document.getElementById('ov-cards').textContent = fmt(-t.cardTotal);
+  document.getElementById('ov-cards').textContent = fmt(Math.abs(t.cardTotal));
   document.getElementById('ov-sink').textContent = fmt(t.sink);
-  document.getElementById('ov-recv').textContent = fmt(t.recv);
-  document.getElementById('ov-pay').textContent = fmt(t.pay);
+  document.getElementById('ov-recv').textContent = fmt(Math.abs(t.recv));
+  document.getElementById('ov-pay').textContent = fmt(Math.abs(t.pay));
   document.getElementById('ov-invest').textContent = fmt(t.invest);
 
   const m = monthTotals();
@@ -1306,7 +1312,7 @@ function render(){
     state.accounts.filter(a=>a.id!=='sinking_fund').map((a,i)=>{
       const bal = accountBalance(a);
       const last4 = (a.tag.match(/(\d{4})/)||[])[1];
-      return `<div class="wallet-card" style="background:${walletGradients[i % walletGradients.length]};">
+      return `<div class="wallet-card" data-acctstatement="${a.id}" data-iscard="0" style="background:${walletGradients[i % walletGradients.length]}; cursor:pointer;">
         <div class="wc-top"><div><div class="wc-name">${a.name}</div><div class="wc-tag">${last4?'•••• '+last4:a.tag}</div></div><div class="wc-icon">${a.em||'🏦'}</div></div>
         <div class="wc-bottom"><div class="wc-label">Balance</div><div class="wc-balance">${fmt(bal)}</div></div>
       </div>`;
@@ -1314,7 +1320,7 @@ function render(){
     state.cards.map(c=>{
       const due = cardDue(c);
       const last4 = (c.tag.match(/(\d{4})/)||[])[1];
-      return `<div class="wallet-card" style="background:${cardGradient};">
+      return `<div class="wallet-card" data-acctstatement="${c.id}" data-iscard="1" style="background:${cardGradient}; cursor:pointer;">
         <div class="wc-top"><div><div class="wc-name">${c.name}</div><div class="wc-tag">${last4?'•••• '+last4:c.tag}</div></div><div class="wc-icon">💳</div></div>
         <div class="wc-bottom"><div class="wc-label">Amount due</div><div class="wc-balance">${fmt(due)}</div></div>
       </div>`;
@@ -1323,7 +1329,7 @@ function render(){
   document.getElementById('accounts-list').innerHTML = state.accounts.map(a=>{
     const bal = accountBalance(a);
     return `<div class="row" data-acctstatement="${a.id}" data-iscard="0" style="cursor:pointer;"><div style="display:flex; align-items:center; gap:11px;"><div class="chip-icon" style="background:var(--peri-dim);">${a.em||'🏦'}</div><div><div class="name">${a.name}</div><div class="sub">${a.tag}</div></div></div>
-      <div class="row-actions" style="flex-direction:column; align-items:flex-end; gap:5px;"><div class="amt ${bal<0?'neg':''}">${fmt(bal)}</div><div style="display:flex; gap:10px;"><button class="link-btn" data-adjust="${a.id}" data-adjiscard="0">Adjust</button><button class="link-btn" data-recon="${a.id}" data-iscard="0">Reconcile</button></div></div>
+      <div class="row-actions" style="flex-direction:column; align-items:flex-end; gap:5px;"><div class="amt ${bal<0?'neg':'pos'}">${fmt(bal)}</div><div style="display:flex; gap:10px;"><button class="link-btn" data-adjust="${a.id}" data-adjiscard="0">Adjust</button><button class="link-btn" data-recon="${a.id}" data-iscard="0">Reconcile</button></div></div>
     </div>`;
   }).join('');
   document.getElementById('cards-list').innerHTML = state.cards.map(c=>{
@@ -2283,7 +2289,10 @@ document.getElementById('see-all-month-btn').addEventListener('click', ()=>{
 document.getElementById('monthview-close').addEventListener('click', ()=> monthviewBackdrop.classList.remove('open'));
 
 const acctstatementBackdrop = document.getElementById('acctstatement-backdrop');
+let currentStatementCtx = null;
+let statementHistoryRefs = [];
 function renderAcctStatement(targetId, isCard){
+  currentStatementCtx = {targetId, isCard};
   const target = isCard ? state.cards.find(c=>c.id===targetId) : state.accounts.find(a=>a.id===targetId);
   if(!target) return;
   document.getElementById('acctstatement-title').textContent = target.name + ' — statement';
@@ -2364,6 +2373,43 @@ function renderAcctStatement(targetId, isCard){
     <div class="row" style="border-top:2px solid var(--peri); margin-top:8px; padding-top:12px;"><div class="name">Current (live)</div><div class="amt" style="font-weight:700;">${fmt(liveTotal)}</div></div>
     ${discrepancy>=1 ? `<p class="section-sub" style="color:var(--debt); margin-top:8px;">⚠️ ${fmt(discrepancy)} unaccounted for.</p>${suspectHtml}` : ''}
   `;
+
+  // Full all-time history for this account, regardless of anchor — every transaction that ever
+  // touched it, newest first, each one tappable to verify or correct. This is separate from the
+  // reconciliation math above since it needs real transaction references, not derived deltas.
+  const fullHistory = [];
+  state.transactions.forEach(t=>{
+    if(isCard){
+      if(t.type==='expense' && t.account===targetId) fullHistory.push(t);
+      return;
+    }
+    if(t.type==='transfer'){
+      if(t.from===targetId || t.to===targetId) fullHistory.push(t);
+    } else if(t.account===targetId){
+      fullHistory.push(t);
+    }
+  });
+  fullHistory.sort((a,b)=> new Date(b.ts)-new Date(a.ts));
+  statementHistoryRefs = fullHistory;
+
+  const historyHtml = fullHistory.length ? fullHistory.map((tx,i)=>{
+    if(tx.type==='transfer'){
+      return `<div class="tx-item" data-stmthist="${i}" style="cursor:pointer;"><div class="chip-icon" style="background:var(--peri-dim);">🔄</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${targetName(tx.from)} → ${targetName(tx.to)}</span><span class="tx-amt">${fmt(tx.amount)}</span></div><div class="tx-meta">${new Date(tx.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${tx.remarks||'internal transfer'}</div></div></div>`;
+    }
+    const meta = catMeta(tx.category);
+    return `<div class="tx-item" data-stmthist="${i}" style="cursor:pointer;"><div class="chip-icon" style="background:${meta.bg};">${meta.em}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${tx.payee}</span><span class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmt(tx.amount)}</span></div><div class="tx-meta">${new Date(tx.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${tx.category}</div></div></div>`;
+  }).join('') : '<div class="empty" style="padding:14px 0;">Nothing recorded against this account yet.</div>';
+
+  document.getElementById('acctstatement-list').innerHTML += `
+    <div class="divider-label" style="margin-top:18px;">Full history — ${fullHistory.length} entr${fullHistory.length===1?'y':'ies'}, tap any to verify or correct</div>
+    ${historyHtml}
+  `;
+  document.getElementById('acctstatement-list').querySelectorAll('[data-stmthist]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      acctstatementBackdrop.classList.remove('open');
+      openEditTx(statementHistoryRefs[parseInt(el.getAttribute('data-stmthist'))]);
+    });
+  });
 }
 document.addEventListener('click', (e)=>{
   const row = e.target.closest('[data-acctstatement]');
@@ -2372,6 +2418,22 @@ document.addEventListener('click', (e)=>{
   acctstatementBackdrop.classList.add('open');
 });
 document.getElementById('acctstatement-close').addEventListener('click', ()=> acctstatementBackdrop.classList.remove('open'));
+document.getElementById('acctstatement-reset').addEventListener('click', async ()=>{
+  if(!currentStatementCtx) return;
+  const {targetId, isCard} = currentStatementCtx;
+  const target = isCard ? state.cards.find(c=>c.id===targetId) : state.accounts.find(a=>a.id===targetId);
+  if(!target) return;
+  const liveTotal = isCard ? cardDue(target) : accountBalance(target);
+  if(!confirm(`Mark today as the fresh starting point for ${target.name}'s statement, at the current total of ${fmt(liveTotal)}? This doesn't change any balance — it just clears everything before today out of future statement views.`)) return;
+  if(!state.balanceAdjustments) state.balanceAdjustments = [];
+  state.balanceAdjustments.push({
+    id: genId('adj'), targetId, isCard, ts: new Date().toISOString(),
+    oldValue: liveTotal, newValue: liveTotal, diff: 0
+  });
+  await saveState();
+  renderAcctStatement(targetId, isCard);
+  showToast('✓ Statement reset — starting fresh from today.');
+});
 reconBackdrop.addEventListener('click', e=>{ if(e.target===reconBackdrop) reconBackdrop.classList.remove('open'); });
 
 function parseDateLoose(str){
@@ -2610,9 +2672,24 @@ function isDuplicateOf(candidate, existing, toleranceMinutes, requireAccountMatc
   }
   const minutesDiff = Math.abs(new Date(candidate.ts) - new Date(existing.ts)) / (60*1000);
   if(minutesDiff > toleranceMinutes) return false;
-  if(requireAccountMatch){
-    const existingAccount = existing.account || existing.accountId;
-    if(candidate.accountId && existingAccount && candidate.accountId !== existingAccount) return false;
+
+  const existingAccount = existing.account || existing.accountId;
+  const bothAccountsKnown = !!(candidate.accountId && existingAccount);
+  const accountsMatch = bothAccountsKnown && candidate.accountId === existingAccount;
+  const accountsConflict = bothAccountsKnown && candidate.accountId !== existingAccount;
+
+  if(requireAccountMatch && accountsConflict) return false;
+
+  if(!accountsMatch){
+    // Account isn't positively confirmed (either unknown on one/both sides, or — in lenient
+    // ledger mode — genuinely different). Amount+date alone is too weak a signal here, verified
+    // against real cases: small recurring amounts like ₹25/₹40/₹50 coincidentally matched
+    // completely unrelated transactions with no real connection. Require the payee to
+    // corroborate before accepting.
+    const normA = normalizePayee(candidate.payee||'');
+    const normB = normalizePayee(existing.payee||'');
+    if(!normA || !normB || normA==='unknown' || normB==='unknown') return false;
+    if(!(normA.includes(normB) || normB.includes(normA))) return false;
   }
   return true;
 }
@@ -2620,14 +2697,15 @@ function buildExistingCashEventsPool(){
   // Real cash movements can be logged three ways in this app: a normal transaction, a transfer
   // between two of your own accounts, or a People Ledger entry (e.g. "took ₹10,000 from Aman").
   // All three must count when checking whether a fetched email describes something already
-  // recorded — transfers and account-less People Ledger entries were previously excluded here,
-  // which is why manually-logged transfers and person-ledger entries with no linked account kept
-  // showing up as "needs approval" even though they were already logged.
-  const fromTx = state.transactions.filter(t=>t.type!=='transfer').map(t=>({amount:t.amount, ts:t.ts, account:t.account}));
+  // recorded. Payee is included on every entry now — needed for the corroboration check above.
+  const fromTx = state.transactions.filter(t=>t.type!=='transfer').map(t=>({amount:t.amount, ts:t.ts, account:t.account, payee:t.payee}));
   const fromTransfers = state.transactions.filter(t=>t.type==='transfer').flatMap(t=>[
-    {amount:t.amount, ts:t.ts, account:t.from}, {amount:t.amount, ts:t.ts, account:t.to}
+    {amount:t.amount, ts:t.ts, account:t.from, payee:null}, {amount:t.amount, ts:t.ts, account:t.to, payee:null}
   ]);
-  const fromPersonLedger = state.personLedger.map(e=>({amount:Math.abs(e.delta), ts:e.ts, account:e.account||null}));
+  const fromPersonLedger = state.personLedger.map(e=>{
+    const person = state.people.find(p=>p.id===e.personId);
+    return {amount:Math.abs(e.delta), ts:e.ts, account:e.account||null, payee: person ? person.name : null};
+  });
   return [...fromTx, ...fromTransfers, ...fromPersonLedger];
 }
 const DUP_TOLERANCE_LEDGER_MIN = 3*24*60;  // 3 days — manual log entries are often timestamped hours after the real event
@@ -2796,7 +2874,10 @@ async function runGmailCheck(fullSweep){
     const freshCandidates = allCandidates.filter(c=> !alreadySeenMessageIds.has(c.gmailMessageId));
 
     const classified = classifyImportCandidates(freshCandidates, state.pendingImports);
-    state.pendingImports.push(...classified);
+    // Only items genuinely needing your attention go into the visible queue. Duplicates are
+    // still permanently remembered below so they never get re-fetched or re-classified again —
+    // they just don't need to sit in your review list once auto-recognized as already logged.
+    state.pendingImports.push(...classified.filter(c=>c.status==='pending'));
     if(!state.processedGmailIds) state.processedGmailIds = [];
     classified.forEach(c=>{ if(c.gmailMessageId) state.processedGmailIds.push({id:c.gmailMessageId}); });
     state.lastGmailFetch = new Date().toISOString();
