@@ -309,7 +309,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v37-precise-email-timestamp</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v38-tighter-ledger-window</p>
     </section>
   </main>
 
@@ -2726,7 +2726,9 @@ function buildExistingCashEventsPool(){
   });
   return [...fromTx, ...fromTransfers, ...fromPersonLedger];
 }
-const DUP_TOLERANCE_LEDGER_MIN = 3*24*60;  // 3 days — manual log entries are often timestamped hours after the real event
+const DUP_TOLERANCE_LEDGER_MIN = 24*60;  // 24 hours — was 3 days, but that was wide enough for a recurring
+                                           // vendor (same merchant, same amount, different real visits) to get
+                                           // wrongly merged. 24h still covers "logged this a day late."
 const DUP_TOLERANCE_EMAIL_MIN = 30;        // 30 minutes — two emails about the SAME real transaction arrive close together;
                                              // separate real transactions (even same amount, same day) are almost always further apart than this
 function classifyImportCandidates(candidates, existingPending){
