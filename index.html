@@ -149,6 +149,7 @@
   .verb-pills button.on.spent{background:var(--coral); color:#fff;}
   .verb-pills button.on.got{background:var(--sage); color:#fff;}
   .verb-pills button.on.moved{background:var(--peri); color:#fff;}
+  .verb-pills button.on.forsomeone{background:var(--rose); color:#fff;}
 
   .amount-display{text-align:center; padding:14px 0 18px;}
   .amount-display .rs{font-family:'Manrope',sans-serif; font-size:20px; color:var(--ink-soft); vertical-align:top; margin-right:2px;}
@@ -309,7 +310,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v38-tighter-ledger-window</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v39-people-ledger-integration</p>
     </section>
   </main>
 
@@ -341,6 +342,7 @@
       <button data-v="expense" class="on spent">Spent 💸</button>
       <button data-v="income" class="got">Got money 🤑</button>
       <button data-v="transfer" class="moved">Moved money 🔄</button>
+      <button data-v="person" class="forsomeone">For someone 🤝</button>
     </div>
 
     <div class="amount-display">
@@ -372,6 +374,20 @@
       <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">To</label>
       <div class="acct-row" id="to-row"></div>
       <div class="field"><label>Note (optional)</label><input id="tx-transfer-note" placeholder="e.g. clearing the SIB card bill"></div>
+    </div>
+
+    <div id="tx-person-fields" class="hide">
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">Which way did the money move?</label>
+      <div class="seg" id="tx-person-dir">
+        <button data-v="gave" class="on">You paid for them</button>
+        <button data-v="received">They paid you back</button>
+      </div>
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">Who?</label>
+      <div class="acct-row" id="tx-person-row"></div>
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">Through which account?</label>
+      <div class="acct-row" id="tx-person-acct-row"></div>
+      <div class="field"><label>Note (optional)</label><input id="tx-person-note" placeholder="e.g. metro card recharge"></div>
+      <p class="section-sub">This won't show up as an expense or income — it just settles in their People Ledger.</p>
     </div>
 
     <div class="toggle-row" id="tx-household-row">
@@ -903,15 +919,27 @@ function attachAllListeners(){
     }
   }, err=> console.error('meta listener error', err));
 
+  const firstSnapshotDone = {};
   Object.entries(COLLECTION_FIELDS).forEach(([field, type])=>{
+    firstSnapshotDone[field] = false;
     db.collection('household').where('_type','==',type).onSnapshot(snap=>{
       const remoteItems = snap.docs.map(d=>{ const data = d.data(); const {_type, ...rest} = data; return rest; });
+      if(!firstSnapshotDone[field]){
+        // Fresh page load: there's no valid baseline yet to tell "genuinely new local addition"
+        // apart from "stale cached item that was already deleted." Trust the server completely
+        // this one time — this is what actually fixes a deleted transaction reappearing after
+        // reloading with a stale local cache still holding it.
+        state[field] = remoteItems;
+        previousArrays[field] = JSON.parse(JSON.stringify(remoteItems));
+        firstSnapshotDone[field] = true;
+        saveLocalOnly();
+        render();
+        return;
+      }
       const remoteIds = new Set(remoteItems.map(x=>x.id));
       const lastSyncedIds = new Set((previousArrays[field]||[]).map(x=>x.id));
-      // Preserve local items that are brand-new (never synced before) and not yet in this
-      // snapshot — those are our own pending additions still in flight to the server. Anything
-      // that WAS synced before and is now missing from the snapshot is a genuine remote deletion,
-      // not a local pending item, so it's correctly left out.
+      // From here on, previousArrays reflects a real baseline established during THIS session,
+      // so it's now safe to preserve genuinely new local items still in flight to the server.
       const pendingLocalOnly = (state[field]||[]).filter(x=> x && x.id && !remoteIds.has(x.id) && !lastSyncedIds.has(x.id));
       state[field] = [...remoteItems, ...pendingLocalOnly];
       previousArrays[field] = JSON.parse(JSON.stringify(remoteItems));
@@ -1739,16 +1767,49 @@ function segValue(id){ return document.querySelector('#'+id+' button.on').datase
 
 wireSeg('tx-type', (v)=>{
   const isTransfer = v==='transfer';
-  document.getElementById('tx-single-fields').classList.toggle('hide', isTransfer);
+  const isPerson = v==='person';
+  document.getElementById('tx-single-fields').classList.toggle('hide', isTransfer || isPerson);
   document.getElementById('tx-transfer-fields').classList.toggle('hide', !isTransfer);
-  document.getElementById('tx-household-row').classList.toggle('hide', isTransfer);
+  document.getElementById('tx-person-fields').classList.toggle('hide', !isPerson);
+  document.getElementById('tx-household-row').classList.toggle('hide', isTransfer || isPerson);
+  if(isPerson) renderTxPersonChips();
   renderTxFormLists();
 });
 wireSeg('tx-household');
 wireSeg('ri-household');
+wireSeg('tx-person-dir');
 wireSeg('person-dir', ()=> renderPersonAcctChips());
 wireSeg('ap-dir');
 renderKeypad();
+
+let txSelectedPerson = null;
+let txSelectedPersonAcct = null;
+function renderTxPersonChips(){
+  if(!txSelectedPerson && state.people.length) txSelectedPerson = state.people[0].id;
+  document.getElementById('tx-person-row').innerHTML =
+    state.people.map(p=>`<div class="acct-chip ${p.id===txSelectedPerson?'on':''}" data-txperson="${p.id}">${p.name}</div>`).join('') +
+    `<div class="acct-chip" id="tx-person-new-chip">+ New</div>`;
+  document.querySelectorAll('#tx-person-row [data-txperson]').forEach(el=>{
+    el.addEventListener('click', ()=>{ txSelectedPerson = el.dataset.txperson; renderTxPersonChips(); });
+  });
+  document.getElementById('tx-person-new-chip').addEventListener('click', async ()=>{
+    const name = prompt('Name?');
+    if(!name || !name.trim()) return;
+    const newPerson = {id: slugify(name), name: name.trim(), opening: 0};
+    state.people.push(newPerson);
+    txSelectedPerson = newPerson.id;
+    await saveState();
+    renderTxPersonChips();
+  });
+  const targets = [...state.accounts, ...state.cards];
+  if(!targets.find(a=>a.id===txSelectedPersonAcct)) txSelectedPersonAcct = targets[0] ? targets[0].id : null;
+  document.getElementById('tx-person-acct-row').innerHTML = targets.map(a=>
+    `<div class="acct-chip ${a.id===txSelectedPersonAcct?'on':''}" data-txpersonacct="${a.id}">${a.em||'🏦'} ${a.name}</div>`
+  ).join('');
+  document.querySelectorAll('#tx-person-acct-row [data-txpersonacct]').forEach(el=>{
+    el.addEventListener('click', ()=>{ txSelectedPersonAcct = el.dataset.txpersonacct; renderTxPersonChips(); });
+  });
+}
 
 const txBackdrop = document.getElementById('tx-backdrop');
 document.getElementById('fab-add').addEventListener('click', ()=>{
@@ -1759,6 +1820,7 @@ document.getElementById('fab-add').addEventListener('click', ()=>{
   document.getElementById('paste-sms-box').classList.add('hide');
   document.getElementById('sms-paste-text').value='';
   userTouchedCategory = false; userTouchedAccount = false;
+  txSelectedPerson = null; txSelectedPersonAcct = null;
   renderTxFormLists();
   txBackdrop.classList.add('open');
 });
@@ -1794,6 +1856,13 @@ document.getElementById('tx-save').addEventListener('click', async ()=>{
   if(type==='transfer'){
     if(txFrom===txTo){ alert('Pick two different accounts.'); return; }
     state.transactions.push({id:genId('tx'), ts, type:'transfer', from:txFrom, to:txTo, amount, remarks:document.getElementById('tx-transfer-note').value.trim()});
+  } else if(type==='person'){
+    if(!txSelectedPerson){ alert('Pick who this was for.'); return; }
+    if(!txSelectedPersonAcct){ alert('Pick which account the money moved through.'); return; }
+    const dir = segValue('tx-person-dir');
+    const delta = dir==='gave' ? amount : -amount;
+    const remarks = document.getElementById('tx-person-note').value.trim() || (dir==='gave' ? 'You gave them money' : 'They gave you money');
+    state.personLedger.push({id:genId('pl'), personId:txSelectedPerson, ts, type:dir, delta, account:txSelectedPersonAcct, remarks});
   } else {
     const payeeInput = document.getElementById('tx-payee').value.trim();
     const payee = payeeInput || (type==='income'?'Income':'Expense');
@@ -1813,7 +1882,7 @@ document.getElementById('tx-save').addEventListener('click', async ()=>{
   await saveState();
   render();
   txBackdrop.classList.remove('open');
-  showToast(type==='transfer' ? '🔄 Moved, all sorted!' : type==='income' ? '🤑 Nice, logged!' : '✅ Logged it, well done!');
+  showToast(type==='transfer' ? '🔄 Moved, all sorted!' : type==='person' ? '🤝 Settled in their ledger — not counted as spending.' : type==='income' ? '🤑 Nice, logged!' : '✅ Logged it, well done!');
 });
 
 // ---- EDIT TRANSACTION ----
@@ -2269,6 +2338,9 @@ function renderMonthView(){
   monthviewTxRefs = monthTx;
   const spendTx = monthTx.filter(t=>t.type!=='transfer');
   const transferTx = monthTx.filter(t=>t.type==='transfer');
+  const monthPeople = state.personLedger
+    .filter(e=> e.account && new Date(e.ts).getMonth()===now.getMonth() && new Date(e.ts).getFullYear()===now.getFullYear())
+    .sort((a,b)=> new Date(b.ts)-new Date(a.ts));
 
   document.getElementById('monthview-title').textContent = now.toLocaleDateString('en-IN',{month:'long', year:'numeric'});
   document.getElementById('monthview-sub').textContent = `Tap any entry to edit it, including moving it to a different account`;
@@ -2284,10 +2356,17 @@ function renderMonthView(){
     return `<div class="tx-item" data-editmonth="${i}" style="cursor:pointer; opacity:0.75;"><div class="chip-icon" style="background:var(--peri-dim);">🔄</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${targetName(tx.from)} → ${targetName(tx.to)}</span><span class="tx-amt">${fmt(tx.amount)}</span></div><div class="tx-meta">${new Date(tx.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${tx.remarks||'internal transfer'}</div></div></div>`;
   }).join('') : '';
 
+  const peopleHtml = monthPeople.length ? monthPeople.map(e=>{
+    const person = state.people.find(p=>p.id===e.personId);
+    const gave = e.delta > 0;
+    return `<div class="tx-item" style="opacity:0.75;"><div class="chip-icon" style="background:var(--sage-dim);">🤝</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${gave?'You gave':'You received from'} ${person?person.name:'Unknown'}</span><span class="tx-amt ${gave?'neg':'pos'}">${gave?'-':'+'}${fmt(Math.abs(e.delta))}</span></div><div class="tx-meta">${new Date(e.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${targetName(e.account)} · People Ledger</div></div></div>`;
+  }).join('') : '';
+
   document.getElementById('monthview-list').innerHTML = `
     <div class="divider-label">Income &amp; Expenses</div>
     ${spendHtml}
     ${transferTx.length ? `<div class="divider-label" style="margin-top:16px;">Transfers between your own accounts — not counted as spending</div>${transferHtml}` : ''}
+    ${monthPeople.length ? `<div class="divider-label" style="margin-top:16px;">People Ledger touching your accounts — not counted as spending, shown for reconciliation</div>${peopleHtml}` : ''}
   `;
   document.getElementById('monthview-list').querySelectorAll('[data-editmonth]').forEach(el=>{
     el.addEventListener('click', ()=>{
@@ -2394,19 +2473,31 @@ function renderAcctStatement(targetId, isCard){
   const fullHistory = [];
   state.transactions.forEach(t=>{
     if(isCard){
-      if(t.type==='expense' && t.account===targetId) fullHistory.push(t);
+      if(t.type==='expense' && t.account===targetId) fullHistory.push({...t, _kind:'tx'});
       return;
     }
     if(t.type==='transfer'){
-      if(t.from===targetId || t.to===targetId) fullHistory.push(t);
+      if(t.from===targetId || t.to===targetId) fullHistory.push({...t, _kind:'tx'});
     } else if(t.account===targetId){
-      fullHistory.push(t);
+      fullHistory.push({...t, _kind:'tx'});
     }
   });
+  if(!isCard){
+    state.personLedger.forEach(e=>{
+      if(e.account===targetId){
+        const person = state.people.find(p=>p.id===e.personId);
+        fullHistory.push({...e, _kind:'people', personName: person?person.name:'Unknown'});
+      }
+    });
+  }
   fullHistory.sort((a,b)=> new Date(b.ts)-new Date(a.ts));
   statementHistoryRefs = fullHistory;
 
   const historyHtml = fullHistory.length ? fullHistory.map((tx,i)=>{
+    if(tx._kind==='people'){
+      const gave = tx.delta > 0;
+      return `<div class="tx-item" style="opacity:0.85;"><div class="chip-icon" style="background:var(--sage-dim);">🤝</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${gave?'You gave':'You received from'} ${tx.personName}</span><span class="tx-amt ${gave?'neg':'pos'}">${gave?'-':'+'}${fmt(Math.abs(tx.delta))}</span></div><div class="tx-meta">${new Date(tx.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · People Ledger — not counted as spending, shown here for reconciliation</div></div></div>`;
+    }
     if(tx.type==='transfer'){
       return `<div class="tx-item" data-stmthist="${i}" style="cursor:pointer;"><div class="chip-icon" style="background:var(--peri-dim);">🔄</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${targetName(tx.from)} → ${targetName(tx.to)}</span><span class="tx-amt">${fmt(tx.amount)}</span></div><div class="tx-meta">${new Date(tx.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${tx.remarks||'internal transfer'}</div></div></div>`;
     }
