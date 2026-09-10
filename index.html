@@ -229,6 +229,7 @@
       <p class="section-sub" id="home-date"></p>
       <div id="pending-review-wrap"></div>
       <div id="learning-match-wrap"></div>
+      <div id="last-fetch-summary-wrap"></div>
       <div class="bento">
         <div class="bento-tile"><div class="bt-top"><div class="bt-icon" style="background:var(--sage-dim);">💵</div><div class="bt-label">Liquid Bank Cash</div></div><div class="bt-value pos" id="ov-cash">—</div></div>
         <div class="bento-tile"><div class="bt-top"><div class="bt-icon" style="background:var(--rose-dim);">💳</div><div class="bt-label">Credit Card Dues</div></div><div class="bt-value neg" id="ov-cards">—</div></div>
@@ -308,7 +309,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v34-full-history-list</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v37-precise-email-timestamp</p>
     </section>
   </main>
 
@@ -1260,6 +1261,7 @@ function showToast(msg){
 function render(){
   renderPendingReview();
   renderLearningMatches();
+  renderLastFetchSummary();
   const t = totals();
   document.getElementById('hdr-net').textContent = fmt(t.net);
   document.getElementById('hdr-net').className = 'netvalue' + (t.net<0?' neg':'');
@@ -1599,12 +1601,24 @@ const EMAIL_ACCOUNT_MAP = {
   'pravesh35yadav@gmail.com': ['idfc_card', 'cousin', 'mil']
 };
 function parseBankSMS(text, sourceEmail){
-  const result = {amount:null, type:'expense', payee:'', accountId:null, category:null};
+  const result = {amount:null, type:'expense', payee:'', accountId:null, category:null, preciseTs:null};
   const clean = text.replace(/\s+/g,' ').trim();
 
   const amtMatch = clean.match(/(?:rs\.?|inr|₹)\s?([\d,]+(?:\.\d{1,2})?)/i);
   if(amtMatch){
     result.amount = parseFloat(amtMatch[1].replace(/,/g,''));
+  }
+
+  // Axis-style emails include the bank's own recorded time: "Date & Time: 03-09-26, 19:20:21 IST".
+  // This is authoritative — it's when the transaction actually happened, not when Gmail happened
+  // to receive/process the email — and is exactly what's needed to correctly distinguish two
+  // transactions with the same amount and a generic recurring payee (e.g. three separate ₹2,000
+  // transfers from the same person, seconds apart, would otherwise be indistinguishable by date
+  // alone since Gmail's receipt time can lag or batch).
+  const dtMatch = clean.match(/Date\s*&\s*Time:\s*(\d{2})-(\d{2})-(\d{2}),?\s*(\d{2}):(\d{2}):(\d{2})/i);
+  if(dtMatch){
+    const [, dd, mm, yy, hh, mi, ss] = dtMatch;
+    result.preciseTs = new Date(2000+parseInt(yy), parseInt(mm)-1, parseInt(dd), parseInt(hh), parseInt(mi), parseInt(ss)).toISOString();
   }
 
   if(/credited|received|deposit(ed)?|refund/i.test(clean)) result.type = 'income';
@@ -2670,8 +2684,6 @@ function isDuplicateOf(candidate, existing, toleranceMinutes, requireAccountMatc
   if(candidate.upiRef && existing.upiRef){
     return candidate.upiRef === existing.upiRef;
   }
-  const minutesDiff = Math.abs(new Date(candidate.ts) - new Date(existing.ts)) / (60*1000);
-  if(minutesDiff > toleranceMinutes) return false;
 
   const existingAccount = existing.account || existing.accountId;
   const bothAccountsKnown = !!(candidate.accountId && existingAccount);
@@ -2680,12 +2692,18 @@ function isDuplicateOf(candidate, existing, toleranceMinutes, requireAccountMatc
 
   if(requireAccountMatch && accountsConflict) return false;
 
+  // A confirmed account match is strong evidence on its own, so the full tolerance window
+  // (built for "you logged this manually, hours after the real event") applies. Without that,
+  // we're relying on payee text alone — and for recurring merchants/habits (cigarettes, coffee,
+  // groceries), the SAME generic payee genuinely repeats across different real days. Verified
+  // this exact failure: two separate real ₹40 "Cig" purchases, a day apart, were being treated
+  // as one. A tight window (this is essentially the same moment, not "sometime recently") is
+  // the only safe use of payee text alone.
+  const effectiveTolerance = accountsMatch ? toleranceMinutes : Math.min(toleranceMinutes, 60);
+  const minutesDiff = Math.abs(new Date(candidate.ts) - new Date(existing.ts)) / (60*1000);
+  if(minutesDiff > effectiveTolerance) return false;
+
   if(!accountsMatch){
-    // Account isn't positively confirmed (either unknown on one/both sides, or — in lenient
-    // ledger mode — genuinely different). Amount+date alone is too weak a signal here, verified
-    // against real cases: small recurring amounts like ₹25/₹40/₹50 coincidentally matched
-    // completely unrelated transactions with no real connection. Require the payee to
-    // corroborate before accepting.
     const normA = normalizePayee(candidate.payee||'');
     const normB = normalizePayee(existing.payee||'');
     if(!normA || !normB || normA==='unknown' || normB==='unknown') return false;
@@ -2822,7 +2840,7 @@ async function fetchGmailCandidatesForAccount(account, afterStr){
     if(!bodyText) continue;
     const parsed = parseBankSMS(bodyText, account.email);
     if(!parsed.amount) continue;
-    const ts = msgData.internalDate ? new Date(parseInt(msgData.internalDate)).toISOString() : new Date().toISOString();
+    const ts = parsed.preciseTs || (msgData.internalDate ? new Date(parseInt(msgData.internalDate)).toISOString() : new Date().toISOString());
     candidates.push({
       id: genId('imp'), gmailMessageId: m.id, sourceEmail: account.email, ts,
       amount: parsed.amount, type: parsed.type,
@@ -2881,6 +2899,15 @@ async function runGmailCheck(fullSweep){
     if(!state.processedGmailIds) state.processedGmailIds = [];
     classified.forEach(c=>{ if(c.gmailMessageId) state.processedGmailIds.push({id:c.gmailMessageId}); });
     state.lastGmailFetch = new Date().toISOString();
+    // Persisted, not just a toast — so the true count from your inbox is always checkable,
+    // not just whatever's still sitting in the visible queue.
+    state.lastFetchSummary = {
+      ts: new Date().toISOString(), fullSweep,
+      total: classified.length,
+      newCount: classified.filter(c=>c.status==='pending').length,
+      dupCount: classified.filter(c=>c.status==='duplicate').length,
+      items: classified.map(c=>({payee:c.payee, amount:c.amount, ts:c.ts, sourceEmail:c.sourceEmail, status:c.status}))
+    };
     await saveState();
     render();
     const newCount = classified.filter(c=>c.status==='pending').length;
@@ -2961,6 +2988,22 @@ function renderLearningMatches(){
       render();
     });
   });
+}
+
+function renderLastFetchSummary(){
+  const wrap = document.getElementById('last-fetch-summary-wrap');
+  const s = state.lastFetchSummary;
+  if(!s || !s.total){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `<div class="card" style="margin-bottom:16px;">
+    <div class="row"><div><div class="name">📊 Last check: ${s.total} found via email</div><div class="sub">${new Date(s.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${s.newCount} pending, ${s.dupCount} already matched to your ledger</div></div></div>
+    <details style="margin-top:4px;">
+      <summary style="cursor:pointer; color:var(--peri); font-size:13px; padding:6px 0;">Show all ${s.total} — cross-check against your inbox</summary>
+      ${s.items.map(it=>`<div class="row" style="padding:8px 0;">
+        <div><div class="name" style="font-size:13.5px;">${it.payee}</div><div class="sub">${new Date(it.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${it.sourceEmail||''}</div></div>
+        <div style="text-align:right;"><div class="amt" style="font-size:13.5px;">${fmt(it.amount)}</div><div class="sub" style="color:${it.status==='pending'?'var(--peri)':'var(--sage)'};">${it.status==='pending'?'pending':'matched'}</div></div>
+      </div>`).join('')}
+    </details>
+  </div>`;
 }
 
 function renderPendingReview(){
