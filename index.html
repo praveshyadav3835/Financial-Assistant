@@ -310,7 +310,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v39-people-ledger-integration</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v42-no-keyword-search</p>
     </section>
   </main>
 
@@ -601,7 +601,7 @@ function catMeta(cat){ return CAT_META[cat] || CAT_META['Other']; }
 
 const OTHER_EXPENSE_CAT = "Other / Uncategorized";
 const SEED = {
-  schemaVersion: 16,
+  schemaVersion: 17,
   accounts: [
     {id:'pravesh_axis', name:'Pravesh Axis Spending', tag:'...12687', opening:219671, em:'🏦'},
     {id:'mil', name:'Mother-in-Law Account', tag:'operated by Pravesh', opening:209000, em:'🏦'},
@@ -695,6 +695,7 @@ const SEED = {
   pendingImports: [],
   gmailConnectedEmails: [],
   processedGmailIds: [],
+  emailAccountHistory: {},
   lastFetchSummary: null,
   lastGmailFetch: null
 };
@@ -815,6 +816,10 @@ function migrateState(){
     if(idfc && idfc.tag==='...7231') idfc.tag = '...7865';
     state.schemaVersion = 16;
   }
+  if(state.schemaVersion < 17){
+    if(!state.emailAccountHistory) state.emailAccountHistory = {};
+    state.schemaVersion = 17;
+  }
 }
 
 async function loadState(){
@@ -859,7 +864,7 @@ const COLLECTION_FIELDS = {
   cards: 'card',
   processedGmailIds: 'processedGmailId'
 };
-const META_FIELDS = ['budget','mutualFunds','equities','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion'];
+const META_FIELDS = ['budget','mutualFunds','equities','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory'];
 let previousArrays = { transactions:[], personLedger:[], pendingImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[] };
 
 function setSyncStatus(text, ok){
@@ -1649,8 +1654,20 @@ function parseBankSMS(text, sourceEmail){
     result.preciseTs = new Date(2000+parseInt(yy), parseInt(mm)-1, parseInt(dd), parseInt(hh), parseInt(mi), parseInt(ss)).toISOString();
   }
 
-  if(/credited|received|deposit(ed)?|refund/i.test(clean)) result.type = 'income';
-  if(/debited|spent|used for|withdrawn|paid/i.test(clean)) result.type = 'expense';
+  // Recognizing a real transaction is about structure, not memorizing bank phrasing — every
+  // real transaction describes an amount moving in some direction relative to "your account."
+  // Specific strong verbs (debited/credited) are the clearest signal when present; the
+  // directional phrasing ("from your account" = money left, "to/in your account" = arrived)
+  // is a more general fallback signal that catches phrasings like "transaction happened of X
+  // from your account" or "payment of X was done from account" without needing to have seen
+  // that exact wording before. This list should keep growing as new real phrasings turn up.
+  const hasCreditVerb = /credited|received|deposit(ed)?|refund/i.test(clean);
+  const hasDebitVerb = /debited|debit of|spent|used for|used to make|withdrawn|\bpaid\b|payment.{0,15}(of|was|done|made|successful)/i.test(clean);
+  const hasFromAccount = /\bfrom\s+(your\s+)?(a\/c|acct|account)\b/i.test(clean);
+  const hasToAccount = /\b(to|in)\s+(your\s+)?(a\/c|acct|account)\b|credited\s+to/i.test(clean);
+
+  if(hasCreditVerb || (hasToAccount && !hasDebitVerb)) result.type = 'income';
+  if(hasDebitVerb || (hasFromAccount && !hasCreditVerb)) result.type = 'expense';
 
   // Try the universal masking pattern first (XX1234, XXXXXX1234, ****1234, xx-1234, etc.)
   // Digit run length varies (some of our stored tags are 5-digit fragments, not just last-4),
@@ -1663,14 +1680,25 @@ function parseBankSMS(text, sourceEmail){
     const acctMatch = clean.match(/(?:a\/c|acct|account|card)[^\d]{0,15}?(\d{3,6})\b/i);
     if(acctMatch) smsDigits = acctMatch[1];
   }
+  const allowedIds = sourceEmail && EMAIL_ACCOUNT_MAP[sourceEmail] ? EMAIL_ACCOUNT_MAP[sourceEmail] : null;
   if(smsDigits){
-    const allowedIds = sourceEmail && EMAIL_ACCOUNT_MAP[sourceEmail] ? EMAIL_ACCOUNT_MAP[sourceEmail] : null;
     const allTargets = [...state.accounts, ...state.cards].filter(t=> !allowedIds || allowedIds.includes(t.id));
     const found = allTargets.find(t=>{
       const tagDigits = extractDigits(t.tag||'');
       return tagDigits && (tagDigits.endsWith(smsDigits) || smsDigits.endsWith(tagDigits));
     });
-    if(found) result.accountId = found.id;
+    if(found){
+      result.accountId = found.id;
+      result.accountConfident = true;
+    }
+  }
+  if(!result.accountId && sourceEmail){
+    // Digit-matching genuinely failed. Before giving up, check whether this email address has
+    // a strong learned history — e.g. if every past confirmed transaction from this address
+    // matched the same one account, that's a reasonable guess even without matching digits.
+    // Flagged as unconfirmed so the review screen can show it as a guess, not a certainty.
+    const guess = mostLikelyAccountForEmail(sourceEmail, allowedIds);
+    if(guess){ result.accountId = guess; result.accountConfident = false; }
   }
 
   // Restrict payee-extraction to a window around the actual transaction amount. Without this,
@@ -1690,7 +1718,10 @@ function parseBankSMS(text, sourceEmail){
   // (e.g. "If this transaction...") starts with a capital+lowercase word, so the all-caps
   // requirement stops there without needing a fragile character cap.
   const upiInfoMatch = payeeSearchText.match(/UPI\/P2A\/(\d+)\/([A-Z][A-Z ]{1,25}[A-Z])(?:\/|\s+[A-Z][a-z]|\.|,|$)/);
-  if(upiInfoMatch){
+  const merchantMatch = payeeSearchText.match(/Merchant:\s*([A-Za-z0-9 .&'_-]{2,40}?)(?:\s+Date:|\.|,|$)/i);
+  if(merchantMatch){
+    payee = merchantMatch[1];
+  } else if(upiInfoMatch){
     upiRef = upiInfoMatch[1];
     payee = upiInfoMatch[2];
   }
@@ -2907,8 +2938,31 @@ function renderGmailAccountsList(){
     : (remembered.length + ' account(s) connected before — tap Reconnect below');
 }
 
+function recordEmailAccountMatch(email, accountId){
+  if(!email || !accountId) return;
+  if(!state.emailAccountHistory) state.emailAccountHistory = {};
+  if(!state.emailAccountHistory[email]) state.emailAccountHistory[email] = {};
+  state.emailAccountHistory[email][accountId] = (state.emailAccountHistory[email][accountId]||0) + 1;
+}
+function mostLikelyAccountForEmail(email, allowedIds){
+  const hist = state.emailAccountHistory && state.emailAccountHistory[email];
+  if(!hist) return null;
+  const candidates = Object.entries(hist).filter(([id])=> !allowedIds || allowedIds.includes(id));
+  if(!candidates.length) return null;
+  candidates.sort((a,b)=> b[1]-a[1]);
+  return candidates[0][0];
+}
+
+function looksLikePromotional(text){
+  // Promotional/offer emails often mention a currency amount (credit limit, loan offer,
+  // cashback headline) without describing an actual transaction. These phrases are strong
+  // signals this is marketing, not a real debit/credit — reject it regardless of whether an
+  // amount was technically found in the text.
+  return /\b(pre-?approved|apply now|special offer|festive offer|exclusive offer|limited period|limit enhance|upgrade your card|eligible for|congratulations|instant loan|loan offer|cashback offer|reward points worth|welcome offer|% (cashback|off|discount)|unlock (rewards|offers)|avail (now|this offer))\b/i.test(text);
+}
+
 async function fetchGmailCandidatesForAccount(account, afterStr){
-  const query = `after:${afterStr} (debited OR credited OR spent OR "transaction alert" OR "payment of" OR withdrawn OR UPI OR IMPS OR NEFT OR RTGS OR "amount received" OR "money received")`;
+  const query = `after:${afterStr}`;
   let allMessages = [];
   let pageToken = null;
   do{
@@ -2933,6 +2987,7 @@ async function fetchGmailCandidatesForAccount(account, afterStr){
     if(!bodyText) continue;
     const parsed = parseBankSMS(bodyText, account.email);
     if(!parsed.amount) continue;
+    if(looksLikePromotional(bodyText)) continue;
     const ts = parsed.preciseTs || (msgData.internalDate ? new Date(parseInt(msgData.internalDate)).toISOString() : new Date().toISOString());
     candidates.push({
       id: genId('imp'), gmailMessageId: m.id, sourceEmail: account.email, ts,
@@ -3212,6 +3267,7 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
   state.transactions.push(tx);
   recomputeBudgetActuals();
   recordPayeeLearning(payee, riSelectedCat, riSelectedAccount, wasEdited ? 3 : 1);
+  if(imp.sourceEmail) recordEmailAccountMatch(imp.sourceEmail, riSelectedAccount);
   state.pendingImports = state.pendingImports.filter(p=>p.id!==activeImportId);
   await saveState();
   render();
@@ -3226,6 +3282,41 @@ document.getElementById('ri-dismiss-btn').addEventListener('click', async ()=>{
   showToast('Dismissed.');
 });
 // ================= END GMAIL AUTO-IMPORT =================
+
+// ---- BACK BUTTON SUPPORT FOR ALL MODAL SHEETS ----
+// Whenever any .sheet-backdrop becomes visible, push a history entry so the phone's back
+// button/gesture closes it — matching normal mobile app behavior — instead of requiring the
+// user to scroll down to find a Close button, or worse, leaving the app entirely. Implemented
+// once, generically, via a MutationObserver — no need to touch each individual sheet's own
+// open/close code throughout the app.
+(function setupModalBackButton(){
+  let pushedForModal = false;
+  const anyModalOpen = () => !!document.querySelector('.sheet-backdrop.open');
+
+  const observer = new MutationObserver(()=>{
+    if(anyModalOpen() && !pushedForModal){
+      history.pushState({modalOpen:true}, '');
+      pushedForModal = true;
+    } else if(!anyModalOpen() && pushedForModal){
+      // Modal was closed via its own Close/Cancel/Save button, not via back-press.
+      // Consume the pushed history entry so a later back-press doesn't hit a stale no-op.
+      pushedForModal = false;
+      history.back();
+    }
+  });
+  document.querySelectorAll('.sheet-backdrop').forEach(el=>{
+    observer.observe(el, {attributes:true, attributeFilter:['class']});
+  });
+
+  window.addEventListener('popstate', ()=>{
+    const openModal = document.querySelector('.sheet-backdrop.open');
+    if(openModal){
+      openModal.classList.remove('open');
+    }
+    pushedForModal = false; // this popstate itself already consumed the pushed entry
+  });
+})();
+
 
 
 (async function init(){
