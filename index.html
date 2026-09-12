@@ -310,7 +310,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v42-no-keyword-search</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v43-structural-safety-filter</p>
     </section>
   </main>
 
@@ -2988,6 +2988,13 @@ async function fetchGmailCandidatesForAccount(account, afterStr){
     const parsed = parseBankSMS(bodyText, account.email);
     if(!parsed.amount) continue;
     if(looksLikePromotional(bodyText)) continue;
+    if(!parsed.accountId && !parsed.payee){
+      // A real bank transaction email almost always gives you at least one of these — the
+      // account/card it happened on, or a merchant/payee name. Getting neither, now that we
+      // read every email rather than pre-filtering by keywords, is a strong signal this is a
+      // coincidental "Rs" mention in something unrelated, not an actual transaction.
+      continue;
+    }
     const ts = parsed.preciseTs || (msgData.internalDate ? new Date(parseInt(msgData.internalDate)).toISOString() : new Date().toISOString());
     candidates.push({
       id: genId('imp'), gmailMessageId: m.id, sourceEmail: account.email, ts,
