@@ -299,6 +299,7 @@
       <div class="divider-label">Sinking fund — lumpy annual bills</div>
       <p class="section-sub" id="sink-sub"></p>
       <div class="card" id="sink-list"></div>
+      <button class="link-btn" id="add-commitment-btn" style="margin-top:8px;">+ Add a new bill</button>
 
       <div class="divider-label">Month-end</div>
       <button class="btn-primary" id="gen-report-btn" style="background:var(--peri);">📊 Generate Month-End Report</button>
@@ -310,7 +311,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v43-structural-safety-filter</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v45-editable-commitments</p>
     </section>
   </main>
 
@@ -557,6 +558,27 @@
     <div id="acctstatement-list"></div>
     <button class="btn-primary" id="acctstatement-reset" style="background:var(--sage);">🔄 Reset statement — start fresh from today</button>
     <button class="btn-ghost" id="acctstatement-close">Close</button>
+  </div>
+</div>
+
+<div class="sheet-backdrop" id="commitment-backdrop">
+  <div class="sheet">
+    <h3 id="commitment-title">Add a bill</h3>
+    <div class="field"><label>Name</label><input id="commit-name" placeholder="e.g. Health Insurance Renewal"></div>
+    <div class="field">
+      <label>How often?</label>
+      <div class="seg" id="commit-freq">
+        <button data-v="Monthly" class="on">Monthly</button>
+        <button data-v="Quarterly">Quarterly</button>
+        <button data-v="Half-Yearly">Half-Yearly</button>
+        <button data-v="Yearly">Yearly</button>
+      </div>
+    </div>
+    <div class="field"><label>Next due (e.g. "Sep 2026")</label><input id="commit-due" placeholder="Sep 2026"></div>
+    <div class="field"><label>Amount (₹)</label><input id="commit-amount" type="number" inputmode="decimal" placeholder="0"></div>
+    <button class="btn-primary" id="commit-save">Save</button>
+    <button class="btn-ghost" id="commit-delete" style="color:var(--debt); border-color:var(--debt); display:none;">Delete this bill</button>
+    <button class="btn-ghost" id="commit-cancel">Cancel</button>
   </div>
 </div>
 
@@ -1492,9 +1514,12 @@ function render(){
     return s + c.amount/12;
   },0);
   document.getElementById('sink-sub').textContent = `Reserve: ${fmt(t.sink)} · Recommended monthly top-up: ~${fmt(monthlyNeed)}`;
-  document.getElementById('sink-list').innerHTML = state.commitments.map(c=>`
-    <div class="row"><div><div class="name">${c.name}</div><div class="sub">${c.freq} · due ${c.due}</div></div><div class="amt">${fmt(c.amount)}</div></div>
+  document.getElementById('sink-list').innerHTML = state.commitments.map((c,i)=>`
+    <div class="row" data-editcommit="${i}" style="cursor:pointer;"><div><div class="name">${c.name}</div><div class="sub">${c.freq} · due ${c.due}</div></div><div class="amt">${fmt(c.amount)}</div></div>
   `).join('');
+  document.querySelectorAll('[data-editcommit]').forEach(el=>{
+    el.addEventListener('click', ()=> openEditCommitment(parseInt(el.getAttribute('data-editcommit'))));
+  });
 
   const adjWrap = document.getElementById('adj-log-wrap');
   if(state.balanceAdjustments && state.balanceAdjustments.length){
@@ -2554,6 +2579,57 @@ document.addEventListener('click', (e)=>{
   acctstatementBackdrop.classList.add('open');
 });
 document.getElementById('acctstatement-close').addEventListener('click', ()=> acctstatementBackdrop.classList.remove('open'));
+
+const commitmentBackdrop = document.getElementById('commitment-backdrop');
+let editingCommitIndex = null;
+function openEditCommitment(index){
+  editingCommitIndex = index;
+  const isNew = index === null;
+  document.getElementById('commitment-title').textContent = isNew ? 'Add a bill' : 'Edit bill';
+  document.getElementById('commit-delete').style.display = isNew ? 'none' : 'block';
+  if(isNew){
+    document.getElementById('commit-name').value = '';
+    document.getElementById('commit-due').value = '';
+    document.getElementById('commit-amount').value = '';
+    document.querySelectorAll('#commit-freq button').forEach(b=> b.classList.toggle('on', b.dataset.v==='Monthly'));
+  } else {
+    const c = state.commitments[index];
+    document.getElementById('commit-name').value = c.name;
+    document.getElementById('commit-due').value = c.due;
+    document.getElementById('commit-amount').value = c.amount;
+    document.querySelectorAll('#commit-freq button').forEach(b=> b.classList.toggle('on', c.freq.startsWith(b.dataset.v)));
+  }
+  commitmentBackdrop.classList.add('open');
+}
+document.getElementById('add-commitment-btn').addEventListener('click', ()=> openEditCommitment(null));
+wireSeg('commit-freq');
+document.getElementById('commit-save').addEventListener('click', async ()=>{
+  const name = document.getElementById('commit-name').value.trim();
+  const due = document.getElementById('commit-due').value.trim();
+  const amount = parseFloat(document.getElementById('commit-amount').value);
+  const freq = segValue('commit-freq');
+  if(!name || !due || !amount || amount<=0){ alert('Please fill in the name, due date, and amount.'); return; }
+  const entry = {name, freq, due, amount};
+  if(editingCommitIndex === null){
+    state.commitments.push(entry);
+  } else {
+    state.commitments[editingCommitIndex] = entry;
+  }
+  await saveState();
+  render();
+  commitmentBackdrop.classList.remove('open');
+  showToast('✓ Saved.');
+});
+document.getElementById('commit-delete').addEventListener('click', async ()=>{
+  if(editingCommitIndex === null) return;
+  if(!confirm(`Remove "${state.commitments[editingCommitIndex].name}" from your bills list?`)) return;
+  state.commitments.splice(editingCommitIndex, 1);
+  await saveState();
+  render();
+  commitmentBackdrop.classList.remove('open');
+  showToast('Removed.');
+});
+document.getElementById('commit-cancel').addEventListener('click', ()=> commitmentBackdrop.classList.remove('open'));
 document.getElementById('acctstatement-reset').addEventListener('click', async ()=>{
   if(!currentStatementCtx) return;
   const {targetId, isCard} = currentStatementCtx;
@@ -2815,13 +2891,21 @@ function isDuplicateOf(candidate, existing, toleranceMinutes, requireAccountMatc
   if(requireAccountMatch && accountsConflict) return false;
 
   // A confirmed account match is strong evidence on its own, so the full tolerance window
-  // (built for "you logged this manually, hours after the real event") applies. Without that,
-  // we're relying on payee text alone — and for recurring merchants/habits (cigarettes, coffee,
-  // groceries), the SAME generic payee genuinely repeats across different real days. Verified
-  // this exact failure: two separate real ₹40 "Cig" purchases, a day apart, were being treated
-  // as one. A tight window (this is essentially the same moment, not "sometime recently") is
-  // the only safe use of payee text alone.
-  const effectiveTolerance = accountsMatch ? toleranceMinutes : Math.min(toleranceMinutes, 60);
+  // applies. Without that, we're relying on payee text alone — and how much to trust it
+  // depends on how SPECIFIC that text is. A short generic label like "Cig" genuinely repeats
+  // across different real days (verified: two separate ₹40 "Cig" purchases got wrongly
+  // merged). But a specific payee — a full name like "Shiv Kumar Chatterji", a named business
+  // like "Infinity Fuels" — is much less likely to coincidentally repeat at the exact same
+  // amount, and deserves the same trust as a confirmed account (verified: these were being
+  // wrongly held to the tight window and failing to match transactions manually logged the
+  // next day).
+  const isSpecificPayee = (p)=>{
+    const norm = normalizePayee(p||'');
+    if(!norm) return false;
+    return norm.split(' ').filter(Boolean).length >= 2 || norm.length >= 10;
+  };
+  const payeeIsSpecific = !accountsMatch && isSpecificPayee(candidate.payee) && isSpecificPayee(existing.payee);
+  const effectiveTolerance = accountsMatch ? toleranceMinutes : (payeeIsSpecific ? DUP_TOLERANCE_SPECIFIC_PAYEE_MIN : 60);
   const minutesDiff = Math.abs(new Date(candidate.ts) - new Date(existing.ts)) / (60*1000);
   if(minutesDiff > effectiveTolerance) return false;
 
@@ -2851,6 +2935,11 @@ function buildExistingCashEventsPool(){
 const DUP_TOLERANCE_LEDGER_MIN = 24*60;  // 24 hours — was 3 days, but that was wide enough for a recurring
                                            // vendor (same merchant, same amount, different real visits) to get
                                            // wrongly merged. 24h still covers "logged this a day late."
+const DUP_TOLERANCE_SPECIFIC_PAYEE_MIN = 3*24*60;  // 3 days — only used when the account isn't confirmed AND
+                                           // the payee is specific (a full name, a named business) rather than
+                                           // a short generic label. Safe to be more generous here since this
+                                           // branch never runs when the account matches (that's a separate,
+                                           // tighter path), so it can't reintroduce the Ganesh Chaudhary bug.
 const DUP_TOLERANCE_EMAIL_MIN = 30;        // 30 minutes — two emails about the SAME real transaction arrive close together;
                                              // separate real transactions (even same amount, same day) are almost always further apart than this
 function classifyImportCandidates(candidates, existingPending){
