@@ -311,7 +311,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v45-editable-commitments</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v47-sbi-noun-form-fix</p>
     </section>
   </main>
 
@@ -1655,7 +1655,7 @@ function guessCategory(clean, payee, type){
 // can never legitimately produce a Divya-owned account.
 const EMAIL_ACCOUNT_MAP = {
   'divya9477@gmail.com': ['divya_indusind', 'divya_icici', 'divya_axis'],
-  'praveshyadav3835@gmail.com': ['pravesh_axis', 'sib', 'sbi_card'],
+  'praveshyadav3835@gmail.com': ['pravesh_axis', 'sib', 'sbi_card', 'pravesh_sbi'],
   'pravesh35yadav@gmail.com': ['idfc_card', 'cousin', 'mil']
 };
 function parseBankSMS(text, sourceEmail){
@@ -1686,10 +1686,21 @@ function parseBankSMS(text, sourceEmail){
   // is a more general fallback signal that catches phrasings like "transaction happened of X
   // from your account" or "payment of X was done from account" without needing to have seen
   // that exact wording before. This list should keep growing as new real phrasings turn up.
-  const hasCreditVerb = /credited|received|deposit(ed)?|refund/i.test(clean);
-  const hasDebitVerb = /debited|debit of|spent|used for|used to make|withdrawn|\bpaid\b|payment.{0,15}(of|was|done|made|successful)/i.test(clean);
+  const hasCreditVerb = /credited|received|deposit(ed)?|refund|\bcredit\s+by\b|has\s+a\s+credit/i.test(clean);
+  const hasDebitVerb = /debited|debit of|spent|used for|used to make|withdrawn|\bpaid\b|payment.{0,15}(of|was|done|made|successful)|\bdebit\s+by\b|has\s+a\s+debit/i.test(clean);
   const hasFromAccount = /\bfrom\s+(your\s+)?(a\/c|acct|account)\b/i.test(clean);
   const hasToAccount = /\b(to|in)\s+(your\s+)?(a\/c|acct|account)\b|credited\s+to/i.test(clean);
+
+  // A genuine transaction always shows positive evidence of something that actually happened —
+  // a real verb, or a real direction of money movement. A promotional email (credit limit
+  // enhancement, loan offer, cashback headline) describes an AVAILABLE amount, not a completed
+  // one, so it has neither signal. Requiring proof here — rather than defaulting to "expense"
+  // when nothing matches — is what actually rejects this class of email, instead of trying to
+  // list every promotional phrase (the same losing game as guessing transaction verbs).
+  if(!hasCreditVerb && !hasDebitVerb && !hasFromAccount && !hasToAccount){
+    result.amount = null;
+    return result;
+  }
 
   if(hasCreditVerb || (hasToAccount && !hasDebitVerb)) result.type = 'income';
   if(hasDebitVerb || (hasFromAccount && !hasCreditVerb)) result.type = 'expense';
