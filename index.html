@@ -316,7 +316,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v49-custom-date-fetch</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v50-fix-load-crash</p>
     </section>
   </main>
 
@@ -3022,7 +3022,6 @@ document.getElementById('gmail-fullsweep-btn').addEventListener('click', ()=>{
     runFullGmailSweep();
   }
 });
-document.getElementById('gmail-custom-date').value = HISTORY_START_DATE;
 document.getElementById('gmail-custom-fetch-btn').addEventListener('click', ()=>{
   const dateVal = document.getElementById('gmail-custom-date').value;
   if(!dateVal){ alert('Pick a date first.'); return; }
@@ -3125,6 +3124,7 @@ async function fetchGmailCandidatesForAccount(account, afterStr){
 }
 
 const HISTORY_START_DATE = '2026-09-02';
+if(document.getElementById('gmail-custom-date')) document.getElementById('gmail-custom-date').value = HISTORY_START_DATE;
 
 async function runGmailCheck(fullSweep, customDate){
   const statusEl = document.getElementById('gmail-status-text');
