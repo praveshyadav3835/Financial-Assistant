@@ -266,6 +266,11 @@
         <div id="gmail-check-row" class="hide" style="margin-top:11px; padding-top:11px; border-top:1px dashed var(--line);">
           <button class="btn-ghost" id="gmail-check-btn" style="margin:0 0 8px;">🔄 Check for new transactions</button>
           <button class="btn-primary" id="gmail-fullsweep-btn" style="background:var(--peri); margin:0;">🔍 Full verify: Sep 2 → now, all inboxes</button>
+          <div style="display:flex; gap:8px; align-items:center; margin-top:10px;">
+            <input type="date" id="gmail-custom-date" style="flex:1; padding:9px; border-radius:10px; border:1px solid var(--line); font-family:'Manrope',sans-serif;">
+            <button class="btn-ghost" id="gmail-custom-fetch-btn" style="margin:0; white-space:nowrap;">Fetch from this date</button>
+          </div>
+          <p class="section-sub" style="margin-top:6px;">Shows everything found from that date, reconciled fresh against your ledger — including ones already logged, clearly marked.</p>
         </div>
       </div>
       <div class="wallet-carousel" id="wallet-carousel"></div>
@@ -311,7 +316,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v47-sbi-noun-form-fix</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v49-custom-date-fetch</p>
     </section>
   </main>
 
@@ -1653,6 +1658,11 @@ function guessCategory(clean, payee, type){
 // matched to an account outside its list, regardless of what digits appear in the body. This
 // is what should have prevented the Aman/Divya IndusInd mismatch: praveshyadav3835@gmail.com
 // can never legitimately produce a Divya-owned account.
+// Bump this whenever a meaningful change lands in parseBankSMS, looksLikePromotional, or the
+// account-matching logic — every email already marked "seen" at an older version becomes
+// eligible for a fresh read on the next sweep, rather than being permanently stuck with
+// whatever the parsing logic produced the first time it was read.
+const PARSING_LOGIC_VERSION = 2;
 const EMAIL_ACCOUNT_MAP = {
   'divya9477@gmail.com': ['divya_indusind', 'divya_icici', 'divya_axis'],
   'praveshyadav3835@gmail.com': ['pravesh_axis', 'sib', 'sbi_card', 'pravesh_sbi'],
@@ -3012,6 +3022,14 @@ document.getElementById('gmail-fullsweep-btn').addEventListener('click', ()=>{
     runFullGmailSweep();
   }
 });
+document.getElementById('gmail-custom-date').value = HISTORY_START_DATE;
+document.getElementById('gmail-custom-fetch-btn').addEventListener('click', ()=>{
+  const dateVal = document.getElementById('gmail-custom-date').value;
+  if(!dateVal){ alert('Pick a date first.'); return; }
+  if(confirm(`Fetch everything from ${dateVal} to now, across all connected inboxes, and reconcile it against your ledger? This can take a minute for a wide date range.`)){
+    runGmailCheck(true, dateVal);
+  }
+});
 
 function renderGmailAccountsList(){
   const wrap = document.getElementById('gmail-accounts-list');
@@ -3108,7 +3126,7 @@ async function fetchGmailCandidatesForAccount(account, afterStr){
 
 const HISTORY_START_DATE = '2026-09-02';
 
-async function runGmailCheck(fullSweep){
+async function runGmailCheck(fullSweep, customDate){
   const statusEl = document.getElementById('gmail-status-text');
   const validAccounts = gmailAccounts.filter(a=>Date.now() < a.expiry - 60000);
   const rememberedCount = (state.gmailConnectedEmails||[]).length;
@@ -3122,13 +3140,17 @@ async function runGmailCheck(fullSweep){
     return;
   }
 
-  const afterStr = fullSweep
-    ? HISTORY_START_DATE.replace(/-/g,'/')
-    : (state.lastGmailFetch ? new Date(state.lastGmailFetch).toISOString().slice(0,10).replace(/-/g,'/') : HISTORY_START_DATE.replace(/-/g,'/'));
+  const afterStr = customDate
+    ? customDate.replace(/-/g,'/')
+    : fullSweep
+      ? HISTORY_START_DATE.replace(/-/g,'/')
+      : (state.lastGmailFetch ? new Date(state.lastGmailFetch).toISOString().slice(0,10).replace(/-/g,'/') : HISTORY_START_DATE.replace(/-/g,'/'));
 
-  statusEl.textContent = fullSweep
-    ? `Full sweep: checking ${validAccounts.length} inbox${validAccounts.length>1?'es':''} from ${HISTORY_START_DATE}…`
-    : `Checking ${validAccounts.length} inbox${validAccounts.length>1?'es':''} for new transactions…`;
+  statusEl.textContent = customDate
+    ? `Checking ${validAccounts.length} inbox${validAccounts.length>1?'es':''} from ${customDate}…`
+    : fullSweep
+      ? `Full sweep: checking ${validAccounts.length} inbox${validAccounts.length>1?'es':''} from ${HISTORY_START_DATE}…`
+      : `Checking ${validAccounts.length} inbox${validAccounts.length>1?'es':''} for new transactions…`;
 
   try{
     let allCandidates = [];
@@ -3141,7 +3163,7 @@ async function runGmailCheck(fullSweep){
     }
 
     const alreadySeenMessageIds = new Set([
-      ...(state.processedGmailIds||[]).map(p=>p.id),
+      ...(customDate ? [] : (state.processedGmailIds||[]).filter(p=>(p.version||0) >= PARSING_LOGIC_VERSION).map(p=>p.id)),
       ...state.pendingImports.map(p=>p.gmailMessageId).filter(Boolean)
     ]);
     const freshCandidates = allCandidates.filter(c=> !alreadySeenMessageIds.has(c.gmailMessageId));
@@ -3152,7 +3174,11 @@ async function runGmailCheck(fullSweep){
     // they just don't need to sit in your review list once auto-recognized as already logged.
     state.pendingImports.push(...classified.filter(c=>c.status==='pending'));
     if(!state.processedGmailIds) state.processedGmailIds = [];
-    classified.forEach(c=>{ if(c.gmailMessageId) state.processedGmailIds.push({id:c.gmailMessageId}); });
+    // Remove any stale (older-version) record for these IDs before re-adding at the current
+    // version, so a re-evaluated email doesn't end up with two conflicting entries.
+    const freshIds = new Set(classified.map(c=>c.gmailMessageId).filter(Boolean));
+    state.processedGmailIds = state.processedGmailIds.filter(p=> !freshIds.has(p.id));
+    classified.forEach(c=>{ if(c.gmailMessageId) state.processedGmailIds.push({id:c.gmailMessageId, version:PARSING_LOGIC_VERSION}); });
     state.lastGmailFetch = new Date().toISOString();
     // Persisted, not just a toast — so the true count from your inbox is always checkable,
     // not just whatever's still sitting in the visible queue.
