@@ -410,12 +410,14 @@
 
     <section class="tab" id="tab-budget">
       <h2 class="section-title">Sep 2026 · Budget vs Actual</h2>
-      <div id="budget-summary-wrap"></div>
+      <div class="card" id="budget-summary-wrap"></div>
       <div id="budget-donut-wrap"></div>
       <div id="budget-list"></div>
       <div class="divider-label">Sinking fund — lumpy annual bills</div>
-      <p class="section-sub" id="sink-sub"></p>
-      <div class="card" id="sink-list"></div>
+      <details id="sink-details">
+        <summary style="cursor:pointer; color:var(--ink); font-weight:700; font-size:13.5px; padding:8px 0;" id="sink-summary-line"></summary>
+        <div class="card" id="sink-list"></div>
+      </details>
       <button class="link-btn" id="add-commitment-btn" style="margin-top:8px;">+ Add a new bill</button>
 
       <div class="divider-label">Month-end</div>
@@ -2104,31 +2106,8 @@ function render(){
 
   const bIncome = state.budget.filter(b=>b.income);
   const bExpense = state.budget.filter(b=>!b.income);
-  const totalExpBudget = bExpense.reduce((s,b)=>s+b.budget,0);
-  const totalExpActual = bExpense.reduce((s,b)=>s+b.actual,0);
   const totalIncActual = bIncome.reduce((s,b)=>s+b.actual,0);
-  const overallPct = totalExpBudget>0 ? Math.min(100,(totalExpActual/totalExpBudget)*100) : (totalExpActual>0?100:0);
-  const overallOver = totalExpBudget>0 && totalExpActual>totalExpBudget;
-  const compareMax = Math.max(totalExpBudget, totalExpActual, 1);
-  const budgetBarPct = (totalExpBudget/compareMax)*100;
-  const spentBarPct = (totalExpActual/compareMax)*100;
-  document.getElementById('budget-summary-wrap').innerHTML = `
-    <div class="budget-summary">
-      <div class="bs-top"><span class="bs-label">SPENT THIS MONTH</span><span class="bs-value ${overallOver?'over':''} maskable">${fmt(totalExpActual)}</span></div>
-      <div class="bs-compare">
-        <div class="bs-compare-row">
-          <span class="bs-compare-label">Budgeted</span>
-          <div class="bs-compare-track"><div class="bs-compare-fill budgeted" style="width:${budgetBarPct}%"></div></div>
-          <span class="bs-compare-val maskable">${fmt(totalExpBudget)}</span>
-        </div>
-        <div class="bs-compare-row">
-          <span class="bs-compare-label">Spent</span>
-          <div class="bs-compare-track"><div class="bs-compare-fill spent ${overallOver?'over':''}" style="width:${spentBarPct}%"></div></div>
-          <span class="bs-compare-val maskable ${overallOver?'over':''}">${fmt(totalExpActual)}</span>
-        </div>
-      </div>
-      <div class="bs-sub">Across ${bExpense.length} categories · income logged <span class="maskable">${fmt(totalIncActual)}</span></div>
-    </div>`;
+  document.getElementById('budget-summary-wrap').innerHTML = buildTrendChartSVG();
   document.getElementById('budget-donut-wrap').innerHTML = buildCategoryDonutSVG(bExpense);
 
 function addNewBudgetCategory(){
@@ -2175,7 +2154,8 @@ function cardHtml(b){
     if(c.freq.startsWith('Half-Yearly')) return s + c.amount/6;
     return s + c.amount/12;
   },0);
-  document.getElementById('sink-sub').textContent = `Reserve: ${fmt(t.sink)} · Recommended monthly top-up: ~${fmt(monthlyNeed)}`;
+  document.getElementById('sink-summary-line').textContent =
+    `${state.commitments.length} bill${state.commitments.length===1?'':'s'} · Reserve: ${fmt(t.sink)} · ~${fmt(monthlyNeed)}/mo needed`;
   document.getElementById('sink-list').innerHTML = state.commitments.map((c,i)=>`
     <div class="row" data-editcommit="${i}" style="cursor:pointer;"><div><div class="name">${c.name}</div><div class="sub">${c.freq} · due ${c.due}</div></div><div class="amt">${fmt(c.amount)}</div></div>
   `).join('');
@@ -2186,10 +2166,11 @@ function cardHtml(b){
   const adjWrap = document.getElementById('adj-log-wrap');
   if(state.balanceAdjustments && state.balanceAdjustments.length){
     const recentAdj = [...state.balanceAdjustments].sort((a,b)=> new Date(b.ts)-new Date(a.ts)).slice(0,10);
-    adjWrap.innerHTML = '<div class="divider-label">Balance corrections (suspense log)</div><div class="card">' + recentAdj.map(adj=>`
+    adjWrap.innerHTML = '<div class="divider-label">Balance corrections (suspense log)</div><details><summary style="cursor:pointer; color:var(--ink); font-weight:700; font-size:13.5px; padding:8px 0;">'
+      + recentAdj.length + ' correction' + (recentAdj.length===1?'':'s') + ' on record</summary><div class="card">' + recentAdj.map(adj=>`
       <div class="row"><div><div class="name">${targetName(adj.targetId)}</div><div class="sub">${new Date(adj.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})} · ${adj.remarks}</div></div>
       <div class="amt ${adj.diff<0?'neg':'pos'}">${adj.diff>=0?'+':''}${fmt(adj.diff)}</div></div>
-    `).join('') + '</div>';
+    `).join('') + '</div></details>';
   } else {
     adjWrap.innerHTML = '';
   }
