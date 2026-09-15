@@ -337,7 +337,13 @@
       <div class="field"><label>Move into category</label><input id="bulk-recat-cat" placeholder="e.g. Goa Trip"></div>
       <button class="btn-primary" id="bulk-recat-btn" style="background:var(--rose);">Recategorize this range</button>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v54-live-status-fix</p>
+      <div class="divider-label">Export expenses</div>
+      <p class="section-sub">Download a CSV of everything logged in a date range — open it in Excel, Sheets, or wherever you need it.</p>
+      <div class="field"><label>From</label><input id="export-from" type="date"></div>
+      <div class="field"><label>To</label><input id="export-to" type="date"></div>
+      <button class="btn-ghost" id="export-csv-btn">📥 Download CSV</button>
+
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v56-csv-import-format</p>
     </section>
   </main>
 
@@ -2484,6 +2490,53 @@ document.getElementById('bulk-recat-btn').addEventListener('click', async ()=>{
   document.getElementById('bulk-recat-to').value = '';
   document.getElementById('bulk-recat-cat').value = '';
   showToast(`✓ Moved ${matching.length} expense(s) into "${catName}".`);
+});
+
+const nowForExport = new Date();
+const monthStart = new Date(nowForExport.getFullYear(), nowForExport.getMonth(), 1);
+const monthEnd = new Date(nowForExport.getFullYear(), nowForExport.getMonth()+1, 0);
+document.getElementById('export-from').value = monthStart.toISOString().slice(0,10);
+document.getElementById('export-to').value = monthEnd.toISOString().slice(0,10);
+
+function csvEscape(val){
+  const s = String(val==null ? '' : val);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+}
+document.getElementById('export-csv-btn').addEventListener('click', ()=>{
+  const fromVal = document.getElementById('export-from').value;
+  const toVal = document.getElementById('export-to').value;
+  if(!fromVal || !toVal){ alert('Please pick both dates.'); return; }
+  const from = new Date(fromVal);
+  const to = new Date(toVal); to.setHours(23,59,59,999);
+  const rows = state.transactions
+    .filter(t=> new Date(t.ts) >= from && new Date(t.ts) <= to)
+    .sort((a,b)=> new Date(a.ts)-new Date(b.ts));
+  if(!rows.length){ alert('No transactions found in that date range.'); return; }
+  // Matches the required import format exactly: Date, Amount (signed — positive=income,
+  // negative=expense), Category, Payment Mode, Type, To Payment Mode, Note.
+  const header = ['Date','Amount','Category','Payment Mode','Type','To Payment Mode','Note'];
+  const lines = [header.join(',')];
+  rows.forEach(t=>{
+    const dateStr = new Date(t.ts).toISOString().slice(0,10);
+    if(t.type==='transfer'){
+      lines.push([dateStr, t.amount, '', csvEscape(targetName(t.from)), 'Transfer', csvEscape(targetName(t.to)), csvEscape(t.remarks||'')].join(','));
+    } else {
+      const signedAmount = t.type==='income' ? t.amount : -t.amount;
+      const typeLabel = t.type==='income' ? 'Income' : 'Expense';
+      lines.push([dateStr, signedAmount, csvEscape(t.category), csvEscape(targetName(t.account)), typeLabel, '', csvEscape(t.payee)].join(','));
+    }
+  });
+  const csvContent = lines.join('\n');
+  const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `transactions_${fromVal}_to_${toVal}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(`✓ Downloaded ${rows.length} transaction(s).`);
 });
 
 // ---- RECONCILIATION ----
