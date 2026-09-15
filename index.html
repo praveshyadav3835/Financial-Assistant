@@ -166,6 +166,8 @@
   .budget-card .bc-track{height:6px; background:var(--paper-dim); border-radius:5px; overflow:hidden;}
   .budget-card .bc-fill{height:100%; background:var(--gold); border-radius:5px;}
   .budget-card .bc-fill.over{background:var(--debt);}
+  .budget-card.add-new{border:2px dashed var(--line); box-shadow:none; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:112px; gap:8px;}
+  .budget-card.add-new .bc-icon{font-size:20px; font-weight:800; margin-bottom:0;}
   .person-block + .person-block{margin-top:11px; padding-top:11px; border-top:1px dashed var(--line);}
 
   nav.tabbar{position:sticky; bottom:calc(env(safe-area-inset-bottom,0) + 10px); max-width:452px; margin:0 auto; background:var(--card); backdrop-filter:blur(10px); border:1px solid var(--line); border-radius:24px; display:flex; padding:8px 6px; width:calc(100% - 28px); box-shadow:var(--shadow-md); transition:background .25s ease;}
@@ -233,6 +235,19 @@
   .cat-chip .lb{font-size:10px; font-weight:700; color:var(--ink-soft); text-align:center; line-height:1.2;}
   .cat-chip.on{border-color:var(--ink); box-shadow:var(--shadow-sm);}
 
+  /* Add-expense: collapsed "suggested value + Change" summary, expands into a picker */
+  .pick-summary{display:flex; align-items:center; gap:11px; background:var(--card); border:1.5px solid var(--line); border-radius:14px; padding:11px 12px; margin-bottom:14px; cursor:pointer;}
+  .pick-summary .ps-icon{width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;}
+  .pick-summary .ps-name{flex:1; font-size:13.5px; font-weight:700; color:var(--ink); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .pick-summary .ps-change{font-size:12px; font-weight:800; color:var(--peri); flex-shrink:0;}
+  .pick-list{display:flex; flex-direction:column; gap:8px; margin-bottom:14px;}
+  .pick-list .pli{display:flex; align-items:center; gap:11px; padding:12px; border-radius:14px; border:1.5px solid var(--line); background:var(--card); cursor:pointer;}
+  .pick-list .pli.on{border-color:var(--ink); box-shadow:var(--shadow-sm);}
+  .pick-list .pli .pli-icon{width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; background:var(--paper-dim); flex-shrink:0;}
+  .pick-list .pli .pli-name{flex:1; font-size:13.5px; font-weight:700; color:var(--ink);}
+  .pick-list .pli .pli-check{color:var(--sage); font-weight:800; display:none;}
+  .pick-list .pli.on .pli-check{display:inline;}
+
   .acct-row{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:14px;}
   .acct-chip{flex-shrink:0; display:flex; align-items:center; gap:7px; padding:9px 13px; border-radius:30px; background:var(--paper-dim); border:2px solid transparent; font-size:12.5px; font-weight:700; color:var(--ink-soft); cursor:pointer; white-space:nowrap;}
   .acct-chip.on{border-color:var(--ink); background:var(--card); color:var(--ink); box-shadow:var(--shadow-sm);}
@@ -266,14 +281,9 @@
 <div id="app">
   <header class="cover">
     <div class="top-row">
-      <div style="display:flex; align-items:center; gap:12px;">
-        <div id="profile-avatar" style="width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; cursor:pointer; flex-shrink:0; overflow:hidden;">👤</div>
-        <div class="greet" id="hdr-greet">Hi there</div>
-      </div>
+      <div class="greet" id="hdr-greet">Hi there</div>
       <button class="theme-toggle" id="theme-toggle" title="Toggle theme">🌙</button>
     </div>
-    <input type="file" id="avatar-file-input" accept="image/*" class="hide">
-    <div class="household">C113, Sector 91, Gurgaon</div>
     <div id="sync-status" style="font-size:11px; color:var(--ink-soft); margin-bottom:14px;">Connecting…</div>
     <div class="netlabel">Net Liquid Working Surplus</div>
     <div class="netvalue maskable" id="hdr-net" data-breakdown="net" style="cursor:pointer;">—</div>
@@ -291,7 +301,6 @@
   <main>
     <section class="tab active" id="tab-home">
       <h2 class="section-title">Overview</h2>
-      <div id="insight-card-wrap"></div>
       <div id="heads-up-wrap"></div>
       <p class="section-sub" id="home-date"></p>
       <div id="pending-review-wrap"></div>
@@ -442,10 +451,12 @@
 
     <div id="tx-single-fields">
       <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;" id="cat-label">What was it for?</label>
-      <div class="cat-grid" id="cat-grid"></div>
+      <div class="pick-summary" id="cat-summary"></div>
+      <div class="cat-grid hide" id="cat-grid"></div>
 
       <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;" id="acct-label">Which account?</label>
-      <div class="acct-row" id="acct-row"></div>
+      <div class="pick-summary" id="acct-summary"></div>
+      <div class="pick-list hide" id="acct-row"></div>
 
       <div class="field">
         <label>Who / what was this? <span style="font-weight:400;">(optional)</span></label>
@@ -1410,29 +1421,8 @@ function renderGreeting(){
     el.innerHTML = `${part}, <span class="who-name" id="who-switch" style="text-decoration:underline; text-decoration-style:dotted; cursor:pointer;">who's this?</span>`;
   }
   document.getElementById('who-switch').addEventListener('click', showWhoamiPicker);
-  renderAvatar();
 }
-function renderAvatar(){
-  const av = document.getElementById('profile-avatar');
-  if(state.profilePhoto){
-    av.innerHTML = `<img src="${state.profilePhoto}" style="width:100%; height:100%; object-fit:cover;">`;
-  } else {
-    av.innerHTML = whoami ? whoami[0].toUpperCase() : '👤';
-  }
-}
-document.getElementById('profile-avatar').addEventListener('click', ()=> document.getElementById('avatar-file-input').click());
-document.getElementById('avatar-file-input').addEventListener('change', async (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
-  if(file.size > 500*1024){ alert('Please choose a smaller image (under 500KB).'); return; }
-  const reader = new FileReader();
-  reader.onload = async ()=>{
-    state.profilePhoto = reader.result;
-    await saveState();
-    renderAvatar();
-  };
-  reader.readAsDataURL(file);
-});
+function renderAvatar(){ /* avatar removed from header per user request — no-op kept so old calls don't break */ }
 function showWhoamiPicker(){
   const el = document.getElementById('hdr-greet');
   el.innerHTML = `<div>Who's logging in? <div class="whoami-pick"><button data-who="Divya">Divya</button><button data-who="Pravesh">Pravesh</button></div></div>`;
@@ -1613,14 +1603,16 @@ function buildTrendChartSVG(){
   const specialDailyTotals = new Array(daysInMonth+1).fill(0);
   specialExpenses.forEach(t=>{ specialDailyTotals[new Date(t.ts).getDate()] += t.amount; });
 
-  const cumulative = [];
-  const specialCumulative = [];
+  const cumulative = []; // total minus trip/special categories
+  const specialCumulative = []; // trip/special categories only
   let running = 0, specialRunning = 0;
   for(let d=1; d<=today; d++){
     running += dailyTotals[d]; cumulative.push(running);
     specialRunning += specialDailyTotals[d]; specialCumulative.push(specialRunning);
   }
-  const totalSpent = running;
+  const allCumulative = cumulative.map((v,i)=> v + specialCumulative[i]); // total, everything included
+  const totalSpent = running; // "regular" total (excludes trip/special) — what the monthly budget is measured against
+  const grandTotalSpent = allCumulative.length ? allCumulative[allCumulative.length-1] : 0;
   const pct = totalBudget>0 ? Math.round((totalSpent/totalBudget)*100) : 0;
   const remaining = totalBudget - totalSpent;
   const overBudget = remaining < 0;
@@ -1635,12 +1627,17 @@ function buildTrendChartSVG(){
       <div style="height:8px; background:var(--line); border-radius:4px; margin-top:6px; overflow:hidden;">
         <div style="height:100%; width:${Math.min(100,pct)}%; background:${overBudget?'var(--debt)':'var(--peri)'}; border-radius:4px;"></div>
       </div>
-      ${hasSpecial ? `<div style="display:flex; justify-content:space-between; margin-top:8px;"><span style="font-size:12px; color:var(--rose);">● Trip/special spending this month</span><span style="font-size:12px; font-weight:700; color:var(--rose);">${fmt(specialRunning)}</span></div>` : ''}
+      ${hasSpecial ? `<div style="display:flex; justify-content:space-between; margin-top:10px;">
+        <span style="font-size:12px; color:var(--peri);">● Total expense</span><span style="font-size:12px; font-weight:700; color:var(--peri);">${fmt(grandTotalSpent)}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-top:4px;">
+        <span style="font-size:12px; color:var(--gold);">● Total minus Trip</span><span style="font-size:12px; font-weight:700; color:var(--gold);">${fmt(totalSpent)}</span>
+      </div>` : ''}
     </div>`;
 
   const W = 320, H = 110, padX = 10, padY = 12;
-  const maxVal = Math.max(...cumulative, ...specialCumulative, totalBudget, 1);
-  const stepX = cumulative.length>1 ? (W-2*padX)/(cumulative.length-1) : 0;
+  const maxVal = Math.max(...allCumulative, ...cumulative, totalBudget, 1);
+  const stepX = allCumulative.length>1 ? (W-2*padX)/(allCumulative.length-1) : 0;
   const toPoints = (series) => series.map((v,i)=>{
     const x = series.length>1 ? padX + i*stepX : W/2;
     const y = H - padY - (v/maxVal)*(H-2*padY);
@@ -1656,13 +1653,13 @@ function buildTrendChartSVG(){
     }
     return path;
   };
-  const points = toPoints(cumulative);
+  const points = toPoints(allCumulative);
   const path = toPath(points);
   const areaPath = points.length>1
     ? path + ` L ${points[points.length-1][0]},${H-padY} L ${points[0][0]},${H-padY} Z`
     : '';
-  const specialPoints = toPoints(specialCumulative);
-  const specialPath = hasSpecial && specialPoints.length>1 ? toPath(specialPoints) : '';
+  const minusTripPoints = toPoints(cumulative);
+  const minusTripPath = hasSpecial && minusTripPoints.length>1 ? toPath(minusTripPoints) : '';
   const budgetY = H - padY - (totalBudget/maxVal)*(H-2*padY);
   const budgetLine = totalBudget>0 ? `<line x1="${padX}" y1="${budgetY}" x2="${W-padX}" y2="${budgetY}" style="stroke:var(--rose); stroke-width:1.5; stroke-dasharray:4,3;"/><text x="${W-padX}" y="${budgetY-4}" text-anchor="end" style="font-size:9px; fill:var(--rose); font-family:'Manrope',sans-serif;">Budget</text>` : '';
   const dayLabelIdx = [...new Set([0, Math.floor((today-1)/2), today-1])];
@@ -1676,7 +1673,7 @@ function buildTrendChartSVG(){
     ${areaPath ? `<path d="${areaPath}" style="fill:url(#trendFill);"/>` : ''}
     ${budgetLine}
     <path d="${path}" style="fill:none; stroke:var(--peri); stroke-width:2.5; stroke-linecap:round;"/>
-    ${specialPath ? `<path d="${specialPath}" style="fill:none; stroke:var(--rose); stroke-width:2.5; stroke-linecap:round; stroke-dasharray:5,3;"/>` : ''}
+    ${minusTripPath ? `<path d="${minusTripPath}" style="fill:none; stroke:var(--gold); stroke-width:2.5; stroke-linecap:round; stroke-dasharray:5,3;"/>` : ''}
     ${labelsHtml}
   </svg>`;
 
@@ -1738,7 +1735,7 @@ function render(){
   netEl.className = 'amt' + (m.net<0?' neg':' pos');
 
   document.getElementById('trend-chart-wrap').innerHTML = buildTrendChartSVG();
-  renderHomeInsight();
+  // (Home insight card removed per user request — biggest-spend line no longer shown)
 
   const recentEl = document.getElementById('recent-list');
   const recent = [...state.transactions].sort((a,b)=> new Date(b.ts)-new Date(a.ts)).slice(0,8);
@@ -1879,7 +1876,21 @@ function render(){
       <div class="bs-sub"><span class="maskable">${fmt(totalExpBudget)}</span> budgeted across ${bExpense.length} categories · income logged <span class="maskable">${fmt(totalIncActual)}</span></div>
     </div>`;
 
-  function cardHtml(b){
+function addNewBudgetCategory(){
+  const name = prompt('New category name (e.g. "Trip"):');
+  if(!name || !name.trim()) return;
+  const catName = name.trim();
+  if(state.budget.find(b=>b.cat===catName)){ showToast('That category already exists.'); return; }
+  const raw = prompt(`Monthly budget for "${catName}" (₹) — leave as 0 to just track spending with no limit:`, '0');
+  const budgetAmt = parseFloat(raw) || 0;
+  // Same defensive order used by the other category-creation paths in this app: push, then
+  // recompute + save immediately, so this survives a refresh and syncs to the other device.
+  state.budget.push({cat:catName, budget:budgetAmt, actual:0, special:true});
+  recomputeBudgetActuals();
+  saveState().then(()=>{ render(); showToast(`✅ "${catName}" added and saved.`); });
+}
+
+function cardHtml(b){
     const pct = b.budget>0? Math.min(100,(b.actual/b.budget)*100) : (b.actual>0?100:0);
     const over = b.budget>0 && b.actual>b.budget;
     const meta = catMeta(b.cat);
@@ -1890,12 +1901,18 @@ function render(){
       <div class="bc-track"><div class="bc-fill ${over?'over':''}" style="width:${pct}%"></div></div>
     </div>`;
   }
+  const addTileHtml = `<div class="budget-card add-new" id="add-budget-cat-tile">
+      <div class="bc-icon" style="background:var(--paper-dim); color:var(--ink-soft);">+</div>
+      <div class="bc-name" style="color:var(--ink-soft); justify-content:center;">Add Category</div>
+    </div>`;
   document.getElementById('budget-list').innerHTML =
     (bIncome.length? '<div class="divider-label">Income</div><div class="budget-grid">' + bIncome.map(cardHtml).join('') + '</div>' : '') +
-    '<div class="divider-label">Expenses</div><div class="budget-grid">' + bExpense.map(cardHtml).join('') + '</div>';
+    '<div class="divider-label">Expenses</div><div class="budget-grid">' + bExpense.map(cardHtml).join('') + addTileHtml + '</div>';
   document.querySelectorAll('[data-opencat]').forEach(el=>{
     el.addEventListener('click', ()=> openBudgetDetail(el.getAttribute('data-opencat')));
   });
+  const addTileEl = document.getElementById('add-budget-cat-tile');
+  if(addTileEl) addTileEl.addEventListener('click', addNewBudgetCategory);
 
   const monthlyNeed = state.commitments.reduce((s,c)=>{
     if(c.freq.startsWith('Quarterly')) return s + c.amount/3;
@@ -1930,6 +1947,7 @@ let txAmount = '';
 let txSelectedCat = null;
 let txSelectedAccount = null;
 let userTouchedCategory = false, userTouchedAccount = false;
+let catPickerOpen = false, acctPickerOpen = false;
 let txFrom = null, txTo = null;
 
 function renderKeypad(){
@@ -1978,17 +1996,32 @@ function renderTxFormLists(){
     return `<div class="cat-chip ${c===txSelectedCat?'on':''}" data-cat="${c}"><div class="em" style="background:${meta.bg};">${meta.em}</div><div class="lb">${short}</div></div>`;
   }).join('');
   document.querySelectorAll('#cat-grid .cat-chip').forEach(el=>{
-    el.addEventListener('click', ()=>{ txSelectedCat = el.dataset.cat; userTouchedCategory = true; renderTxFormLists(); });
+    el.addEventListener('click', ()=>{ txSelectedCat = el.dataset.cat; userTouchedCategory = true; catPickerOpen = false; renderTxFormLists(); });
   });
+  // Collapsed summary: shows the suggested/current category as one line, with a Change
+  // link that opens the full grid above. Keeps the screen to a handful of lines when the
+  // suggestion is already right, per the "clean 4-5 line" ask.
+  const catMetaSel = catMeta(txSelectedCat);
+  document.getElementById('cat-summary').innerHTML =
+    `<div class="ps-icon" style="background:${catMetaSel.bg};">${catMetaSel.em}</div><div class="ps-name">${txSelectedCat}</div><div class="ps-change">${catPickerOpen?'Cancel':'Change'}</div>`;
+  document.getElementById('cat-summary').onclick = ()=>{ catPickerOpen = !catPickerOpen; renderTxFormLists(); };
+  document.getElementById('cat-grid').classList.toggle('hide', !catPickerOpen);
 
   const targets = type==='expense' ? [...state.accounts, ...state.cards] : state.accounts;
   if(!targets.find(a=>a.id===txSelectedAccount)) txSelectedAccount = targets[0].id;
   document.getElementById('acct-row').innerHTML = targets.map(a=>
-    `<div class="acct-chip ${a.id===txSelectedAccount?'on':''}" data-acct="${a.id}">${a.em||'🏦'} ${a.name}</div>`
+    `<div class="pli ${a.id===txSelectedAccount?'on':''}" data-acct="${a.id}"><div class="pli-icon">${a.em||'🏦'}</div><div class="pli-name">${a.name}</div><div class="pli-check">✓</div></div>`
   ).join('');
-  document.querySelectorAll('#acct-row .acct-chip').forEach(el=>{
-    el.addEventListener('click', ()=>{ txSelectedAccount = el.dataset.acct; userTouchedAccount = true; renderTxFormLists(); });
+  document.querySelectorAll('#acct-row .pli').forEach(el=>{
+    el.addEventListener('click', ()=>{ txSelectedAccount = el.dataset.acct; userTouchedAccount = true; acctPickerOpen = false; renderTxFormLists(); });
   });
+  // Same collapse/expand pattern as category, but the expanded picker is a vertical list
+  // (not a horizontal chip row) — easier to scan once you have several accounts and cards.
+  const acctSel = targets.find(a=>a.id===txSelectedAccount);
+  document.getElementById('acct-summary').innerHTML =
+    `<div class="ps-icon" style="background:var(--paper-dim);">${acctSel && acctSel.em || '🏦'}</div><div class="ps-name">${acctSel ? acctSel.name : ''}</div><div class="ps-change">${acctPickerOpen?'Cancel':'Change'}</div>`;
+  document.getElementById('acct-summary').onclick = ()=>{ acctPickerOpen = !acctPickerOpen; renderTxFormLists(); };
+  document.getElementById('acct-row').classList.toggle('hide', !acctPickerOpen);
 
   if(!state.accounts.find(a=>a.id===txFrom)) txFrom = state.accounts[0].id;
   document.getElementById('from-row').innerHTML = state.accounts.map(a=>
@@ -2197,6 +2230,7 @@ document.getElementById('sms-parse-btn').addEventListener('click', ()=>{
   document.querySelectorAll('#tx-type button').forEach(b=> b.classList.toggle('on', b.dataset.v===parsed.type));
   if(parsed.accountId) txSelectedAccount = parsed.accountId;
   if(parsed.category) txSelectedCat = parsed.category;
+  catPickerOpen = false; acctPickerOpen = false;
   renderTxFormLists();
   document.getElementById('tx-payee').value = parsed.payee || '';
   document.getElementById('paste-sms-box').classList.add('hide');
@@ -2282,6 +2316,7 @@ document.getElementById('fab-add').addEventListener('click', ()=>{
   document.getElementById('paste-sms-box').classList.add('hide');
   document.getElementById('sms-paste-text').value='';
   userTouchedCategory = false; userTouchedAccount = false;
+  catPickerOpen = false; acctPickerOpen = false;
   txSelectedPerson = null; txSelectedPersonAcct = null;
   renderTxFormLists();
   txBackdrop.classList.add('open');
@@ -2295,6 +2330,7 @@ document.getElementById('tx-payee').addEventListener('blur', ()=>{
   if(!userTouchedCategory && learned.category){ txSelectedCat = learned.category; applied = true; }
   if(!userTouchedAccount && learned.accountId){ txSelectedAccount = learned.accountId; applied = true; }
   if(applied){
+    catPickerOpen = false; acctPickerOpen = false;
     renderTxFormLists();
     showToast('🧠 Filled in from what you usually do — check it\'s right');
   }
@@ -3803,7 +3839,9 @@ function renderLastFetchSummary(){
   const livePendingCount = liveItems.filter(it=>it.liveStatus==='pending').length;
   const liveResolvedCount = liveItems.length - livePendingCount;
   wrap.innerHTML = `<div class="card" style="margin-bottom:16px;">
-    <div class="row"><div><div class="name">📊 Last check: ${s.total} found via email</div><div class="sub">${new Date(s.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${livePendingCount} still pending, ${liveResolvedCount} resolved</div></div></div>
+    <div class="row"><div><div class="name">📊 Last check: ${s.total} found via email</div><div class="sub">${new Date(s.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${livePendingCount} still pending, ${liveResolvedCount} resolved</div></div>
+      <button class="link-btn" id="clear-fetch-summary-btn" title="Clear this card" style="font-size:18px; line-height:1; padding:2px 6px;">✕</button>
+    </div>
     <details style="margin-top:4px;">
       <summary style="cursor:pointer; color:var(--peri); font-size:13px; padding:6px 0;">Show all ${s.total} — cross-check against your inbox</summary>
       ${liveItems.map(it=>`<div class="row" style="padding:8px 0;">
@@ -3812,6 +3850,12 @@ function renderLastFetchSummary(){
       </div>`).join('')}
     </details>
   </div>`;
+  document.getElementById('clear-fetch-summary-btn').addEventListener('click', async (e)=>{
+    e.stopPropagation();
+    state.lastFetchSummary = null;
+    await saveState();
+    renderLastFetchSummary();
+  });
 }
 
 function renderPendingReview(){
