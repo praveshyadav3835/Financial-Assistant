@@ -130,6 +130,8 @@
   .heads-up-card .hu-tag{font-size:10.5px; font-weight:800; color:var(--rose); background:var(--card); padding:4px 9px; border-radius:20px; white-space:nowrap;}
 
   .chip-icon{width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;}
+  /* Classic monochrome category/account icon glyphs (SVG, currentColor) */
+  .chip-icon svg, .cat-chip .em svg, .bt-icon svg, .bc-icon svg, .pli-icon svg, .ps-icon svg, .hu-icon svg{width:18px; height:18px; stroke:var(--ink); flex-shrink:0;}
   .tx-item{padding:11px 0; border-top:1px solid var(--line); display:flex; align-items:center; gap:12px;}
   .tx-item:first-child{border-top:none;}
   .tx-body{flex:1; min-width:0;}
@@ -143,7 +145,7 @@
   .budget-head .cat{color:var(--ink); font-weight:700; font-size:13px; flex:1;}
   .budget-head .figs{color:var(--ink-soft); font-family:'Manrope',sans-serif; font-size:12.5px;}
   .bar-track{height:8px; background:var(--paper-dim); border-radius:6px; overflow:hidden; margin-left:48px;}
-  .bar-fill{height:100%; background:var(--gold); border-radius:6px; transition:width .3s ease;}
+  .bar-fill{height:100%; background:var(--ink-soft); border-radius:6px; transition:width .3s ease;}
   .bar-fill.over{background:var(--debt);}
   .cat-entries{margin-top:10px; padding:2px 0 2px 4px; border-left:2px solid var(--line);}
   .cat-entries .tx-item{padding:8px 0 8px 8px;}
@@ -155,7 +157,7 @@
   .budget-summary .bs-value{font-family:'Manrope',sans-serif; font-size:23px; font-weight:600; color:var(--ink); letter-spacing:-0.3px;}
   .budget-summary .bs-value.over{color:var(--debt);}
   .budget-summary .bs-track{height:9px; background:var(--paper-dim); border-radius:6px; overflow:hidden; margin-bottom:8px;}
-  .budget-summary .bs-fill{height:100%; background:var(--sage); border-radius:6px; transition:width .3s ease;}
+  .budget-summary .bs-fill{height:100%; background:var(--ink); border-radius:6px; transition:width .3s ease;}
   .budget-summary .bs-fill.over{background:var(--debt);}
   .budget-summary .bs-sub{font-size:12px; color:var(--ink-soft);}
   .budget-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:8px;}
@@ -169,7 +171,7 @@
   .budget-card .bc-figs b{color:var(--ink); font-weight:800; font-family:'Manrope',sans-serif;}
   .budget-card.over .bc-figs b{color:var(--debt);}
   .budget-card .bc-track{height:6px; background:var(--paper-dim); border-radius:5px; overflow:hidden;}
-  .budget-card .bc-fill{height:100%; background:var(--gold); border-radius:5px;}
+  .budget-card .bc-fill{height:100%; background:var(--ink-soft); border-radius:5px;}
   .budget-card .bc-fill.over{background:var(--debt);}
   .budget-card.add-new{border:2px dashed var(--line); box-shadow:none; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:112px; gap:8px;}
   .budget-card.add-new .bc-icon{font-size:20px; font-weight:800; margin-bottom:0;}
@@ -200,7 +202,7 @@
   nav.tabbar button[data-tab="budget"].active{background:var(--rose-dim); opacity:1;}
   nav.tabbar svg{width:20px; height:20px;}
 
-  .fab{position:fixed; bottom:96px; right:calc(50% - 240px + 18px); width:58px; height:58px; border-radius:50%; background:linear-gradient(145deg, #FFA35E, var(--rose)); color:#fff; border:none; font-size:28px; display:flex; align-items:center; justify-content:center; box-shadow:0 10px 28px rgba(255,138,61,0.4); cursor:pointer; z-index:20; transition:transform .12s ease;}
+  .fab{position:fixed; bottom:96px; right:calc(50% - 240px + 18px); width:58px; height:58px; border-radius:50%; background:var(--ink); color:var(--paper); border:none; font-size:28px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,0.35); cursor:pointer; z-index:20; transition:transform .12s ease;}
   .fab:active{transform:scale(0.92);}
   @media (max-width:480px){ .fab{right:18px;} }
 
@@ -214,7 +216,7 @@
   .field textarea{min-height:90px; font-family:'Manrope',sans-serif; font-size:12.5px; resize:vertical;}
 
   .seg{display:flex; gap:8px;}
-  .seg button{flex:1; padding:10px 6px; border-radius:12px; border:1.5px solid var(--line); background:#fff; font-size:12.5px; font-weight:700; color:var(--ink-soft); cursor:pointer;}
+  .seg button{flex:1; padding:10px 6px; border-radius:12px; border:1.5px solid var(--line); background:var(--card); font-size:12.5px; font-weight:700; color:var(--ink-soft); cursor:pointer;}
   .seg button.on{background:var(--ink); color:var(--paper); border-color:var(--ink);}
 
   .verb-pills{display:flex; gap:8px; margin-bottom:16px;}
@@ -322,12 +324,12 @@
       <div id="learning-match-wrap"></div>
       <div id="last-fetch-summary-wrap"></div>
       <div class="bento">
-        <div class="bento-tile" data-breakdown="cash"><div class="bt-top"><div class="bt-icon" style="background:var(--sage-dim);">💵</div><div class="bt-label">Liquid Bank Cash</div></div><div class="bt-value pos maskable" id="ov-cash">—</div></div>
-        <div class="bento-tile" data-breakdown="cards"><div class="bt-top"><div class="bt-icon" style="background:var(--rose-dim);">💳</div><div class="bt-label">Credit Card Dues</div></div><div class="bt-value neg maskable" id="ov-cards">—</div></div>
-        <div class="bento-tile" data-breakdown="sink"><div class="bt-top"><div class="bt-icon" style="background:var(--gold-dim);">🏦</div><div class="bt-label">Sinking Fund</div></div><div class="bt-value maskable" id="ov-sink">—</div></div>
-        <div class="bento-tile" data-breakdown="invest"><div class="bt-top"><div class="bt-icon" style="background:var(--peri-dim);">📈</div><div class="bt-label">Investments</div></div><div class="bt-value pos maskable" id="ov-invest">—</div></div>
-        <div class="bento-tile" data-breakdown="recv"><div class="bt-top"><div class="bt-icon" style="background:var(--sage-dim);">🤝</div><div class="bt-label">Receivables</div></div><div class="bt-value pos maskable" id="ov-recv">—</div></div>
-        <div class="bento-tile" data-breakdown="pay"><div class="bt-top"><div class="bt-icon" style="background:var(--rose-dim);">📤</div><div class="bt-label">Family Payables</div></div><div class="bt-value neg maskable" id="ov-pay">—</div></div>
+        <div class="bento-tile" data-breakdown="cash"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10h19"/><circle cx="16.5" cy="14" r="1.2" fill="currentColor" stroke="none"/></svg></div><div class="bt-label">Liquid Bank Cash</div></div><div class="bt-value pos maskable" id="ov-cash">—</div></div>
+        <div class="bento-tile" data-breakdown="cards"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5.5" width="19" height="13" rx="2"/><path d="M2.5 10h19"/><path d="M6 15h4"/></svg></div><div class="bt-label">Credit Card Dues</div></div><div class="bt-value neg maskable" id="ov-cards">—</div></div>
+        <div class="bento-tile" data-breakdown="sink"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 5l9 5.5"/><path d="M4.5 10.5v8M9 10.5v8M15 10.5v8M19.5 10.5v8"/><path d="M3 20.5h18"/></svg></div><div class="bt-label">Sinking Fund</div></div><div class="bt-value maskable" id="ov-sink">—</div></div>
+        <div class="bento-tile" data-breakdown="invest"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5.5-6.5L13 15l8-9"/><path d="M17 6h4v4"/></svg></div><div class="bt-label">Investments</div></div><div class="bt-value pos maskable" id="ov-invest">—</div></div>
+        <div class="bento-tile" data-breakdown="recv"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12.5 6 9l3 2 2-2 2 2 3-2 3.5 3.5"/><path d="M6 9v4l3 3 2-2 2 2 3-3V9"/></svg></div><div class="bt-label">Receivables</div></div><div class="bt-value pos maskable" id="ov-recv">—</div></div>
+        <div class="bento-tile" data-breakdown="pay"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10M8 9l4-4 4 4"/><path d="M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/></svg></div><div class="bt-label">Family Payables</div></div><div class="bt-value neg maskable" id="ov-pay">—</div></div>
       </div>
       <div class="divider-label">This month</div>
       <div class="card">
@@ -613,9 +615,11 @@
   <div class="sheet">
     <h3>Edit this entry</h3>
     <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">Category</label>
-    <div class="cat-grid" id="edit-cat-grid"></div>
+    <div class="pick-summary" id="edit-cat-summary"></div>
+    <div class="cat-grid hide" id="edit-cat-grid"></div>
     <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">Account</label>
-    <div class="acct-row" id="edit-acct-row"></div>
+    <div class="pick-summary" id="edit-acct-summary"></div>
+    <div class="pick-list hide" id="edit-acct-row"></div>
     <div class="field"><label>Who / what was this?</label><input id="edit-payee" placeholder=""></div>
     <div class="field"><label>Amount (₹)</label><input id="edit-amount" type="number" inputmode="decimal"></div>
     <button class="btn-primary" id="edittx-save">Save changes</button>
@@ -762,28 +766,58 @@ const fmt = n => {
 const slugify = s => s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'') + '_' + Math.floor(Math.random()*10000);
 const genId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
 
+// ---- Classic monochrome icon set (SVG, outline style, currentColor) ----
+// Replaces colorful emoji glyphs — one consistent visual language reused everywhere
+// catMeta() is called: Budget grid, Add/Edit expense category pickers, breakdown sheets.
+function svgIcon(inner){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`; }
+const ICON = {
+  wallet: svgIcon('<rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10h19"/><circle cx="16.5" cy="14" r="1.2" fill="currentColor" stroke="none"/>'),
+  sparkle: svgIcon('<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18"/>'),
+  heart: svgIcon('<path d="M12 20.5s-7.5-4.6-9.7-9.3C.8 7.6 2.6 4.5 5.8 4c2-.3 3.7.6 4.9 2.2C12 4.6 13.7 3.7 15.7 4c3.2.5 5 3.6 3.5 7.2C17 15.9 12 20.5 12 20.5z"/>'),
+  cart: svgIcon('<circle cx="9" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/><path d="M2.5 3.5h2.4l2.3 11.4a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 2-1.6l1.4-7.4H6.2"/>'),
+  utensils: svgIcon('<path d="M6 3v7a2 2 0 0 0 2 2v9M6 3v4M9 3v4M6 7h3M15.5 3c-1.4 1.6-1.6 4-1.6 5.5 0 2 .9 3 2.1 3.3V21"/>'),
+  bolt: svgIcon('<path d="M13 3 4 14h6l-1 7 9-11h-6l1-7z"/>'),
+  car: svgIcon('<path d="M3.5 16v-3.5l2-4.5A2 2 0 0 1 7.3 6.8h9.4A2 2 0 0 1 18.5 8l2 4.5V16"/><path d="M3.5 16h17v2.5a1 1 0 0 1-1 1H16a1 1 0 0 1-1-1V17H9v1.5a1 1 0 0 1-1 1H4.5a1 1 0 0 1-1-1V16z"/><circle cx="7" cy="16" r="1.4"/><circle cx="17" cy="16" r="1.4"/>'),
+  fuel: svgIcon('<path d="M4 20.5V6a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v14.5"/><path d="M4 20.5h9M13 10.5h1.5l3 3v4.5a1.5 1.5 0 0 0 3 0v-6l-2.5-2.5"/><path d="M6.5 6.5h5v4h-5z"/>'),
+  bag: svgIcon('<path d="M6 8h12l1 12.5H5z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>'),
+  film: svgIcon('<rect x="2.5" y="4.5" width="19" height="15" rx="2"/><path d="M8 4.5v15M16 4.5v15M2.5 9.5h5M16.5 9.5h5M2.5 14.5h5M16.5 14.5h5"/>'),
+  user: svgIcon('<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-3.6 3.3-6.3 7.5-6.3s7.5 2.7 7.5 6.3"/>'),
+  trendUp: svgIcon('<path d="M3 17l5.5-6.5L13 15l8-9"/><path d="M17 6h4v4"/>'),
+  bank: svgIcon('<path d="M3 10.5 12 5l9 5.5"/><path d="M4.5 10.5v8M9 10.5v8M15 10.5v8M19.5 10.5v8"/><path d="M3 20.5h18"/>'),
+  home: svgIcon('<path d="M4 11 12 4l8 7"/><path d="M6 10v9.5h12V10"/><path d="M10 19.5V14h4v5.5"/>'),
+  medkit: svgIcon('<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><path d="M12 12v5M9.5 14.5h5"/>'),
+  gift: svgIcon('<rect x="3.5" y="9" width="17" height="11" rx="1.5"/><path d="M3.5 13h17"/><path d="M12 9v11"/><path d="M12 9C10 6 6.5 5.5 6.5 8c0 1.2 2 1.5 5.5 1zM12 9c2-3 5.5-3.5 5.5-1 0 1.2-2 1.5-5.5 1z"/>'),
+  chart: svgIcon('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'),
+  dots: svgIcon('<circle cx="6" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.3" fill="currentColor" stroke="none"/>'),
+  broom: svgIcon('<path d="M14 4 6 12M17 7l-8.5 8.5M4.5 19.5 8 16"/><path d="M17 7l3-3M8 16l-4 4"/>'),
+  handshake: svgIcon('<path d="M2.5 12.5 6 9l3 2 2-2 2 2 3-2 3.5 3.5"/><path d="M6 9v4l3 3 2-2 2 2 3-3V9"/>'),
+  card: svgIcon('<rect x="2.5" y="5.5" width="19" height="13" rx="2"/><path d="M2.5 10h19"/><path d="M6 15h4"/>'),
+  outbox: svgIcon('<path d="M12 3v10M8 9l4-4 4 4"/><path d="M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/>'),
+};
+const CAT_ICON_BG = 'var(--paper-dim)';
+
 const CAT_META = {
-  "Divya Salary": {em:'💰', bg:'var(--gold-dim)'},
-  "Pravesh Salary": {em:'💼', bg:'var(--gold-dim)'},
-  "Other Income (dividends, IPO etc.)": {em:'✨', bg:'var(--gold-dim)'},
-  "Mother's Monthly Transfer": {em:'❤️', bg:'var(--rose-dim)'},
-  "Groceries (Blinkit)": {em:'🛒', bg:'var(--sage-dim)'},
-  "Food & Dining (Swiggy / Dining Out)": {em:'🍽️', bg:'var(--coral-dim)'},
-  "Core Utilities (Power, Gas, Wi-Fi, Water)": {em:'💡', bg:'var(--peri-dim)'},
-  "Baleno Car EMI": {em:'🚗', bg:'var(--peri-dim)'},
-  "Vehicle Fuel": {em:'⛽', bg:'var(--peri-dim)'},
-  "Essential Shopping (Home & Apparel)": {em:'🛍️', bg:'var(--rose-dim)'},
-  "Subscriptions & Entertainment": {em:'🎬', bg:'var(--rose-dim)'},
-  "Daily Commute & Parking": {em:'🚕', bg:'var(--peri-dim)'},
-  "Personal (Divya)": {em:'💅', bg:'var(--rose-dim)'},
-  "Personal (Pravesh)": {em:'🎯', bg:'var(--rose-dim)'},
-  "Wealth SIPs (Pravesh ₹5k + Divya ₹8k)": {em:'📈', bg:'var(--sage-dim)'},
-  "Sinking Fund (Maintenance, LIC, Term)": {em:'🏦', bg:'var(--sage-dim)'},
-  "House Help": {em:'🧹', bg:'var(--sage-dim)'},
-  "Medical": {em:'💊', bg:'var(--rose-dim)'},
-  "Parties": {em:'🎉', bg:'var(--gold-dim)'},
-  "Other Investments": {em:'📊', bg:'var(--sage-dim)'},
-  "Other": {em:'📌', bg:'var(--paper-dim)'}
+  "Divya Salary": {em:ICON.wallet, bg:CAT_ICON_BG},
+  "Pravesh Salary": {em:ICON.wallet, bg:CAT_ICON_BG},
+  "Other Income (dividends, IPO etc.)": {em:ICON.sparkle, bg:CAT_ICON_BG},
+  "Mother's Monthly Transfer": {em:ICON.heart, bg:CAT_ICON_BG},
+  "Groceries (Blinkit)": {em:ICON.cart, bg:CAT_ICON_BG},
+  "Food & Dining (Swiggy / Dining Out)": {em:ICON.utensils, bg:CAT_ICON_BG},
+  "Core Utilities (Power, Gas, Wi-Fi, Water)": {em:ICON.bolt, bg:CAT_ICON_BG},
+  "Baleno Car EMI": {em:ICON.car, bg:CAT_ICON_BG},
+  "Vehicle Fuel": {em:ICON.fuel, bg:CAT_ICON_BG},
+  "Essential Shopping (Home & Apparel)": {em:ICON.bag, bg:CAT_ICON_BG},
+  "Subscriptions & Entertainment": {em:ICON.film, bg:CAT_ICON_BG},
+  "Daily Commute & Parking": {em:ICON.car, bg:CAT_ICON_BG},
+  "Personal (Divya)": {em:ICON.user, bg:CAT_ICON_BG},
+  "Personal (Pravesh)": {em:ICON.user, bg:CAT_ICON_BG},
+  "Wealth SIPs (Pravesh ₹5k + Divya ₹8k)": {em:ICON.trendUp, bg:CAT_ICON_BG},
+  "Sinking Fund (Maintenance, LIC, Term)": {em:ICON.bank, bg:CAT_ICON_BG},
+  "House Help": {em:ICON.broom, bg:CAT_ICON_BG},
+  "Medical": {em:ICON.medkit, bg:CAT_ICON_BG},
+  "Parties": {em:ICON.gift, bg:CAT_ICON_BG},
+  "Other Investments": {em:ICON.chart, bg:CAT_ICON_BG},
+  "Other": {em:ICON.dots, bg:CAT_ICON_BG}
 };
 function catMeta(cat){ return CAT_META[cat] || CAT_META['Other']; }
 
@@ -1250,9 +1284,9 @@ async function loadTheme(){
   applyTheme(theme);
 }
 function applyTheme(theme){
-  const app = document.getElementById('app');
-  if(theme==='dark'){ app.setAttribute('data-theme','dark'); document.getElementById('theme-toggle').textContent='☀️'; }
-  else{ app.removeAttribute('data-theme'); document.getElementById('theme-toggle').textContent='🌙'; }
+  const root = document.documentElement;
+  if(theme==='dark'){ root.setAttribute('data-theme','dark'); document.getElementById('theme-toggle').textContent='☀️'; }
+  else{ root.removeAttribute('data-theme'); document.getElementById('theme-toggle').textContent='🌙'; }
 }
 document.getElementById('theme-toggle').addEventListener('click', async ()=>{
   const app = document.getElementById('app');
@@ -1296,8 +1330,8 @@ function openBreakdown(kind){
     title = 'Net Liquid Working Surplus';
     sub = 'Liquid bank cash minus what\'s currently due on credit cards.';
     rows = [
-      {label:'Liquid Bank Cash', icon:'💵', bg:'var(--sage-dim)', value:t.cash},
-      {label:'Credit Card Dues', icon:'💳', bg:'var(--rose-dim)', value:-t.cardTotal}
+      {label:'Liquid Bank Cash', icon:ICON.wallet, bg:CAT_ICON_BG, value:t.cash},
+      {label:'Credit Card Dues', icon:ICON.card, bg:CAT_ICON_BG, value:-t.cardTotal}
     ];
     total = t.net;
   } else if(kind==='cash'){
@@ -1305,38 +1339,38 @@ function openBreakdown(kind){
     sub = 'Every bank account counted toward this total (Cash Wallet and Sinking Fund are tracked separately). Tap an account to see its full statement.';
     const excluded = ['cash_wallet','sinking_fund'];
     rows = state.accounts.filter(a=>!excluded.includes(a.id)).map(a=>
-      ({label:a.name, icon:a.em||'🏦', bg:'var(--sage-dim)', value:accountBalance(a), acctId:a.id, isCard:false}));
+      ({label:a.name, icon:a.em||ICON.bank, bg:CAT_ICON_BG, value:accountBalance(a), acctId:a.id, isCard:false}));
     total = t.cash;
   } else if(kind==='cards'){
     title = 'Credit Card Dues';
     sub = 'What\'s currently outstanding on each card. Tap a card to see its full statement.';
     rows = state.cards.map(c=>
-      ({label:c.name, icon:'💳', bg:'var(--rose-dim)', value:cardDue(c), acctId:c.id, isCard:true}));
+      ({label:c.name, icon:ICON.card, bg:CAT_ICON_BG, value:cardDue(c), acctId:c.id, isCard:true}));
     total = t.cardTotal;
   } else if(kind==='sink'){
     title = 'Sinking Fund';
     sub = 'Set aside for lumpy annual bills. Tap to see its full statement.';
     const acc = state.accounts.find(a=>a.id==='sinking_fund');
-    rows = acc ? [{label:acc.name, icon:acc.em||'🏦', bg:'var(--gold-dim)', value:accountBalance(acc), acctId:acc.id, isCard:false}] : [];
+    rows = acc ? [{label:acc.name, icon:acc.em||ICON.bank, bg:CAT_ICON_BG, value:accountBalance(acc), acctId:acc.id, isCard:false}] : [];
     total = t.sink;
   } else if(kind==='invest'){
     title = 'Investments';
     sub = 'Mutual funds and direct equities, at current value. Opens the Invest tab for details.';
     rows = [
-      {label:'Mutual Funds', icon:'📈', bg:'var(--peri-dim)', value:t.mf, goNav:'invest'},
-      {label:'Direct Equities', icon:'📊', bg:'var(--peri-dim)', value:t.eq, goNav:'invest'}
+      {label:'Mutual Funds', icon:ICON.trendUp, bg:CAT_ICON_BG, value:t.mf, goNav:'invest'},
+      {label:'Direct Equities', icon:ICON.chart, bg:CAT_ICON_BG, value:t.eq, goNav:'invest'}
     ];
     total = t.invest;
   } else if(kind==='recv' || kind==='pay'){
     title = kind==='recv' ? 'Receivables' : 'Family Payables';
     sub = kind==='recv' ? 'People who currently owe you money. Tap a name to log a repayment.' : 'People you currently owe money to. Tap a name to log a repayment.';
-    rows = state.people.map(p=>({label:p.name, icon:'🤝', bg: kind==='recv'?'var(--sage-dim)':'var(--rose-dim)', value:personBalance(p.id), personId:p.id}))
+    rows = state.people.map(p=>({label:p.name, icon:ICON.handshake, bg:CAT_ICON_BG, value:personBalance(p.id), personId:p.id}))
       .filter(r=> kind==='recv' ? r.value>0 : r.value<0);
     total = kind==='recv' ? t.recv : t.pay;
   } else if(kind==='gap'){
     title = 'Net Gap (People)';
     sub = 'Everyone in your People Ledger with a non-zero balance. Tap a name to log a repayment.';
-    rows = state.people.map(p=>({label:p.name, icon:'🤝', bg: personBalance(p.id)>=0?'var(--sage-dim)':'var(--rose-dim)', value:personBalance(p.id), personId:p.id}))
+    rows = state.people.map(p=>({label:p.name, icon:ICON.handshake, bg:CAT_ICON_BG, value:personBalance(p.id), personId:p.id}))
       .filter(r=> r.value!==0);
     total = t.gap;
   }
@@ -1964,7 +1998,7 @@ function cardHtml(b){
     </div>`;
   document.getElementById('budget-list').innerHTML =
     (bIncome.length? '<div class="divider-label">Income</div><div class="budget-grid">' + bIncome.map(cardHtml).join('') + '</div>' : '') +
-    '<div class="divider-label">Expenses</div><div class="budget-grid">' + bExpense.map(cardHtml).join('') + addTileHtml + '</div>';
+    '<div class="divider-label">Expenses</div><div class="budget-grid">' + addTileHtml + bExpense.map(cardHtml).join('') + '</div>';
   document.querySelectorAll('[data-opencat]').forEach(el=>{
     el.addEventListener('click', ()=> openBudgetDetail(el.getAttribute('data-opencat')));
   });
@@ -2446,6 +2480,7 @@ const edittxBackdrop = document.getElementById('edittx-backdrop');
 let editingTx = null;
 let editSelectedCat = null;
 let editSelectedAccount = null;
+let editCatPickerOpen = false, editAcctPickerOpen = false;
 function renderEditChips(){
   if(!editingTx) return;
   const catOptions = editingTx.type==='income' ? state.budget.filter(b=>b.income).map(b=>b.cat) : state.budget.filter(b=>!b.income).map(b=>b.cat);
@@ -2462,22 +2497,33 @@ function renderEditChips(){
     return `<div class="cat-chip ${c===editSelectedCat?'on':''}" data-editcat="${c}"><div class="em" style="background:${meta.bg};">${meta.em}</div><div class="lb">${short}</div></div>`;
   }).join('');
   document.querySelectorAll('#edit-cat-grid .cat-chip').forEach(el=>{
-    el.addEventListener('click', ()=>{ editSelectedCat = el.dataset.editcat; renderEditChips(); });
+    el.addEventListener('click', ()=>{ editSelectedCat = el.dataset.editcat; editCatPickerOpen = false; renderEditChips(); });
   });
+  const editCatMeta = catMeta(editSelectedCat);
+  document.getElementById('edit-cat-summary').innerHTML =
+    `<div class="ps-icon" style="background:${editCatMeta.bg};">${editCatMeta.em}</div><div class="ps-name">${editSelectedCat}</div><div class="ps-change">${editCatPickerOpen?'Cancel':'Change'}</div>`;
+  document.getElementById('edit-cat-summary').onclick = ()=>{ editCatPickerOpen = !editCatPickerOpen; renderEditChips(); };
+  document.getElementById('edit-cat-grid').classList.toggle('hide', !editCatPickerOpen);
 
   const targets = editingTx.type==='expense' ? [...state.accounts, ...state.cards] : state.accounts;
   if(!targets.find(a=>a.id===editSelectedAccount)) editSelectedAccount = editingTx.account;
   document.getElementById('edit-acct-row').innerHTML = targets.map(a=>
-    `<div class="acct-chip ${a.id===editSelectedAccount?'on':''}" data-editacct="${a.id}">${a.em||'🏦'} ${a.name}</div>`
+    `<div class="pli ${a.id===editSelectedAccount?'on':''}" data-editacct="${a.id}"><div class="pli-icon">${a.em||'🏦'}</div><div class="pli-name">${a.name}</div><div class="pli-check">✓</div></div>`
   ).join('');
-  document.querySelectorAll('#edit-acct-row .acct-chip').forEach(el=>{
-    el.addEventListener('click', ()=>{ editSelectedAccount = el.dataset.editacct; renderEditChips(); });
+  document.querySelectorAll('#edit-acct-row .pli').forEach(el=>{
+    el.addEventListener('click', ()=>{ editSelectedAccount = el.dataset.editacct; editAcctPickerOpen = false; renderEditChips(); });
   });
+  const editAcctSel = targets.find(a=>a.id===editSelectedAccount);
+  document.getElementById('edit-acct-summary').innerHTML =
+    `<div class="ps-icon" style="background:var(--paper-dim);">${editAcctSel && editAcctSel.em || '🏦'}</div><div class="ps-name">${editAcctSel ? editAcctSel.name : ''}</div><div class="ps-change">${editAcctPickerOpen?'Cancel':'Change'}</div>`;
+  document.getElementById('edit-acct-summary').onclick = ()=>{ editAcctPickerOpen = !editAcctPickerOpen; renderEditChips(); };
+  document.getElementById('edit-acct-row').classList.toggle('hide', !editAcctPickerOpen);
 }
 function openEditTx(tx){
   editingTx = tx;
   editSelectedCat = tx.category;
   editSelectedAccount = tx.account;
+  editCatPickerOpen = false; editAcctPickerOpen = false;
   document.getElementById('edit-payee').value = tx.payee || '';
   document.getElementById('edit-amount').value = tx.amount;
   renderEditChips();
