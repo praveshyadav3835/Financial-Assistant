@@ -166,6 +166,16 @@
   .budget-summary .bs-fill{height:100%; background:var(--ink); border-radius:6px; transition:width .3s ease;}
   .budget-summary .bs-fill.over{background:var(--debt);}
   .budget-summary .bs-sub{font-size:12px; color:var(--ink-soft);}
+  .budget-summary .bs-compare{margin:14px 0 12px;}
+  .budget-summary .bs-compare-row{display:flex; align-items:center; gap:9px; margin-bottom:9px;}
+  .budget-summary .bs-compare-label{width:58px; font-size:11.5px; color:var(--ink-soft); flex-shrink:0;}
+  .budget-summary .bs-compare-track{flex:1; height:10px; background:var(--paper-dim); border-radius:6px; overflow:hidden;}
+  .budget-summary .bs-compare-fill{height:100%; border-radius:6px; transition:width .3s ease;}
+  .budget-summary .bs-compare-fill.budgeted{background:var(--ink-soft);}
+  .budget-summary .bs-compare-fill.spent{background:var(--ink);}
+  .budget-summary .bs-compare-fill.spent.over{background:var(--debt);}
+  .budget-summary .bs-compare-val{width:70px; text-align:right; font-family:'Manrope',sans-serif; font-size:12.5px; font-weight:700; color:var(--ink); flex-shrink:0;}
+  .budget-summary .bs-compare-val.over{color:var(--debt);}
   .budget-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:8px;}
   .budget-card{background:var(--card); border:1px solid var(--line); border-radius:18px; padding:13px; box-shadow:var(--shadow-sm); cursor:pointer; transition:transform .12s ease, box-shadow .12s ease;}
   .budget-card.hero{grid-column:1 / -1; display:flex; flex-direction:column; padding:16px;}
@@ -1287,24 +1297,20 @@ async function initCloudSync(onFirstData){
   }
 }
 
+function diffChangedItems(field, current){
+  const previous = previousArrays[field] || [];
+  const previousById = {}; previous.forEach(x=>{ if(x && x.id) previousById[x.id] = x; });
+  return current.filter(item=>{
+    if(!item || !item.id) return false;
+    const prevItem = previousById[item.id];
+    return !prevItem || JSON.stringify(prevItem) !== JSON.stringify(item);
+  });
+}
 async function syncCollectionDiff(field, type, currentOverride){
   const current = currentOverride || state[field] || [];
   const previous = previousArrays[field] || [];
   const currentIds = new Set(current.map(x=>x.id));
-  const previousById = {}; previous.forEach(x=>{ if(x && x.id) previousById[x.id] = x; });
-
-  const changedItems = [];
-  current.forEach(item=>{
-    if(!item || !item.id) return;
-    const prevItem = previousById[item.id];
-    if(!prevItem || JSON.stringify(prevItem) !== JSON.stringify(item)) changedItems.push(item);
-  });
-  if(changedItems.length){
-    const ob = loadOutbox();
-    ob[field] = ob[field] || {};
-    changedItems.forEach(item=> ob[field][item.id] = item);
-    saveOutbox(ob);
-  }
+  const changedItems = diffChangedItems(field, current);
   const ops = changedItems.map(item=> hh(item.id).set({...item, _type:type}));
   previous.forEach(item=>{
     if(item && item.id && !currentIds.has(item.id)) ops.push(hh(item.id).delete());
@@ -1321,7 +1327,22 @@ async function syncCollectionDiff(field, type, currentOverride){
 
 async function saveState(){
   await saveLocalOnly();
-  if(!cloudReady) return; // local save already protects the data; cloud reconciles once connected
+  // Record what changed to the outbox unconditionally — cloud-ready or not. The previous
+  // version only did this inside the cloud-sync path below, which returns immediately when
+  // the cloud connection isn't up yet — meaning an edit saved in that window never reached
+  // the outbox at all and had no protection against the "trust the server" step on next load.
+  const ob = loadOutbox();
+  let obChanged = false;
+  Object.keys(COLLECTION_FIELDS).forEach(field=>{
+    const changed = diffChangedItems(field, state[field]||[]);
+    if(changed.length){
+      ob[field] = ob[field] || {};
+      changed.forEach(item=> ob[field][item.id] = item);
+      obChanged = true;
+    }
+  });
+  if(obChanged) saveOutbox(ob);
+  if(!cloudReady) return; // local save + outbox already protect the data; cloud reconciles once connected
   // Snapshot everything we intend to persist SYNCHRONOUSLY, before any await. Otherwise, an
   // incoming real-time update from the other device (which replaces state[field] wholesale)
   // could land in the gap between steps below and silently wipe out a local edit before we
@@ -2088,11 +2109,25 @@ function render(){
   const totalIncActual = bIncome.reduce((s,b)=>s+b.actual,0);
   const overallPct = totalExpBudget>0 ? Math.min(100,(totalExpActual/totalExpBudget)*100) : (totalExpActual>0?100:0);
   const overallOver = totalExpBudget>0 && totalExpActual>totalExpBudget;
+  const compareMax = Math.max(totalExpBudget, totalExpActual, 1);
+  const budgetBarPct = (totalExpBudget/compareMax)*100;
+  const spentBarPct = (totalExpActual/compareMax)*100;
   document.getElementById('budget-summary-wrap').innerHTML = `
     <div class="budget-summary">
       <div class="bs-top"><span class="bs-label">SPENT THIS MONTH</span><span class="bs-value ${overallOver?'over':''} maskable">${fmt(totalExpActual)}</span></div>
-      <div class="bs-track"><div class="bs-fill ${overallOver?'over':''}" style="width:${overallPct}%"></div></div>
-      <div class="bs-sub"><span class="maskable">${fmt(totalExpBudget)}</span> budgeted across ${bExpense.length} categories · income logged <span class="maskable">${fmt(totalIncActual)}</span></div>
+      <div class="bs-compare">
+        <div class="bs-compare-row">
+          <span class="bs-compare-label">Budgeted</span>
+          <div class="bs-compare-track"><div class="bs-compare-fill budgeted" style="width:${budgetBarPct}%"></div></div>
+          <span class="bs-compare-val maskable">${fmt(totalExpBudget)}</span>
+        </div>
+        <div class="bs-compare-row">
+          <span class="bs-compare-label">Spent</span>
+          <div class="bs-compare-track"><div class="bs-compare-fill spent ${overallOver?'over':''}" style="width:${spentBarPct}%"></div></div>
+          <span class="bs-compare-val maskable ${overallOver?'over':''}">${fmt(totalExpActual)}</span>
+        </div>
+      </div>
+      <div class="bs-sub">Across ${bExpense.length} categories · income logged <span class="maskable">${fmt(totalIncActual)}</span></div>
     </div>`;
   document.getElementById('budget-donut-wrap').innerHTML = buildCategoryDonutSVG(bExpense);
 
