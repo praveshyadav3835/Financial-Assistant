@@ -125,11 +125,16 @@
   nav.tabbar{position:sticky; bottom:calc(env(safe-area-inset-bottom,0) + 10px); max-width:452px; margin:0 auto; background:var(--card); backdrop-filter:blur(10px); border:1px solid var(--line); border-radius:24px; display:flex; padding:8px 6px; width:calc(100% - 28px); box-shadow:var(--shadow-md); transition:background .25s ease;}
   nav.tabbar button{flex:1; background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:3px; font-family:'Manrope',sans-serif; font-size:10.5px; font-weight:700; color:var(--ink-soft); padding:7px 2px; border-radius:16px; cursor:pointer; transition:background .15s ease, color .15s ease;}
   nav.tabbar button.active{background:var(--coral-dim);}
-  nav.tabbar button[data-tab="home"].active{color:var(--coral); background:var(--coral-dim);}
-  nav.tabbar button[data-tab="money"].active{color:var(--peri); background:var(--peri-dim);}
-  nav.tabbar button[data-tab="people"].active{color:var(--sage); background:var(--sage-dim);}
-  nav.tabbar button[data-tab="invest"].active{color:var(--gold); background:var(--gold-dim);}
-  nav.tabbar button[data-tab="budget"].active{color:var(--rose); background:var(--rose-dim);}
+  nav.tabbar button[data-tab="home"]{color:var(--coral); opacity:0.55;}
+  nav.tabbar button[data-tab="money"]{color:var(--peri); opacity:0.55;}
+  nav.tabbar button[data-tab="people"]{color:var(--sage); opacity:0.55;}
+  nav.tabbar button[data-tab="invest"]{color:var(--gold); opacity:0.55;}
+  nav.tabbar button[data-tab="budget"]{color:var(--rose); opacity:0.55;}
+  nav.tabbar button[data-tab="home"].active{background:var(--coral-dim); opacity:1;}
+  nav.tabbar button[data-tab="money"].active{background:var(--peri-dim); opacity:1;}
+  nav.tabbar button[data-tab="people"].active{background:var(--sage-dim); opacity:1;}
+  nav.tabbar button[data-tab="invest"].active{background:var(--gold-dim); opacity:1;}
+  nav.tabbar button[data-tab="budget"].active{background:var(--rose-dim); opacity:1;}
   nav.tabbar svg{width:20px; height:20px;}
 
   .fab{position:fixed; bottom:96px; right:calc(50% - 240px + 18px); width:58px; height:58px; border-radius:50%; background:linear-gradient(145deg, #FFA35E, var(--rose)); color:#fff; border:none; font-size:28px; display:flex; align-items:center; justify-content:center; box-shadow:0 10px 28px rgba(255,138,61,0.4); cursor:pointer; z-index:20; transition:transform .12s ease;}
@@ -303,6 +308,7 @@
       <div class="card" id="mf-list"></div>
       <div class="divider-label">Direct equities</div>
       <div class="card" id="eq-list"></div>
+      <button class="link-btn" id="add-investment-btn" style="margin-top:8px;">+ Add / update an investment</button>
     </section>
 
     <section class="tab" id="tab-budget">
@@ -324,7 +330,14 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v52-trip-detection</p>
+      <div class="divider-label">Bulk recategorize by date</div>
+      <p class="section-sub">Move everything in a date range into one category at once — useful for a trip or event where every expense has a different payee but should be grouped together.</p>
+      <div class="field"><label>From</label><input id="bulk-recat-from" type="date"></div>
+      <div class="field"><label>To</label><input id="bulk-recat-to" type="date"></div>
+      <div class="field"><label>Move into category</label><input id="bulk-recat-cat" placeholder="e.g. Goa Trip"></div>
+      <button class="btn-primary" id="bulk-recat-btn" style="background:var(--rose);">Recategorize this range</button>
+
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v54-live-status-fix</p>
     </section>
   </main>
 
@@ -592,6 +605,28 @@
     <button class="btn-primary" id="commit-save">Save</button>
     <button class="btn-ghost" id="commit-delete" style="color:var(--debt); border-color:var(--debt); display:none;">Delete this bill</button>
     <button class="btn-ghost" id="commit-cancel">Cancel</button>
+  </div>
+</div>
+
+<div class="sheet-backdrop" id="investment-backdrop">
+  <div class="sheet">
+    <h3 id="investment-title">Add an investment</h3>
+    <div class="field">
+      <label>Type</label>
+      <div class="seg" id="investment-type">
+        <button data-v="mf" class="on">Mutual Fund</button>
+        <button data-v="eq">Direct Equity</button>
+      </div>
+    </div>
+    <div class="field"><label>Name</label><input id="inv-name" placeholder="e.g. HDFC Defence Fund Direct Growth"></div>
+    <div class="field"><label>Holder / notes</label><input id="inv-holder" placeholder="e.g. Pravesh (Groww)"></div>
+    <div class="field"><label>Amount invested (₹)</label><input id="inv-invested" type="number" inputmode="decimal" placeholder="0"></div>
+    <div class="field"><label>Current value (₹)</label><input id="inv-current" type="number" inputmode="decimal" placeholder="0"></div>
+    <div class="field" id="inv-xirr-field"><label>XIRR % (optional)</label><input id="inv-xirr" type="number" inputmode="decimal" placeholder="0"></div>
+    <div class="field"><label>As of date</label><input id="inv-date" type="date"></div>
+    <button class="btn-primary" id="investment-save">Save</button>
+    <button class="btn-ghost" id="investment-delete" style="color:var(--debt); border-color:var(--debt); display:none;">Delete this entry</button>
+    <button class="btn-ghost" id="investment-cancel">Cancel</button>
   </div>
 </div>
 
@@ -1551,16 +1586,18 @@ function render(){
     }
   }));
 
-  document.getElementById('mf-list').innerHTML = state.mutualFunds.map(f=>`
-    <div class="row"><div><div class="name">${f.name}</div><div class="sub">${f.holder} · XIRR ${f.xirr}%</div></div>
+  document.getElementById('mf-list').innerHTML = state.mutualFunds.map((f,i)=>`
+    <div class="row" data-editmf="${i}" style="cursor:pointer;"><div><div class="name">${f.name}</div><div class="sub">${f.holder} · XIRR ${f.xirr}%${f.lastUpdated?' · as of '+new Date(f.lastUpdated).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''}</div></div>
       <div style="text-align:right;"><div class="amt pos">${fmt(f.current)}</div><div class="sub">of ${fmt(f.invested)} invested</div></div>
     </div>`).join('');
-  document.getElementById('eq-list').innerHTML = state.equities.map(e=>{
+  document.querySelectorAll('[data-editmf]').forEach(el=> el.addEventListener('click', ()=> openEditInvestment('mf', parseInt(el.getAttribute('data-editmf')))));
+  document.getElementById('eq-list').innerHTML = state.equities.map((e,i)=>{
     const gain = e.current - e.invested;
-    return `<div class="row"><div><div class="name">${e.name}</div><div class="sub">${e.holder}</div></div>
+    return `<div class="row" data-editeq="${i}" style="cursor:pointer;"><div><div class="name">${e.name}</div><div class="sub">${e.holder}${e.lastUpdated?' · as of '+new Date(e.lastUpdated).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''}</div></div>
       <div style="text-align:right;"><div class="amt ${gain<0?'neg':'pos'}">${fmt(e.current)}</div><div class="sub">${gain<0?'-':'+'}${fmt(Math.abs(gain))} vs invested</div></div>
     </div>`;
   }).join('');
+  document.querySelectorAll('[data-editeq]').forEach(el=> el.addEventListener('click', ()=> openEditInvestment('eq', parseInt(el.getAttribute('data-editeq')))));
 
   const bIncome = state.budget.filter(b=>b.income);
   const bExpense = state.budget.filter(b=>!b.income);
@@ -2426,6 +2463,29 @@ document.getElementById('clear-since-btn').addEventListener('click', async ()=>{
   showToast(`🗑️ Cleared ${matching.length} transaction(s) since ${dateStr}.`);
 });
 
+document.getElementById('bulk-recat-btn').addEventListener('click', async ()=>{
+  const fromVal = document.getElementById('bulk-recat-from').value;
+  const toVal = document.getElementById('bulk-recat-to').value;
+  const catName = document.getElementById('bulk-recat-cat').value.trim();
+  if(!fromVal || !toVal || !catName){ alert('Please fill in the from date, to date, and category name.'); return; }
+  const from = new Date(fromVal);
+  const to = new Date(toVal); to.setHours(23,59,59,999);
+  const matching = state.transactions.filter(t=> t.type==='expense' && new Date(t.ts) >= from && new Date(t.ts) <= to);
+  if(!matching.length){ alert('No expenses found in that date range.'); return; }
+  if(!confirm(`Move ${matching.length} expense(s) from ${fromVal} to ${toVal} into "${catName}"? This category will be tracked separately from your regular monthly budget.`)) return;
+  if(!state.budget.find(b=>b.cat===catName)){
+    state.budget.push({cat:catName, budget:0, actual:0, special:true});
+  }
+  matching.forEach(t=>{ t.category = catName; });
+  recomputeBudgetActuals();
+  await saveState();
+  render();
+  document.getElementById('bulk-recat-from').value = '';
+  document.getElementById('bulk-recat-to').value = '';
+  document.getElementById('bulk-recat-cat').value = '';
+  showToast(`✓ Moved ${matching.length} expense(s) into "${catName}".`);
+});
+
 // ---- RECONCILIATION ----
 // ---- MANUAL BALANCE ADJUSTMENT (also used as reconciliation "suspense" fix) ----
 let adjustTargetId = null, adjustIsCard = false;
@@ -2743,6 +2803,72 @@ document.getElementById('commit-delete').addEventListener('click', async ()=>{
   showToast('Removed.');
 });
 document.getElementById('commit-cancel').addEventListener('click', ()=> commitmentBackdrop.classList.remove('open'));
+
+const investmentBackdrop = document.getElementById('investment-backdrop');
+let editingInvestment = null; // {kind:'mf'|'eq', index:number} or null for new
+wireSeg('investment-type', (v)=>{
+  document.getElementById('inv-xirr-field').classList.toggle('hide', v==='eq');
+});
+function openEditInvestment(kind, index){
+  editingInvestment = {kind, index};
+  const isNew = index === undefined || index === null;
+  document.getElementById('investment-title').textContent = isNew ? 'Add an investment' : 'Update this investment';
+  document.getElementById('investment-delete').style.display = isNew ? 'none' : 'block';
+  document.querySelectorAll('#investment-type button').forEach(b=> b.classList.toggle('on', b.dataset.v===kind));
+  document.getElementById('inv-xirr-field').classList.toggle('hide', kind==='eq');
+  const today = new Date().toISOString().slice(0,10);
+  if(isNew){
+    document.getElementById('inv-name').value = '';
+    document.getElementById('inv-holder').value = '';
+    document.getElementById('inv-invested').value = '';
+    document.getElementById('inv-current').value = '';
+    document.getElementById('inv-xirr').value = '';
+    document.getElementById('inv-date').value = today;
+  } else {
+    const item = kind==='mf' ? state.mutualFunds[index] : state.equities[index];
+    document.getElementById('inv-name').value = item.name;
+    document.getElementById('inv-holder').value = item.holder;
+    document.getElementById('inv-invested').value = item.invested;
+    document.getElementById('inv-current').value = item.current;
+    document.getElementById('inv-xirr').value = item.xirr || '';
+    document.getElementById('inv-date').value = item.lastUpdated ? item.lastUpdated.slice(0,10) : today;
+  }
+  investmentBackdrop.classList.add('open');
+}
+document.getElementById('add-investment-btn').addEventListener('click', ()=> openEditInvestment('mf', null));
+document.getElementById('investment-save').addEventListener('click', async ()=>{
+  const kind = segValue('investment-type');
+  const name = document.getElementById('inv-name').value.trim();
+  const holder = document.getElementById('inv-holder').value.trim();
+  const invested = parseFloat(document.getElementById('inv-invested').value);
+  const current = parseFloat(document.getElementById('inv-current').value);
+  const xirr = parseFloat(document.getElementById('inv-xirr').value) || 0;
+  const dateVal = document.getElementById('inv-date').value;
+  if(!name || isNaN(invested) || isNaN(current) || !dateVal){ alert('Please fill in the name, both amounts, and the date.'); return; }
+  const lastUpdated = new Date(dateVal).toISOString();
+  const entry = kind==='mf' ? {name, holder, invested, current, xirr, lastUpdated} : {name, holder, invested, current, lastUpdated};
+  const list = kind==='mf' ? state.mutualFunds : state.equities;
+  if(editingInvestment && editingInvestment.index !== null && editingInvestment.kind===kind){
+    list[editingInvestment.index] = entry;
+  } else {
+    list.push(entry);
+  }
+  await saveState();
+  render();
+  investmentBackdrop.classList.remove('open');
+  showToast('✓ Saved.');
+});
+document.getElementById('investment-delete').addEventListener('click', async ()=>{
+  if(!editingInvestment || editingInvestment.index===null) return;
+  const list = editingInvestment.kind==='mf' ? state.mutualFunds : state.equities;
+  if(!confirm(`Remove "${list[editingInvestment.index].name}" from your investments?`)) return;
+  list.splice(editingInvestment.index, 1);
+  await saveState();
+  render();
+  investmentBackdrop.classList.remove('open');
+  showToast('Removed.');
+});
+document.getElementById('investment-cancel').addEventListener('click', ()=> investmentBackdrop.classList.remove('open'));
 document.getElementById('acctstatement-reset').addEventListener('click', async ()=>{
   if(!currentStatementCtx) return;
   const {targetId, isCard} = currentStatementCtx;
@@ -3274,7 +3400,7 @@ async function runGmailCheck(fullSweep, customDate){
       total: classified.length,
       newCount: classified.filter(c=>c.status==='pending').length,
       dupCount: classified.filter(c=>c.status==='duplicate').length,
-      items: classified.map(c=>({payee:c.payee, amount:c.amount, ts:c.ts, sourceEmail:c.sourceEmail, status:c.status}))
+      items: classified.map(c=>({id:c.id, payee:c.payee, amount:c.amount, ts:c.ts, sourceEmail:c.sourceEmail, status:c.status}))
     };
     await saveState();
     render();
@@ -3362,13 +3488,23 @@ function renderLastFetchSummary(){
   const wrap = document.getElementById('last-fetch-summary-wrap');
   const s = state.lastFetchSummary;
   if(!s || !s.total){ wrap.innerHTML = ''; return; }
+  const stillPendingIds = new Set(state.pendingImports.map(p=>p.id));
+  const liveItems = s.items.map(it=>{
+    // The status stored at fetch time goes stale the moment you act on it. Check reality
+    // instead: still sitting in the pending queue = genuinely still pending. Anything else
+    // (approved into your ledger, or dismissed) is resolved, regardless of what it said before.
+    const liveStatus = it.id && stillPendingIds.has(it.id) ? 'pending' : 'resolved';
+    return {...it, liveStatus};
+  });
+  const livePendingCount = liveItems.filter(it=>it.liveStatus==='pending').length;
+  const liveResolvedCount = liveItems.length - livePendingCount;
   wrap.innerHTML = `<div class="card" style="margin-bottom:16px;">
-    <div class="row"><div><div class="name">📊 Last check: ${s.total} found via email</div><div class="sub">${new Date(s.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${s.newCount} pending, ${s.dupCount} already matched to your ledger</div></div></div>
+    <div class="row"><div><div class="name">📊 Last check: ${s.total} found via email</div><div class="sub">${new Date(s.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${livePendingCount} still pending, ${liveResolvedCount} resolved</div></div></div>
     <details style="margin-top:4px;">
       <summary style="cursor:pointer; color:var(--peri); font-size:13px; padding:6px 0;">Show all ${s.total} — cross-check against your inbox</summary>
-      ${s.items.map(it=>`<div class="row" style="padding:8px 0;">
+      ${liveItems.map(it=>`<div class="row" style="padding:8px 0;">
         <div><div class="name" style="font-size:13.5px;">${it.payee}</div><div class="sub">${new Date(it.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${it.sourceEmail||''}</div></div>
-        <div style="text-align:right;"><div class="amt" style="font-size:13.5px;">${fmt(it.amount)}</div><div class="sub" style="color:${it.status==='pending'?'var(--peri)':'var(--sage)'};">${it.status==='pending'?'pending':'matched'}</div></div>
+        <div style="text-align:right;"><div class="amt" style="font-size:13.5px;">${fmt(it.amount)}</div><div class="sub" style="color:${it.liveStatus==='pending'?'var(--peri)':'var(--sage)'};">${it.liveStatus==='pending'?'pending':'✓ resolved'}</div></div>
       </div>`).join('')}
     </details>
   </div>`;
