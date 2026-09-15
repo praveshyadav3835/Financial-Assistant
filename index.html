@@ -124,7 +124,12 @@
 
   nav.tabbar{position:sticky; bottom:calc(env(safe-area-inset-bottom,0) + 10px); max-width:452px; margin:0 auto; background:var(--card); backdrop-filter:blur(10px); border:1px solid var(--line); border-radius:24px; display:flex; padding:8px 6px; width:calc(100% - 28px); box-shadow:var(--shadow-md); transition:background .25s ease;}
   nav.tabbar button{flex:1; background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:3px; font-family:'Manrope',sans-serif; font-size:10.5px; font-weight:700; color:var(--ink-soft); padding:7px 2px; border-radius:16px; cursor:pointer; transition:background .15s ease, color .15s ease;}
-  nav.tabbar button.active{color:var(--coral); background:var(--coral-dim);}
+  nav.tabbar button.active{background:var(--coral-dim);}
+  nav.tabbar button[data-tab="home"].active{color:var(--coral); background:var(--coral-dim);}
+  nav.tabbar button[data-tab="money"].active{color:var(--peri); background:var(--peri-dim);}
+  nav.tabbar button[data-tab="people"].active{color:var(--sage); background:var(--sage-dim);}
+  nav.tabbar button[data-tab="invest"].active{color:var(--gold); background:var(--gold-dim);}
+  nav.tabbar button[data-tab="budget"].active{color:var(--rose); background:var(--rose-dim);}
   nav.tabbar svg{width:20px; height:20px;}
 
   .fab{position:fixed; bottom:96px; right:calc(50% - 240px + 18px); width:58px; height:58px; border-radius:50%; background:linear-gradient(145deg, #FFA35E, var(--rose)); color:#fff; border:none; font-size:28px; display:flex; align-items:center; justify-content:center; box-shadow:0 10px 28px rgba(255,138,61,0.4); cursor:pointer; z-index:20; transition:transform .12s ease;}
@@ -210,9 +215,13 @@
 <div id="app">
   <header class="cover">
     <div class="top-row">
-      <div class="greet" id="hdr-greet">Hi there <button class="who" id="who-switch">not you?</button></div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div id="profile-avatar" style="width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; cursor:pointer; flex-shrink:0; overflow:hidden;">👤</div>
+        <div class="greet" id="hdr-greet">Hi there</div>
+      </div>
       <button class="theme-toggle" id="theme-toggle" title="Toggle theme">🌙</button>
     </div>
+    <input type="file" id="avatar-file-input" accept="image/*" class="hide">
     <div class="household">C113, Sector 91, Gurgaon</div>
     <div id="sync-status" style="font-size:11px; color:var(--ink-soft); margin-bottom:14px;">Connecting…</div>
     <div class="netlabel">Net Liquid Working Surplus</div>
@@ -265,10 +274,9 @@
         <div id="gmail-accounts-list"></div>
         <div id="gmail-check-row" class="hide" style="margin-top:11px; padding-top:11px; border-top:1px dashed var(--line);">
           <button class="btn-ghost" id="gmail-check-btn" style="margin:0 0 8px;">🔄 Check for new transactions</button>
-          <button class="btn-primary" id="gmail-fullsweep-btn" style="background:var(--peri); margin:0;">🔍 Full verify: Sep 2 → now, all inboxes</button>
-          <div style="display:flex; gap:8px; align-items:center; margin-top:10px;">
+          <div style="display:flex; gap:8px; align-items:center;">
             <input type="date" id="gmail-custom-date" style="flex:1; padding:9px; border-radius:10px; border:1px solid var(--line); font-family:'Manrope',sans-serif;">
-            <button class="btn-ghost" id="gmail-custom-fetch-btn" style="margin:0; white-space:nowrap;">Fetch from this date</button>
+            <button class="btn-primary" id="gmail-custom-fetch-btn" style="background:var(--peri); margin:0; white-space:nowrap;">Select date &amp; fetch</button>
           </div>
           <p class="section-sub" style="margin-top:6px;">Shows everything found from that date, reconciled fresh against your ledger — including ones already logged, clearly marked.</p>
         </div>
@@ -316,7 +324,7 @@
       <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
       <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v50-fix-load-crash</p>
+      <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v52-trip-detection</p>
     </section>
   </main>
 
@@ -622,6 +630,10 @@ const CAT_META = {
   "Personal (Pravesh)": {em:'🎯', bg:'var(--rose-dim)'},
   "Wealth SIPs (Pravesh ₹5k + Divya ₹8k)": {em:'📈', bg:'var(--sage-dim)'},
   "Sinking Fund (Maintenance, LIC, Term)": {em:'🏦', bg:'var(--sage-dim)'},
+  "House Help": {em:'🧹', bg:'var(--sage-dim)'},
+  "Medical": {em:'💊', bg:'var(--rose-dim)'},
+  "Parties": {em:'🎉', bg:'var(--gold-dim)'},
+  "Other Investments": {em:'📊', bg:'var(--sage-dim)'},
   "Other": {em:'📌', bg:'var(--paper-dim)'}
 };
 function catMeta(cat){ return CAT_META[cat] || CAT_META['Other']; }
@@ -723,6 +735,8 @@ const SEED = {
   gmailConnectedEmails: [],
   processedGmailIds: [],
   emailAccountHistory: {},
+  profilePhoto: null,
+  dismissedPatternPrompts: [],
   lastFetchSummary: null,
   lastGmailFetch: null
 };
@@ -891,7 +905,7 @@ const COLLECTION_FIELDS = {
   cards: 'card',
   processedGmailIds: 'processedGmailId'
 };
-const META_FIELDS = ['budget','mutualFunds','equities','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory'];
+const META_FIELDS = ['budget','mutualFunds','equities','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts'];
 let previousArrays = { transactions:[], personLedger:[], pendingImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[] };
 
 function setSyncStatus(text, ok){
@@ -1109,12 +1123,34 @@ function renderGreeting(){
   const part = hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
   const el = document.getElementById('hdr-greet');
   if(whoami){
-    el.innerHTML = `${part}, ${whoami} <button class="who" id="who-switch">not you?</button>`;
+    el.innerHTML = `${part}, <span class="who-name" id="who-switch" style="text-decoration:underline; text-decoration-style:dotted; cursor:pointer;">${whoami}</span>`;
   } else {
-    el.innerHTML = `${part} <button class="who" id="who-switch">who's this?</button>`;
+    el.innerHTML = `${part}, <span class="who-name" id="who-switch" style="text-decoration:underline; text-decoration-style:dotted; cursor:pointer;">who's this?</span>`;
   }
   document.getElementById('who-switch').addEventListener('click', showWhoamiPicker);
+  renderAvatar();
 }
+function renderAvatar(){
+  const av = document.getElementById('profile-avatar');
+  if(state.profilePhoto){
+    av.innerHTML = `<img src="${state.profilePhoto}" style="width:100%; height:100%; object-fit:cover;">`;
+  } else {
+    av.innerHTML = whoami ? whoami[0].toUpperCase() : '👤';
+  }
+}
+document.getElementById('profile-avatar').addEventListener('click', ()=> document.getElementById('avatar-file-input').click());
+document.getElementById('avatar-file-input').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  if(file.size > 500*1024){ alert('Please choose a smaller image (under 500KB).'); return; }
+  const reader = new FileReader();
+  reader.onload = async ()=>{
+    state.profilePhoto = reader.result;
+    await saveState();
+    renderAvatar();
+  };
+  reader.readAsDataURL(file);
+});
 function showWhoamiPicker(){
   const el = document.getElementById('hdr-greet');
   el.innerHTML = `<div>Who's logging in? <div class="whoami-pick"><button data-who="Divya">Divya</button><button data-who="Pravesh">Pravesh</button></div></div>`;
@@ -1191,6 +1227,42 @@ function recomputeBudgetActuals(){
 function normalizePayee(s){
   return (s||'').toLowerCase().replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();
 }
+function checkRepeatedPayeePattern(payee){
+  // Catches burst-like spending under one repeated label (e.g. logging "Trip" for every expense
+  // on a short trip) — asks before doing anything, never creates or moves anything silently.
+  // Bounded to a 14-day window deliberately: this is meant to catch a short burst of activity,
+  // not a lifetime recurring habit (which the regular categories already handle fine).
+  const norm = normalizePayee(payee);
+  if(!norm) return;
+  if((state.dismissedPatternPrompts||[]).includes(norm)) return;
+  if(state.budget.some(b=> b.special && normalizePayee(b.cat)===norm)) return;
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-14);
+  const matches = state.transactions.filter(t=>
+    t.type==='expense' && normalizePayee(t.payee)===norm && new Date(t.ts) >= cutoff
+  );
+  if(matches.length >= 4){
+    promptCreateSpecialCategory(payee, matches);
+  }
+}
+async function promptCreateSpecialCategory(payeeDisplay, matchingTx){
+  const norm = normalizePayee(payeeDisplay);
+  const wantsIt = confirm(`You've logged "${payeeDisplay}" ${matchingTx.length} times in the last couple weeks. Create a dedicated category for this so it's tracked separately from your regular monthly budget?`);
+  if(!wantsIt){
+    if(!state.dismissedPatternPrompts) state.dismissedPatternPrompts = [];
+    state.dismissedPatternPrompts.push(norm);
+    await saveState();
+    return;
+  }
+  const catName = payeeDisplay.trim();
+  if(!state.budget.find(b=>b.cat===catName)){
+    state.budget.push({cat:catName, budget:0, actual:0, special:true});
+  }
+  matchingTx.forEach(t=>{ t.category = catName; });
+  recomputeBudgetActuals();
+  await saveState();
+  render();
+  showToast(`✓ Created "${catName}" — moved ${matchingTx.length} entries in, tracked separately from your regular budget.`);
+}
 function findPayeeMemoryKey(norm){
   if(!norm || !state.payeeMemory) return null;
   if(state.payeeMemory[norm]) return norm;
@@ -1240,57 +1312,75 @@ function monthTotals(){
 
 function buildTrendChartSVG(){
   const now = new Date();
-  const totalBudget = state.budget.filter(b=>!b.income).reduce((s,b)=>s+b.budget,0);
-  const monthExpenses = state.transactions.filter(t=>{
+  const specialCats = new Set(state.budget.filter(b=>b.special).map(b=>b.cat));
+  const totalBudget = state.budget.filter(b=>!b.income && !b.special).reduce((s,b)=>s+b.budget,0);
+  const allMonthExpenses = state.transactions.filter(t=>{
     if(t.type!=='expense') return false;
     const d = new Date(t.ts);
     return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
   });
-  if(!monthExpenses.length){
+  const monthExpenses = allMonthExpenses.filter(t=> !specialCats.has(t.category));
+  const specialExpenses = allMonthExpenses.filter(t=> specialCats.has(t.category));
+  if(!allMonthExpenses.length){
     return '<div class="empty" style="padding:20px 0;">Log a few expenses to see your spending trend here.</div>';
   }
   const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
   const today = now.getDate();
   const dailyTotals = new Array(daysInMonth+1).fill(0);
   monthExpenses.forEach(t=>{ dailyTotals[new Date(t.ts).getDate()] += t.amount; });
+  const specialDailyTotals = new Array(daysInMonth+1).fill(0);
+  specialExpenses.forEach(t=>{ specialDailyTotals[new Date(t.ts).getDate()] += t.amount; });
 
   const cumulative = [];
-  let running = 0;
-  for(let d=1; d<=today; d++){ running += dailyTotals[d]; cumulative.push(running); }
+  const specialCumulative = [];
+  let running = 0, specialRunning = 0;
+  for(let d=1; d<=today; d++){
+    running += dailyTotals[d]; cumulative.push(running);
+    specialRunning += specialDailyTotals[d]; specialCumulative.push(specialRunning);
+  }
   const totalSpent = running;
   const pct = totalBudget>0 ? Math.round((totalSpent/totalBudget)*100) : 0;
   const remaining = totalBudget - totalSpent;
   const overBudget = remaining < 0;
+  const hasSpecial = specialRunning > 0;
 
   const headlineHtml = `
     <div style="margin-bottom:14px;">
       <div style="display:flex; justify-content:space-between; align-items:baseline;">
-        <span style="font-size:13px; color:var(--ink-soft);">${pct}% of ${now.toLocaleDateString('en-IN',{month:'short'})} budget used</span>
+        <span style="font-size:13px; color:var(--ink-soft);">${pct}% of ${now.toLocaleDateString('en-IN',{month:'short'})} budget used${hasSpecial?' (regular spending only)':''}</span>
         <span style="font-size:13px; font-weight:700; color:${overBudget?'var(--debt)':'var(--sage)'};">${overBudget ? fmt(Math.abs(remaining))+' over budget' : fmt(remaining)+' left'}</span>
       </div>
       <div style="height:8px; background:var(--line); border-radius:4px; margin-top:6px; overflow:hidden;">
         <div style="height:100%; width:${Math.min(100,pct)}%; background:${overBudget?'var(--debt)':'var(--peri)'}; border-radius:4px;"></div>
       </div>
+      ${hasSpecial ? `<div style="display:flex; justify-content:space-between; margin-top:8px;"><span style="font-size:12px; color:var(--rose);">● Trip/special spending this month</span><span style="font-size:12px; font-weight:700; color:var(--rose);">${fmt(specialRunning)}</span></div>` : ''}
     </div>`;
 
   const W = 320, H = 110, padX = 10, padY = 12;
-  const maxVal = Math.max(...cumulative, totalBudget, 1);
+  const maxVal = Math.max(...cumulative, ...specialCumulative, totalBudget, 1);
   const stepX = cumulative.length>1 ? (W-2*padX)/(cumulative.length-1) : 0;
-  const points = cumulative.map((v,i)=>{
-    const x = cumulative.length>1 ? padX + i*stepX : W/2;
+  const toPoints = (series) => series.map((v,i)=>{
+    const x = series.length>1 ? padX + i*stepX : W/2;
     const y = H - padY - (v/maxVal)*(H-2*padY);
     return [x,y];
   });
-  let path = `M ${points[0][0]},${points[0][1]}`;
-  for(let i=0;i<points.length-1;i++){
-    const [x0,y0] = points[i];
-    const [x1,y1] = points[i+1];
-    const mx = (x0+x1)/2;
-    path += ` C ${mx},${y0} ${mx},${y1} ${x1},${y1}`;
-  }
+  const toPath = (points) => {
+    let path = `M ${points[0][0]},${points[0][1]}`;
+    for(let i=0;i<points.length-1;i++){
+      const [x0,y0] = points[i];
+      const [x1,y1] = points[i+1];
+      const mx = (x0+x1)/2;
+      path += ` C ${mx},${y0} ${mx},${y1} ${x1},${y1}`;
+    }
+    return path;
+  };
+  const points = toPoints(cumulative);
+  const path = toPath(points);
   const areaPath = points.length>1
     ? path + ` L ${points[points.length-1][0]},${H-padY} L ${points[0][0]},${H-padY} Z`
     : '';
+  const specialPoints = toPoints(specialCumulative);
+  const specialPath = hasSpecial && specialPoints.length>1 ? toPath(specialPoints) : '';
   const budgetY = H - padY - (totalBudget/maxVal)*(H-2*padY);
   const budgetLine = totalBudget>0 ? `<line x1="${padX}" y1="${budgetY}" x2="${W-padX}" y2="${budgetY}" style="stroke:var(--rose); stroke-width:1.5; stroke-dasharray:4,3;"/><text x="${W-padX}" y="${budgetY-4}" text-anchor="end" style="font-size:9px; fill:var(--rose); font-family:'Manrope',sans-serif;">Budget</text>` : '';
   const dayLabelIdx = [...new Set([0, Math.floor((today-1)/2), today-1])];
@@ -1304,6 +1394,7 @@ function buildTrendChartSVG(){
     ${areaPath ? `<path d="${areaPath}" style="fill:url(#trendFill);"/>` : ''}
     ${budgetLine}
     <path d="${path}" style="fill:none; stroke:var(--peri); stroke-width:2.5; stroke-linecap:round;"/>
+    ${specialPath ? `<path d="${specialPath}" style="fill:none; stroke:var(--rose); stroke-width:2.5; stroke-linecap:round; stroke-dasharray:5,3;"/>` : ''}
     ${labelsHtml}
   </svg>`;
 
@@ -1428,7 +1519,7 @@ function render(){
           </div>
           <button class="link-btn" data-pdf="${p.id}" style="margin-top:5px;">📄 Statement PDF</button>
         </div>
-        <div class="row-actions"><div class="amt ${bal<0?'neg':'pos'}" data-person="${p.id}" style="cursor:pointer;">${fmt(bal)}</div><button class="x-btn" data-delperson="${p.id}">✕</button></div>
+        <div class="row-actions"><div class="amt ${bal<0?'neg':'pos'}" data-person="${p.id}" style="cursor:pointer;">${fmt(Math.abs(bal))}</div><button class="x-btn" data-delperson="${p.id}">✕</button></div>
       </div>
       ${entriesHtml}
     </div>`;
@@ -1955,6 +2046,7 @@ document.getElementById('tx-save').addEventListener('click', async ()=>{
     const budgetCat = state.budget.find(b=>b.cat===tx.category);
     recomputeBudgetActuals();
     recordPayeeLearning(tx.payee, tx.category, tx.account, 1);
+    if(tx.type==='expense') checkRepeatedPayeePattern(tx.payee);
   }
   await saveState();
   render();
@@ -3017,11 +3109,6 @@ document.getElementById('gmail-connect-btn').addEventListener('click', ()=>{
   gmailTokenClient.requestAccessToken({prompt:'select_account'});
 });
 document.getElementById('gmail-check-btn').addEventListener('click', ()=> checkGmailTransactions());
-document.getElementById('gmail-fullsweep-btn').addEventListener('click', ()=>{
-  if(confirm('This re-reads every transaction email from Sep 2 to now, across all connected inboxes. It can take a minute or two for a large mailbox. Continue?')){
-    runFullGmailSweep();
-  }
-});
 document.getElementById('gmail-custom-fetch-btn').addEventListener('click', ()=>{
   const dateVal = document.getElementById('gmail-custom-date').value;
   if(!dateVal){ alert('Pick a date first.'); return; }
@@ -3401,6 +3488,7 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
   recomputeBudgetActuals();
   recordPayeeLearning(payee, riSelectedCat, riSelectedAccount, wasEdited ? 3 : 1);
   if(imp.sourceEmail) recordEmailAccountMatch(imp.sourceEmail, riSelectedAccount);
+  if(tx.type==='expense') checkRepeatedPayeePattern(tx.payee);
   state.pendingImports = state.pendingImports.filter(p=>p.id!==activeImportId);
   await saveState();
   render();
