@@ -15,7 +15,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="application-name" content="Financial Assistant">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1B1420">
+<meta name="theme-color" content="#0B0B0D">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -35,12 +35,17 @@
     --shadow-glow: 0 10px 28px rgba(75,63,209,0.35);
   }
   [data-theme="dark"]{
-    --paper:#181530; --paper-dim:#211D3D; --card:#211D3D;
-    --ink:#EEEDFB; --ink-soft:#A9A5CC;
-    --coral-dim:#332C63; --sage-dim:#1D3A2C; --peri-dim:#2B2760; --rose-dim:#3E3020; --gold-dim:#3A3020;
-    --line: rgba(238,237,251,0.10);
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-    --shadow-md: 0 8px 24px rgba(0,0,0,0.4);
+    --paper:#0B0B0D; --paper-dim:#16161A; --card:#18181C;
+    --ink:#F5F5F7; --ink-soft:#8B8B93;
+    --coral:#FF6B4A; --coral-dim:#2A1D18;
+    --sage:#34D399; --sage-dim:#122620;
+    --peri:#7C8CFF; --peri-dim:#1C1E33;
+    --rose:#FF8A5B; --rose-dim:#2E2018;
+    --gold:#E8B84B; --gold-dim:#2E2712;
+    --debt:#FF5C5C;
+    --line: rgba(255,255,255,0.08);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+    --shadow-md: 0 8px 24px rgba(0,0,0,0.5);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;height:100%;background:var(--ink);}
@@ -48,27 +53,27 @@
   .num{font-family:'Manrope',sans-serif; font-variant-numeric:tabular-nums;}
   #app{max-width:480px; margin:0 auto; min-height:100vh; background:var(--ink); display:flex; flex-direction:column; position:relative; transition:background .25s ease;}
 
-  header.cover{position:relative; overflow:hidden; padding:24px 20px 30px; color:var(--paper);}
+  header.cover{position:relative; overflow:hidden; padding:24px 20px 30px; color:#F5F5F7;}
   header.cover::before{
     content:''; position:absolute; inset:0; z-index:0;
     background:
-      radial-gradient(90% 120% at 100% -10%, rgba(255,138,61,0.45), transparent 60%),
-      radial-gradient(80% 100% at 0% 0%, rgba(108,99,255,0.55), transparent 55%),
-      linear-gradient(180deg, #2E2875, #1B1740 95%);
+      radial-gradient(90% 120% at 100% -10%, rgba(255,107,74,0.16), transparent 60%),
+      radial-gradient(80% 100% at 0% 0%, rgba(124,140,255,0.14), transparent 55%),
+      linear-gradient(180deg, #16161A, #0B0B0D 95%);
   }
   header.cover > *{position:relative; z-index:1;}
   header.cover .top-row{display:flex; justify-content:space-between; align-items:flex-start;}
   header.cover .greet{font-family:'Manrope',sans-serif; font-weight:600; font-size:22px; margin-bottom:2px;}
   header.cover .greet button.who{background:none; border:none; color:rgba(251,243,236,0.55); font-size:11.5px; text-decoration:underline; cursor:pointer; margin-left:6px; font-family:'Manrope',sans-serif;}
-  .theme-toggle{background:rgba(251,243,236,0.12); border:1px solid rgba(251,243,236,0.2); width:36px; height:36px; border-radius:50%; color:var(--paper); font-size:16px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;}
+  .theme-toggle{background:rgba(251,243,236,0.12); border:1px solid rgba(251,243,236,0.2); width:36px; height:36px; border-radius:50%; color:#F5F5F7; font-size:16px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;}
   header.cover .household{font-size:12.5px; color:rgba(251,243,236,0.55); margin-bottom:18px;}
   header.cover .netlabel{font-size:12.5px;color:rgba(251,243,236,0.6); margin-bottom:2px;}
-  header.cover .netvalue{font-family:'Manrope',sans-serif; font-weight:600; font-size:38px; line-height:1.1; color:var(--paper); letter-spacing:-0.5px;}
+  header.cover .netvalue{font-family:'Manrope',sans-serif; font-weight:600; font-size:38px; line-height:1.1; color:#F5F5F7; letter-spacing:-0.5px;}
   header.cover .netvalue.neg{color:#F2A79E;}
   .cover-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:20px;}
   .cover-grid .cell{background:rgba(251,243,236,0.08); border:1px solid rgba(251,243,236,0.12); border-radius:14px; padding:10px 11px;}
   .cover-grid .cell .l{font-size:10.5px;color:rgba(251,243,236,0.55); margin-bottom:4px;}
-  .cover-grid .cell .v{font-family:'Manrope',sans-serif; font-size:16px; color:var(--paper);}
+  .cover-grid .cell .v{font-family:'Manrope',sans-serif; font-size:16px; color:#F5F5F7;}
   .cover-grid .cell .v.neg{color:#F2A79E;}
 
   main{flex:1; background:var(--paper); border-radius:26px 26px 0 0; margin-top:-18px; padding:24px 18px 118px; position:relative; transition:background .25s ease;}
@@ -108,7 +113,7 @@
   .mask-toggle-row{display:flex; align-items:center; justify-content:flex-end; gap:8px; margin:-6px 0 14px;}
   .mask-toggle-row .lbl{font-size:11px; color:rgba(251,243,236,0.55);}
   .mask-switch{position:relative; width:36px; height:21px; border-radius:12px; background:rgba(251,243,236,0.18); border:none; cursor:pointer; flex-shrink:0; padding:0;}
-  .mask-switch::after{content:''; position:absolute; top:2px; left:2px; width:17px; height:17px; border-radius:50%; background:var(--paper); transition:transform .15s ease;}
+  .mask-switch::after{content:''; position:absolute; top:2px; left:2px; width:17px; height:17px; border-radius:50%; background:#F5F5F7; transition:transform .15s ease;}
   .mask-switch.on{background:var(--sage);}
   .mask-switch.on::after{transform:translateX(15px);}
 
@@ -168,6 +173,16 @@
   .budget-card .bc-fill.over{background:var(--debt);}
   .budget-card.add-new{border:2px dashed var(--line); box-shadow:none; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:112px; gap:8px;}
   .budget-card.add-new .bc-icon{font-size:20px; font-weight:800; margin-bottom:0;}
+
+  /* Category spending donut (Budget tab) — mirrors the ring + legend layout from the app screenshot */
+  .donut-card{background:var(--card); border:1px solid var(--line); border-radius:18px; padding:16px; margin-bottom:16px; box-shadow:var(--shadow-sm);}
+  .donut-card .dc-title{font-size:12px; font-weight:800; color:var(--ink-soft); margin-bottom:10px; letter-spacing:0.3px;}
+  .donut-legend{display:flex; flex-direction:column; gap:10px; margin-top:14px;}
+  .donut-legend .dl-row{display:flex; align-items:center; gap:10px;}
+  .donut-legend .dl-dot{width:10px; height:10px; border-radius:50%; flex-shrink:0;}
+  .donut-legend .dl-name{flex:1; font-size:13px; font-weight:600; color:var(--ink);}
+  .donut-legend .dl-pct{font-size:12px; color:var(--ink-soft); margin-right:8px;}
+  .donut-legend .dl-amt{font-family:'Manrope',sans-serif; font-size:13px; font-weight:700; color:var(--ink);}
   .person-block + .person-block{margin-top:11px; padding-top:11px; border-top:1px dashed var(--line);}
 
   nav.tabbar{position:sticky; bottom:calc(env(safe-area-inset-bottom,0) + 10px); max-width:452px; margin:0 auto; background:var(--card); backdrop-filter:blur(10px); border:1px solid var(--line); border-radius:24px; display:flex; padding:8px 6px; width:calc(100% - 28px); box-shadow:var(--shadow-md); transition:background .25s ease;}
@@ -375,6 +390,7 @@
     <section class="tab" id="tab-budget">
       <h2 class="section-title">Sep 2026 · Budget vs Actual</h2>
       <div id="budget-summary-wrap"></div>
+      <div id="budget-donut-wrap"></div>
       <div id="budget-list"></div>
       <div class="divider-label">Sinking fund — lumpy annual bills</div>
       <p class="section-sub" id="sink-sub"></p>
@@ -1226,7 +1242,7 @@ async function loadWhoami(){
 }
 
 async function loadTheme(){
-  let theme = 'light';
+  let theme = 'dark';
   try{
     const val = localStorage.getItem('cfo-theme');
     if(val) theme = val;
@@ -1582,6 +1598,46 @@ function monthTotals(){
   return {income, expense, net: income-expense};
 }
 
+const DONUT_PALETTE = ['#FF6B4A','#7C8CFF','#34D399','#E8B84B','#FF8A5B','#8B8B93'];
+function buildCategoryDonutSVG(bExpense){
+  const spent = bExpense.filter(b=>b.actual>0).sort((a,b)=>b.actual-a.actual);
+  if(!spent.length){
+    return '<div class="donut-card"><div class="dc-title">SPENDING BY CATEGORY</div><div class="empty" style="padding:10px 0;">Log a few expenses to see the breakdown here.</div></div>';
+  }
+  const top = spent.slice(0,5);
+  const rest = spent.slice(5);
+  const restTotal = rest.reduce((s,b)=>s+b.actual,0);
+  const slices = restTotal>0 ? [...top, {cat:'Others', actual:restTotal}] : top;
+  const total = slices.reduce((s,b)=>s+b.actual,0);
+
+  const size = 160, r = 62, cx = size/2, cy = size/2, circumference = 2*Math.PI*r;
+  let offset = 0;
+  const arcsHtml = slices.map((s,i)=>{
+    const pct = s.actual/total;
+    const dash = pct*circumference;
+    const gap = circumference-dash;
+    const circle = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${DONUT_PALETTE[i%DONUT_PALETTE.length]}" stroke-width="22" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"/>`;
+    offset += dash;
+    return circle;
+  }).join('');
+
+  const legendHtml = slices.map((s,i)=>`
+    <div class="dl-row">
+      <div class="dl-dot" style="background:${DONUT_PALETTE[i%DONUT_PALETTE.length]};"></div>
+      <div class="dl-name">${s.cat}</div>
+      <div class="dl-pct">${Math.round((s.actual/total)*100)}%</div>
+      <div class="dl-amt maskable">${fmt(s.actual)}</div>
+    </div>`).join('');
+
+  return `<div class="donut-card">
+    <div class="dc-title">SPENDING BY CATEGORY</div>
+    <svg viewBox="0 0 ${size} ${size}" style="width:100%; max-width:200px; display:block; margin:0 auto;">
+      ${arcsHtml}
+    </svg>
+    <div class="donut-legend">${legendHtml}</div>
+  </div>`;
+}
+
 function buildTrendChartSVG(){
   const now = new Date();
   const specialCats = new Set(state.budget.filter(b=>b.special).map(b=>b.cat));
@@ -1875,6 +1931,7 @@ function render(){
       <div class="bs-track"><div class="bs-fill ${overallOver?'over':''}" style="width:${overallPct}%"></div></div>
       <div class="bs-sub"><span class="maskable">${fmt(totalExpBudget)}</span> budgeted across ${bExpense.length} categories · income logged <span class="maskable">${fmt(totalIncActual)}</span></div>
     </div>`;
+  document.getElementById('budget-donut-wrap').innerHTML = buildCategoryDonutSVG(bExpense);
 
 function addNewBudgetCategory(){
   const name = prompt('New category name (e.g. "Trip"):');
