@@ -595,13 +595,33 @@
   <div class="sheet">
     <h3>Review this transaction</h3>
     <p class="section-sub" id="ri-source-note">Found in your email</p>
-    <div class="field">
-      <label>Category</label>
-      <div class="cat-grid" id="ri-cat-grid"></div>
+
+    <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">What was this?</label>
+    <div class="seg" id="ri-mode" style="margin-bottom:14px;">
+      <button data-v="regular" class="on">Regular expense</button>
+      <button data-v="person">For someone</button>
     </div>
+
+    <div class="field" id="ri-cat-field">
+      <label>Category</label>
+      <div class="pick-summary" id="ri-cat-summary"></div>
+      <div class="cat-grid hide" id="ri-cat-grid"></div>
+    </div>
+
+    <div class="field" id="ri-person-field">
+      <label>Who / what was this for?</label>
+      <div class="acct-row" id="ri-person-row"></div>
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">Which way did the money move?</label>
+      <div class="seg" id="ri-person-dir">
+        <button data-v="gave" class="on">You paid for them</button>
+        <button data-v="received">They paid you back</button>
+      </div>
+    </div>
+
     <div class="field">
       <label>Account</label>
-      <div class="acct-row" id="ri-acct-row"></div>
+      <div class="pick-summary" id="ri-acct-summary"></div>
+      <div class="pick-list hide" id="ri-acct-row"></div>
       <div class="section-sub" id="ri-acct-note" style="color:var(--debt); margin-top:4px;"></div>
     </div>
     <div class="field" id="ri-household-row">
@@ -687,7 +707,11 @@
     <div class="bar-track" style="margin-left:0; height:9px; margin-bottom:18px;"><div class="bar-fill" id="budgetdetail-bar"></div></div>
     <div class="divider-label">Transactions this month</div>
     <div id="budgetdetail-list"></div>
-    <button class="btn-ghost" id="budgetdetail-close" style="margin-top:16px;">Close</button>
+    <div style="display:flex; gap:8px; margin-top:16px;">
+      <button class="btn-ghost" id="budgetdetail-edit" style="margin-top:0; flex:1;">✏️ Edit category</button>
+      <button class="btn-ghost" id="budgetdetail-delete" style="margin-top:0; flex:1; color:var(--debt); border-color:var(--debt);">🗑️ Delete</button>
+    </div>
+    <button class="btn-ghost" id="budgetdetail-close" style="margin-top:8px;">Close</button>
   </div>
 </div>
 
@@ -1100,6 +1124,19 @@ const COLLECTION_FIELDS = {
 const META_FIELDS = ['budget','mutualFunds','equities','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts'];
 let previousArrays = { transactions:[], personLedger:[], pendingImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[] };
 
+// ---- Outbox for cloud writes that haven't been confirmed yet ----
+// A write to Firestore takes a moment to complete. If the app is closed before it does
+// (e.g. right after editing a transaction's category), the next load's "trust the server"
+// step below would otherwise silently throw the edit away. Persisting the pending write to
+// localStorage means it survives a restart, so it can be reapplied and retried.
+const OUTBOX_KEY = 'cfo-pending-writes';
+function loadOutbox(){
+  try{ return JSON.parse(localStorage.getItem(OUTBOX_KEY)) || {}; }catch(e){ return {}; }
+}
+function saveOutbox(ob){
+  try{ localStorage.setItem(OUTBOX_KEY, JSON.stringify(ob)); }catch(e){}
+}
+
 function setSyncStatus(text, ok){
   const el = document.getElementById(SYNC_LABEL_ID);
   if(el){ el.textContent = text; el.style.color = ok ? '#8FC98A' : '#F2A79E'; }
@@ -1167,8 +1204,23 @@ function attachAllListeners(){
         // apart from "stale cached item that was already deleted." Trust the server completely
         // this one time — this is what actually fixes a deleted transaction reappearing after
         // reloading with a stale local cache still holding it.
-        state[field] = remoteItems;
-        previousArrays[field] = JSON.parse(JSON.stringify(remoteItems));
+        // Exception: any edit still sitting in the outbox never got server confirmation last
+        // session (e.g. app closed mid-write) — reapply it over the server's copy and retry
+        // the write now, otherwise "trust the server" here would silently revert it.
+        const ob = loadOutbox();
+        const pendingForField = ob[field] || {};
+        const pendingIds = Object.keys(pendingForField);
+        let merged = remoteItems;
+        if(pendingIds.length){
+          const byId = Object.fromEntries(remoteItems.map(x=>[x.id,x]));
+          pendingIds.forEach(id=>{ byId[id] = pendingForField[id]; });
+          merged = Object.values(byId);
+          Promise.all(pendingIds.map(id=> hh(id).set({...pendingForField[id], _type:type})))
+            .then(()=>{ const ob2 = loadOutbox(); if(ob2[field]) pendingIds.forEach(id=> delete ob2[field][id]); saveOutbox(ob2); })
+            .catch(e=> console.error('Outbox retry failed for '+field, e));
+        }
+        state[field] = merged;
+        previousArrays[field] = JSON.parse(JSON.stringify(merged));
         firstSnapshotDone[field] = true;
         saveLocalOnly();
         render();
@@ -1241,18 +1293,29 @@ async function syncCollectionDiff(field, type, currentOverride){
   const currentIds = new Set(current.map(x=>x.id));
   const previousById = {}; previous.forEach(x=>{ if(x && x.id) previousById[x.id] = x; });
 
-  const ops = [];
+  const changedItems = [];
   current.forEach(item=>{
     if(!item || !item.id) return;
     const prevItem = previousById[item.id];
-    if(!prevItem || JSON.stringify(prevItem) !== JSON.stringify(item)){
-      ops.push(hh(item.id).set({...item, _type:type}));
-    }
+    if(!prevItem || JSON.stringify(prevItem) !== JSON.stringify(item)) changedItems.push(item);
   });
+  if(changedItems.length){
+    const ob = loadOutbox();
+    ob[field] = ob[field] || {};
+    changedItems.forEach(item=> ob[field][item.id] = item);
+    saveOutbox(ob);
+  }
+  const ops = changedItems.map(item=> hh(item.id).set({...item, _type:type}));
   previous.forEach(item=>{
     if(item && item.id && !currentIds.has(item.id)) ops.push(hh(item.id).delete());
   });
   if(ops.length) await Promise.all(ops);
+  // Writes confirmed — clear them from the outbox so a future reload can trust the server again.
+  if(changedItems.length){
+    const ob = loadOutbox();
+    if(ob[field]) changedItems.forEach(item=> delete ob[field][item.id]);
+    saveOutbox(ob);
+  }
   previousArrays[field] = JSON.parse(JSON.stringify(current));
 }
 
@@ -1428,9 +1491,11 @@ document.querySelectorAll('[data-breakdown]').forEach(el=>{
 
 // ---- Budget category detail sheet (opened from the category grid) ----
 const budgetdetailBackdrop = document.getElementById('budgetdetail-backdrop');
+let budgetdetailCat = null;
 function openBudgetDetail(cat){
   const b = state.budget.find(x=>x.cat===cat);
   if(!b) return;
+  budgetdetailCat = cat;
   const meta = catMeta(b.cat);
   const pct = b.budget>0? Math.min(100,(b.actual/b.budget)*100) : (b.actual>0?100:0);
   const over = b.budget>0 && b.actual>b.budget;
@@ -1464,6 +1529,60 @@ function openBudgetDetail(cat){
 }
 document.getElementById('budgetdetail-close').addEventListener('click', ()=> budgetdetailBackdrop.classList.remove('open'));
 budgetdetailBackdrop.addEventListener('click', e=>{ if(e.target===budgetdetailBackdrop) budgetdetailBackdrop.classList.remove('open'); });
+document.getElementById('budgetdetail-edit').addEventListener('click', async ()=>{
+  const b = state.budget.find(x=>x.cat===budgetdetailCat);
+  if(!b) return;
+  if(b.cat===OTHER_EXPENSE_CAT){ alert('This is the built-in fallback category and can\'t be renamed.'); return; }
+  const newName = prompt('Category name:', b.cat);
+  if(newName===null) return;
+  const trimmedName = newName.trim();
+  if(!trimmedName) return;
+  if(trimmedName!==b.cat && state.budget.find(x=>x.cat===trimmedName)){ alert('A category with that name already exists.'); return; }
+  const newBudgetRaw = prompt('Monthly budget for this category (₹):', String(b.budget||0));
+  const newBudget = newBudgetRaw===null ? b.budget : (parseFloat(newBudgetRaw)||0);
+  const oldName = b.cat;
+  b.cat = trimmedName;
+  b.budget = newBudget;
+  if(oldName!==trimmedName){
+    // Categories are matched by name, not id — every transaction and payee-memory entry
+    // pointing at the old name has to move with it, or they'd silently fall through to
+    // "Other / Uncategorized" the next time actuals are recomputed.
+    state.transactions.forEach(t=>{ if(t.category===oldName) t.category = trimmedName; });
+    Object.values(state.payeeMemory||{}).forEach(entry=>{
+      Object.keys(entry.counts||{}).forEach(comboKey=>{
+        if(comboKey.startsWith(oldName+'::')){
+          const rest = comboKey.slice(oldName.length+2);
+          const newKey = trimmedName+'::'+rest;
+          entry.counts[newKey] = (entry.counts[newKey]||0) + entry.counts[comboKey];
+          delete entry.counts[comboKey];
+        }
+      });
+    });
+  }
+  recomputeBudgetActuals();
+  await saveState();
+  budgetdetailCat = trimmedName;
+  render();
+  openBudgetDetail(trimmedName);
+  showToast('✅ Category updated.');
+});
+document.getElementById('budgetdetail-delete').addEventListener('click', async ()=>{
+  const b = state.budget.find(x=>x.cat===budgetdetailCat);
+  if(!b) return;
+  if(b.cat===OTHER_EXPENSE_CAT){ alert('This is the built-in fallback category and can\'t be deleted.'); return; }
+  const affected = state.transactions.filter(t=>t.category===b.cat).length;
+  const msg = affected
+    ? `Delete "${b.cat}"? ${affected} transaction(s) in it will be moved to "${OTHER_EXPENSE_CAT}" — they won't be deleted.`
+    : `Delete "${b.cat}"?`;
+  if(!confirm(msg)) return;
+  state.transactions.forEach(t=>{ if(t.category===b.cat) t.category = OTHER_EXPENSE_CAT; });
+  state.budget = state.budget.filter(x=>x.cat!==b.cat);
+  recomputeBudgetActuals();
+  await saveState();
+  budgetdetailBackdrop.classList.remove('open');
+  render();
+  showToast('🗑️ Category deleted.');
+});
 
 async function saveWhoami(name){
   whoami = name;
@@ -2375,6 +2494,7 @@ wireSeg('tx-type', (v)=>{
 });
 wireSeg('tx-household');
 wireSeg('ri-household');
+wireSeg('ri-person-dir');
 wireSeg('tx-person-dir');
 wireSeg('person-dir', ()=> renderPersonAcctChips());
 wireSeg('ap-dir');
@@ -4017,8 +4137,14 @@ function renderPendingReview(){
 
 const reviewImportBackdrop = document.getElementById('reviewimport-backdrop');
 let activeImportId = null;
-let riSelectedCat = null, riSelectedAccount = null;
+let riSelectedCat = null, riSelectedAccount = null, riSelectedPerson = null;
+let riCatPickerOpen = false, riAcctPickerOpen = false;
 function renderReviewChips(imp){
+  const mode = segValue('ri-mode');
+  document.getElementById('ri-cat-field').classList.toggle('hide', mode==='person');
+  document.getElementById('ri-person-field').classList.toggle('hide', mode!=='person');
+  document.getElementById('ri-household-row').classList.toggle('hide', imp.type!=='expense' || mode==='person');
+
   const catOptions = imp.type==='income' ? state.budget.filter(b=>b.income).map(b=>b.cat) : state.budget.filter(b=>!b.income).map(b=>b.cat);
   const cats = [...catOptions, OTHER_EXPENSE_CAT];
   if(!cats.includes(riSelectedCat)) riSelectedCat = cats.includes(imp.category) ? imp.category : cats[0];
@@ -4033,34 +4159,72 @@ function renderReviewChips(imp){
     return `<div class="cat-chip ${c===riSelectedCat?'on':''}" data-ricat="${c}"><div class="em" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="lb">${short}</div></div>`;
   }).join('');
   document.querySelectorAll('#ri-cat-grid .cat-chip').forEach(el=>{
-    el.addEventListener('click', ()=>{ riSelectedCat = el.dataset.ricat; renderReviewChips(imp); });
+    el.addEventListener('click', ()=>{ riSelectedCat = el.dataset.ricat; riCatPickerOpen = false; renderReviewChips(imp); });
+  });
+  const riCatMeta = catMeta(riSelectedCat);
+  document.getElementById('ri-cat-summary').innerHTML =
+    `<div class="ps-icon" style="background:${riCatMeta.bg}; color:${riCatMeta.tint};">${riCatMeta.em}</div><div class="ps-name">${riSelectedCat}</div><div class="ps-change">${riCatPickerOpen?'Cancel':'Change'}</div>`;
+  document.getElementById('ri-cat-summary').onclick = ()=>{ riCatPickerOpen = !riCatPickerOpen; renderReviewChips(imp); };
+  document.getElementById('ri-cat-grid').classList.toggle('hide', !riCatPickerOpen);
+
+  if(!state.people.find(p=>p.id===riSelectedPerson)) riSelectedPerson = state.people[0] ? state.people[0].id : null;
+  document.getElementById('ri-person-row').innerHTML =
+    state.people.map(p=>`<div class="acct-chip ${p.id===riSelectedPerson?'on':''}" data-riperson="${p.id}">${p.name}</div>`).join('') +
+    `<div class="acct-chip" data-riperson="__new">+ New</div>`;
+  document.querySelectorAll('#ri-person-row [data-riperson]').forEach(el=>{
+    el.addEventListener('click', async ()=>{
+      if(el.dataset.riperson==='__new'){
+        const name = prompt('Name?');
+        if(!name || !name.trim()) return;
+        const newPerson = {id: slugify(name), name: name.trim(), opening: 0};
+        state.people.push(newPerson);
+        riSelectedPerson = newPerson.id;
+        await saveState();
+      } else {
+        riSelectedPerson = el.dataset.riperson;
+      }
+      renderReviewChips(imp);
+    });
   });
 
   const targets = imp.type==='expense' ? [...state.accounts, ...state.cards] : state.accounts;
   const detected = imp.accountId && targets.find(a=>a.id===imp.accountId);
   if(!targets.find(a=>a.id===riSelectedAccount)) riSelectedAccount = detected ? imp.accountId : null;
   document.getElementById('ri-acct-row').innerHTML = targets.map(a=>
-    `<div class="acct-chip ${a.id===riSelectedAccount?'on':''}" data-riacct="${a.id}">${a.em||'🏦'} ${a.name}</div>`
+    `<div class="pli ${a.id===riSelectedAccount?'on':''}" data-riacct="${a.id}"><div class="pli-icon">${a.em||'🏦'}</div><div class="pli-name">${a.name}</div><div class="pli-check">✓</div></div>`
   ).join('');
+  document.querySelectorAll('#ri-acct-row .pli').forEach(el=>{
+    el.addEventListener('click', ()=>{ riSelectedAccount = el.dataset.riacct; riAcctPickerOpen = false; renderReviewChips(imp); });
+  });
+  const riAcctSel = targets.find(a=>a.id===riSelectedAccount);
+  document.getElementById('ri-acct-summary').innerHTML = riAcctSel
+    ? `<div class="ps-icon" style="background:var(--paper-dim);">${riAcctSel.em||'🏦'}</div><div class="ps-name">${riAcctSel.name}</div><div class="ps-change">${riAcctPickerOpen?'Cancel':'Change'}</div>`
+    : `<div class="ps-icon" style="background:var(--paper-dim); color:var(--debt);">?</div><div class="ps-name" style="color:var(--debt);">Choose an account</div><div class="ps-change">Change</div>`;
+  document.getElementById('ri-acct-summary').onclick = ()=>{ riAcctPickerOpen = !riAcctPickerOpen; renderReviewChips(imp); };
+  document.getElementById('ri-acct-row').classList.toggle('hide', !riAcctPickerOpen);
   const acctNote = document.getElementById('ri-acct-note');
   if(acctNote) acctNote.textContent = riSelectedAccount ? '' : "⚠️ Couldn't auto-detect the account from this email — please choose one.";
-  document.querySelectorAll('#ri-acct-row .acct-chip').forEach(el=>{
-    el.addEventListener('click', ()=>{ riSelectedAccount = el.dataset.riacct; renderReviewChips(imp); });
-  });
 }
+wireSeg('ri-mode', ()=>{
+  const imp = state.pendingImports.find(p=>p.id===activeImportId);
+  if(imp) renderReviewChips(imp);
+});
 function openReviewImport(id){
   const imp = state.pendingImports.find(p=>p.id===id);
   if(!imp) return;
   activeImportId = id;
   riSelectedCat = imp.category;
   riSelectedAccount = imp.accountId;
+  riSelectedPerson = null;
+  riCatPickerOpen = false; riAcctPickerOpen = false;
+  document.getElementById('ri-mode').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v==='regular'));
+  document.getElementById('ri-person-dir').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v === (imp.type==='income' ? 'received' : 'gave')));
   const sourceLine = 'Found in ' + (imp.sourceEmail||'your email') + ' · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
   document.getElementById('ri-source-note').textContent = imp.status==='duplicate'
     ? '⚠️ Looks like this may already be in your ledger. Check before adding — if it\'s genuinely separate, just approve it. ' + sourceLine
     : sourceLine;
   document.getElementById('ri-payee').value = imp.payee;
   document.getElementById('ri-amount').value = imp.amount;
-  document.getElementById('ri-household-row').classList.toggle('hide', imp.type!=='expense');
   document.querySelectorAll('#ri-household button').forEach(b=> b.classList.toggle('on', b.dataset.v==='no'));
   renderReviewChips(imp);
   reviewImportBackdrop.classList.add('open');
@@ -4075,8 +4239,23 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
   if(!amount || amount<=0){ alert('Enter a valid amount.'); return; }
   if(!riSelectedAccount){ alert('Please choose an account or card first.'); return; }
   const payee = document.getElementById('ri-payee').value.trim() || imp.payee;
-  const wasEdited = (riSelectedCat !== imp.category) || (riSelectedAccount !== imp.accountId) || (amount !== imp.amount) || (payee !== imp.payee);
+  const mode = segValue('ri-mode');
 
+  if(mode==='person'){
+    if(!riSelectedPerson){ alert('Pick who this was for.'); return; }
+    const dir = segValue('ri-person-dir');
+    const delta = dir==='gave' ? amount : -amount;
+    state.personLedger.push({id:genId('pl'), personId:riSelectedPerson, ts:imp.ts, type:dir, delta, account:riSelectedAccount, remarks: payee});
+    if(imp.sourceEmail) recordEmailAccountMatch(imp.sourceEmail, riSelectedAccount);
+    state.pendingImports = state.pendingImports.filter(p=>p.id!==activeImportId);
+    await saveState();
+    render();
+    reviewImportBackdrop.classList.remove('open');
+    showToast('✅ Added to the People Ledger!');
+    return;
+  }
+
+  const wasEdited = (riSelectedCat !== imp.category) || (riSelectedAccount !== imp.accountId) || (amount !== imp.amount) || (payee !== imp.payee);
   const tx = {
     id: genId('tx'), ts: imp.ts, type: imp.type,
     account: riSelectedAccount, payee, category: riSelectedCat, amount,
