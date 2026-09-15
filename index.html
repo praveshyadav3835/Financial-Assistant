@@ -142,6 +142,30 @@
   .bar-fill.over{background:var(--debt);}
   .cat-entries{margin-top:10px; padding:2px 0 2px 4px; border-left:2px solid var(--line);}
   .cat-entries .tx-item{padding:8px 0 8px 8px;}
+
+  /* Budget: overview card + category grid (replaces the old linear list) */
+  .budget-summary{background:var(--card); border:1px solid var(--line); border-radius:18px; padding:16px; margin-bottom:16px; box-shadow:var(--shadow-sm);}
+  .budget-summary .bs-top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;}
+  .budget-summary .bs-label{font-size:12px; color:var(--ink-soft); font-weight:700;}
+  .budget-summary .bs-value{font-family:'Manrope',sans-serif; font-size:23px; font-weight:600; color:var(--ink); letter-spacing:-0.3px;}
+  .budget-summary .bs-value.over{color:var(--debt);}
+  .budget-summary .bs-track{height:9px; background:var(--paper-dim); border-radius:6px; overflow:hidden; margin-bottom:8px;}
+  .budget-summary .bs-fill{height:100%; background:var(--sage); border-radius:6px; transition:width .3s ease;}
+  .budget-summary .bs-fill.over{background:var(--debt);}
+  .budget-summary .bs-sub{font-size:12px; color:var(--ink-soft);}
+  .budget-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:8px;}
+  .budget-card{background:var(--card); border:1px solid var(--line); border-radius:18px; padding:13px; box-shadow:var(--shadow-sm); cursor:pointer; transition:transform .12s ease, box-shadow .12s ease;}
+  .budget-card:active{transform:scale(0.97); box-shadow:none;}
+  .budget-card .bc-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:9px;}
+  .budget-card .bc-icon{width:32px; height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;}
+  .budget-card .bc-chev{font-size:11px; color:var(--ink-soft);}
+  .budget-card .bc-name{font-size:12.5px; font-weight:700; color:var(--ink); margin-bottom:8px; line-height:1.25; min-height:32px; display:flex; align-items:center;}
+  .budget-card .bc-figs{font-size:11.5px; color:var(--ink-soft); margin-bottom:7px;}
+  .budget-card .bc-figs b{color:var(--ink); font-weight:800; font-family:'Manrope',sans-serif;}
+  .budget-card.over .bc-figs b{color:var(--debt);}
+  .budget-card .bc-track{height:6px; background:var(--paper-dim); border-radius:5px; overflow:hidden;}
+  .budget-card .bc-fill{height:100%; background:var(--gold); border-radius:5px;}
+  .budget-card .bc-fill.over{background:var(--debt);}
   .person-block + .person-block{margin-top:11px; padding-top:11px; border-top:1px dashed var(--line);}
 
   nav.tabbar{position:sticky; bottom:calc(env(safe-area-inset-bottom,0) + 10px); max-width:452px; margin:0 auto; background:var(--card); backdrop-filter:blur(10px); border:1px solid var(--line); border-radius:24px; display:flex; padding:8px 6px; width:calc(100% - 28px); box-shadow:var(--shadow-md); transition:background .25s ease;}
@@ -252,15 +276,15 @@
     <div class="household">C113, Sector 91, Gurgaon</div>
     <div id="sync-status" style="font-size:11px; color:var(--ink-soft); margin-bottom:14px;">Connecting…</div>
     <div class="netlabel">Net Liquid Working Surplus</div>
-    <div class="netvalue maskable" id="hdr-net">—</div>
+    <div class="netvalue maskable" id="hdr-net" data-breakdown="net" style="cursor:pointer;">—</div>
     <div class="mask-toggle-row">
       <span class="lbl">Show balances</span>
       <button class="mask-switch" id="mask-toggle-btn" title="Show/hide balances"></button>
     </div>
     <div class="cover-grid">
-      <div class="cell"><div class="l">Bank Cash</div><div class="v maskable" id="hdr-cash">—</div></div>
-      <div class="cell"><div class="l">Card Dues</div><div class="v maskable" id="hdr-cards">—</div></div>
-      <div class="cell"><div class="l">Net Gap (People)</div><div class="v maskable" id="hdr-gap">—</div></div>
+      <div class="cell" data-breakdown="cash" style="cursor:pointer;"><div class="l">Bank Cash</div><div class="v maskable" id="hdr-cash">—</div></div>
+      <div class="cell" data-breakdown="cards" style="cursor:pointer;"><div class="l">Card Dues</div><div class="v maskable" id="hdr-cards">—</div></div>
+      <div class="cell" data-breakdown="gap" style="cursor:pointer;"><div class="l">Net Gap (People)</div><div class="v maskable" id="hdr-gap">—</div></div>
     </div>
   </header>
 
@@ -274,12 +298,12 @@
       <div id="learning-match-wrap"></div>
       <div id="last-fetch-summary-wrap"></div>
       <div class="bento">
-        <div class="bento-tile" data-nav="money"><div class="bt-top"><div class="bt-icon" style="background:var(--sage-dim);">💵</div><div class="bt-label">Liquid Bank Cash</div></div><div class="bt-value pos maskable" id="ov-cash">—</div></div>
-        <div class="bento-tile" data-nav="money"><div class="bt-top"><div class="bt-icon" style="background:var(--rose-dim);">💳</div><div class="bt-label">Credit Card Dues</div></div><div class="bt-value neg maskable" id="ov-cards">—</div></div>
-        <div class="bento-tile" data-nav="budget"><div class="bt-top"><div class="bt-icon" style="background:var(--gold-dim);">🏦</div><div class="bt-label">Sinking Fund</div></div><div class="bt-value maskable" id="ov-sink">—</div></div>
-        <div class="bento-tile" data-nav="invest"><div class="bt-top"><div class="bt-icon" style="background:var(--peri-dim);">📈</div><div class="bt-label">Investments</div></div><div class="bt-value pos maskable" id="ov-invest">—</div></div>
-        <div class="bento-tile" data-nav="people"><div class="bt-top"><div class="bt-icon" style="background:var(--sage-dim);">🤝</div><div class="bt-label">Receivables</div></div><div class="bt-value pos maskable" id="ov-recv">—</div></div>
-        <div class="bento-tile" data-nav="people"><div class="bt-top"><div class="bt-icon" style="background:var(--rose-dim);">📤</div><div class="bt-label">Family Payables</div></div><div class="bt-value neg maskable" id="ov-pay">—</div></div>
+        <div class="bento-tile" data-breakdown="cash"><div class="bt-top"><div class="bt-icon" style="background:var(--sage-dim);">💵</div><div class="bt-label">Liquid Bank Cash</div></div><div class="bt-value pos maskable" id="ov-cash">—</div></div>
+        <div class="bento-tile" data-breakdown="cards"><div class="bt-top"><div class="bt-icon" style="background:var(--rose-dim);">💳</div><div class="bt-label">Credit Card Dues</div></div><div class="bt-value neg maskable" id="ov-cards">—</div></div>
+        <div class="bento-tile" data-breakdown="sink"><div class="bt-top"><div class="bt-icon" style="background:var(--gold-dim);">🏦</div><div class="bt-label">Sinking Fund</div></div><div class="bt-value maskable" id="ov-sink">—</div></div>
+        <div class="bento-tile" data-breakdown="invest"><div class="bt-top"><div class="bt-icon" style="background:var(--peri-dim);">📈</div><div class="bt-label">Investments</div></div><div class="bt-value pos maskable" id="ov-invest">—</div></div>
+        <div class="bento-tile" data-breakdown="recv"><div class="bt-top"><div class="bt-icon" style="background:var(--sage-dim);">🤝</div><div class="bt-label">Receivables</div></div><div class="bt-value pos maskable" id="ov-recv">—</div></div>
+        <div class="bento-tile" data-breakdown="pay"><div class="bt-top"><div class="bt-icon" style="background:var(--rose-dim);">📤</div><div class="bt-label">Family Payables</div></div><div class="bt-value neg maskable" id="ov-pay">—</div></div>
       </div>
       <div class="divider-label">This month</div>
       <div class="card">
@@ -341,7 +365,7 @@
 
     <section class="tab" id="tab-budget">
       <h2 class="section-title">Sep 2026 · Budget vs Actual</h2>
-      <p class="section-sub" id="budget-sub"></p>
+      <div id="budget-summary-wrap"></div>
       <div id="budget-list"></div>
       <div class="divider-label">Sinking fund — lumpy annual bills</div>
       <p class="section-sub" id="sink-sub"></p>
@@ -608,6 +632,35 @@
     <p class="section-sub" id="monthview-sub"></p>
     <div id="monthview-list"></div>
     <button class="btn-ghost" id="monthview-close">Close</button>
+  </div>
+</div>
+
+<div class="sheet-backdrop" id="budgetdetail-backdrop">
+  <div class="sheet" style="max-height:85vh; overflow-y:auto;">
+    <div class="section-head" style="margin-bottom:2px;">
+      <div style="display:flex; align-items:center; gap:11px;">
+        <div class="chip-icon" id="budgetdetail-icon" style="width:38px;height:38px;font-size:18px;"></div>
+        <h3 id="budgetdetail-title" style="margin:0;">Category</h3>
+      </div>
+    </div>
+    <p class="section-sub" id="budgetdetail-sub"></p>
+    <div class="bar-track" style="margin-left:0; height:9px; margin-bottom:18px;"><div class="bar-fill" id="budgetdetail-bar"></div></div>
+    <div class="divider-label">Transactions this month</div>
+    <div id="budgetdetail-list"></div>
+    <button class="btn-ghost" id="budgetdetail-close" style="margin-top:16px;">Close</button>
+  </div>
+</div>
+
+<div class="sheet-backdrop" id="breakdown-backdrop">
+  <div class="sheet" style="max-height:80vh; overflow-y:auto;">
+    <h3 id="breakdown-title">Breakdown</h3>
+    <p class="section-sub" id="breakdown-sub"></p>
+    <div id="breakdown-list"></div>
+    <div class="row" style="margin-top:4px; padding-top:11px; border-top:1.5px solid var(--line);">
+      <div class="name">Total</div>
+      <div class="amt maskable" id="breakdown-total" style="font-size:19px;"></div>
+    </div>
+    <button class="btn-ghost" id="breakdown-close" style="margin-top:16px;">Close</button>
   </div>
 </div>
 
@@ -1201,14 +1254,145 @@ document.getElementById('mask-toggle-btn').addEventListener('click', ()=>{
   render();
 });
 
-// ---- Simple tab navigation helper (used by tappable overview tiles) ----
+// ---- Tap-to-breakdown sheet (used by header + overview tiles) ----
+// Mirrors the app's existing per-account "statement" pattern: tapping a summary
+// figure shows exactly what it's made of, with drill-through to the real statement.
 function goTab(name){
   const btn = document.querySelector(`nav.tabbar button[data-tab="${name}"]`);
   if(btn) btn.click();
 }
-document.querySelectorAll('.bento-tile[data-nav]').forEach(el=>{
-  el.addEventListener('click', ()=> goTab(el.getAttribute('data-nav')));
+const breakdownBackdrop = document.getElementById('breakdown-backdrop');
+function openBreakdown(kind){
+  const t = totals();
+  let title = '', sub = '', rows = [], total = 0;
+  if(kind==='net'){
+    title = 'Net Liquid Working Surplus';
+    sub = 'Liquid bank cash minus what\'s currently due on credit cards.';
+    rows = [
+      {label:'Liquid Bank Cash', icon:'💵', bg:'var(--sage-dim)', value:t.cash},
+      {label:'Credit Card Dues', icon:'💳', bg:'var(--rose-dim)', value:-t.cardTotal}
+    ];
+    total = t.net;
+  } else if(kind==='cash'){
+    title = 'Liquid Bank Cash';
+    sub = 'Every bank account counted toward this total (Cash Wallet and Sinking Fund are tracked separately). Tap an account to see its full statement.';
+    const excluded = ['cash_wallet','sinking_fund'];
+    rows = state.accounts.filter(a=>!excluded.includes(a.id)).map(a=>
+      ({label:a.name, icon:a.em||'🏦', bg:'var(--sage-dim)', value:accountBalance(a), acctId:a.id, isCard:false}));
+    total = t.cash;
+  } else if(kind==='cards'){
+    title = 'Credit Card Dues';
+    sub = 'What\'s currently outstanding on each card. Tap a card to see its full statement.';
+    rows = state.cards.map(c=>
+      ({label:c.name, icon:'💳', bg:'var(--rose-dim)', value:cardDue(c), acctId:c.id, isCard:true}));
+    total = t.cardTotal;
+  } else if(kind==='sink'){
+    title = 'Sinking Fund';
+    sub = 'Set aside for lumpy annual bills. Tap to see its full statement.';
+    const acc = state.accounts.find(a=>a.id==='sinking_fund');
+    rows = acc ? [{label:acc.name, icon:acc.em||'🏦', bg:'var(--gold-dim)', value:accountBalance(acc), acctId:acc.id, isCard:false}] : [];
+    total = t.sink;
+  } else if(kind==='invest'){
+    title = 'Investments';
+    sub = 'Mutual funds and direct equities, at current value. Opens the Invest tab for details.';
+    rows = [
+      {label:'Mutual Funds', icon:'📈', bg:'var(--peri-dim)', value:t.mf, goNav:'invest'},
+      {label:'Direct Equities', icon:'📊', bg:'var(--peri-dim)', value:t.eq, goNav:'invest'}
+    ];
+    total = t.invest;
+  } else if(kind==='recv' || kind==='pay'){
+    title = kind==='recv' ? 'Receivables' : 'Family Payables';
+    sub = kind==='recv' ? 'People who currently owe you money. Tap a name to log a repayment.' : 'People you currently owe money to. Tap a name to log a repayment.';
+    rows = state.people.map(p=>({label:p.name, icon:'🤝', bg: kind==='recv'?'var(--sage-dim)':'var(--rose-dim)', value:personBalance(p.id), personId:p.id}))
+      .filter(r=> kind==='recv' ? r.value>0 : r.value<0);
+    total = kind==='recv' ? t.recv : t.pay;
+  } else if(kind==='gap'){
+    title = 'Net Gap (People)';
+    sub = 'Everyone in your People Ledger with a non-zero balance. Tap a name to log a repayment.';
+    rows = state.people.map(p=>({label:p.name, icon:'🤝', bg: personBalance(p.id)>=0?'var(--sage-dim)':'var(--rose-dim)', value:personBalance(p.id), personId:p.id}))
+      .filter(r=> r.value!==0);
+    total = t.gap;
+  }
+
+  document.getElementById('breakdown-title').textContent = title;
+  document.getElementById('breakdown-sub').textContent = sub;
+  const totalEl = document.getElementById('breakdown-total');
+  totalEl.textContent = fmt(total);
+  totalEl.className = 'amt maskable' + (total<0?' neg':' pos');
+  document.getElementById('breakdown-list').innerHTML = rows.length ? rows.map((r,i)=>`
+    <div class="row" ${(r.acctId||r.personId||r.goNav)?'style="cursor:pointer;"':''} data-brow="${i}">
+      <div style="display:flex; align-items:center; gap:11px;"><div class="chip-icon" style="background:${r.bg};">${r.icon}</div><div class="name">${r.label}</div></div>
+      <div class="amt maskable ${r.value<0?'neg':'pos'}">${fmt(r.value)}</div>
+    </div>
+  `).join('') : '<div class="empty">Nothing here yet.</div>';
+
+  document.querySelectorAll('#breakdown-list [data-brow]').forEach(el=>{
+    const r = rows[parseInt(el.getAttribute('data-brow'))];
+    if(!r) return;
+    if(r.acctId){
+      el.addEventListener('click', ()=>{
+        breakdownBackdrop.classList.remove('open');
+        renderAcctStatement(r.acctId, !!r.isCard);
+        acctstatementBackdrop.classList.add('open');
+      });
+    } else if(r.personId){
+      el.addEventListener('click', ()=>{
+        breakdownBackdrop.classList.remove('open');
+        openPersonSheet(r.personId);
+      });
+    } else if(r.goNav){
+      el.addEventListener('click', ()=>{
+        breakdownBackdrop.classList.remove('open');
+        goTab(r.goNav);
+      });
+    }
+  });
+  applyMaskUI();
+  breakdownBackdrop.classList.add('open');
+}
+document.getElementById('breakdown-close').addEventListener('click', ()=> breakdownBackdrop.classList.remove('open'));
+breakdownBackdrop.addEventListener('click', e=>{ if(e.target===breakdownBackdrop) breakdownBackdrop.classList.remove('open'); });
+document.querySelectorAll('[data-breakdown]').forEach(el=>{
+  el.addEventListener('click', ()=> openBreakdown(el.getAttribute('data-breakdown')));
 });
+
+// ---- Budget category detail sheet (opened from the category grid) ----
+const budgetdetailBackdrop = document.getElementById('budgetdetail-backdrop');
+function openBudgetDetail(cat){
+  const b = state.budget.find(x=>x.cat===cat);
+  if(!b) return;
+  const meta = catMeta(b.cat);
+  const pct = b.budget>0? Math.min(100,(b.actual/b.budget)*100) : (b.actual>0?100:0);
+  const over = b.budget>0 && b.actual>b.budget;
+  const iconEl = document.getElementById('budgetdetail-icon');
+  iconEl.style.background = meta.bg;
+  iconEl.textContent = meta.em;
+  document.getElementById('budgetdetail-title').textContent = b.cat;
+  document.getElementById('budgetdetail-sub').innerHTML =
+    `<span class="maskable">${fmt(b.actual)}</span> of <span class="maskable">${fmt(b.budget)}</span> budgeted this month${over?' — over budget':''}`;
+  const bar = document.getElementById('budgetdetail-bar');
+  bar.style.width = pct+'%';
+  bar.className = 'bar-fill' + (over?' over':'');
+  const catTx = state.transactions.filter(t=>t.type!=='transfer' && findBudgetRowForCategory(t.category)===b)
+    .sort((a,c)=> new Date(c.ts)-new Date(a.ts));
+  document.getElementById('budgetdetail-list').innerHTML = catTx.length ? catTx.map(t=>`
+    <div class="tx-item" data-editbudgettx="${t.id}" style="cursor:pointer;">
+      <div class="chip-icon" style="background:${meta.bg};">${meta.em}</div>
+      <div class="tx-body"><div class="tx-top"><span class="tx-title">${t.payee}</span><span class="tx-amt ${t.type==='income'?'pos':'neg'} maskable">${t.type==='income'?'+':'-'}${fmt(t.amount)}</span></div>
+      <div class="tx-meta">${new Date(t.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${targetName(t.account)}</div></div>
+    </div>`).join('') : '<div class="empty">No entries in this category yet.</div>';
+  document.querySelectorAll('[data-editbudgettx]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const tx = state.transactions.find(t=>t.id===el.getAttribute('data-editbudgettx'));
+      budgetdetailBackdrop.classList.remove('open');
+      if(tx) openEditTx(tx);
+    });
+  });
+  applyMaskUI();
+  budgetdetailBackdrop.classList.add('open');
+}
+document.getElementById('budgetdetail-close').addEventListener('click', ()=> budgetdetailBackdrop.classList.remove('open'));
+budgetdetailBackdrop.addEventListener('click', e=>{ if(e.target===budgetdetailBackdrop) budgetdetailBackdrop.classList.remove('open'); });
 
 async function saveWhoami(name){
   whoami = name;
@@ -1685,42 +1869,32 @@ function render(){
   const bExpense = state.budget.filter(b=>!b.income);
   const totalExpBudget = bExpense.reduce((s,b)=>s+b.budget,0);
   const totalExpActual = bExpense.reduce((s,b)=>s+b.actual,0);
-  document.getElementById('budget-sub').textContent = `Expenses: ${fmt(totalExpActual)} of ${fmt(totalExpBudget)} budgeted`;
-  function rowHtml(b){
+  const totalIncActual = bIncome.reduce((s,b)=>s+b.actual,0);
+  const overallPct = totalExpBudget>0 ? Math.min(100,(totalExpActual/totalExpBudget)*100) : (totalExpActual>0?100:0);
+  const overallOver = totalExpBudget>0 && totalExpActual>totalExpBudget;
+  document.getElementById('budget-summary-wrap').innerHTML = `
+    <div class="budget-summary">
+      <div class="bs-top"><span class="bs-label">SPENT THIS MONTH</span><span class="bs-value ${overallOver?'over':''} maskable">${fmt(totalExpActual)}</span></div>
+      <div class="bs-track"><div class="bs-fill ${overallOver?'over':''}" style="width:${overallPct}%"></div></div>
+      <div class="bs-sub"><span class="maskable">${fmt(totalExpBudget)}</span> budgeted across ${bExpense.length} categories · income logged <span class="maskable">${fmt(totalIncActual)}</span></div>
+    </div>`;
+
+  function cardHtml(b){
     const pct = b.budget>0? Math.min(100,(b.actual/b.budget)*100) : (b.actual>0?100:0);
     const over = b.budget>0 && b.actual>b.budget;
     const meta = catMeta(b.cat);
-    const isOpen = expandedCats.has(b.cat);
-    const catTx = state.transactions.filter(t=>t.type!=='transfer' && findBudgetRowForCategory(t.category)===b).sort((a,b2)=> new Date(b2.ts)-new Date(a.ts));
-    const chevron = catTx.length ? `<span style="font-size:11px; color:var(--ink-soft); margin-left:4px;">${isOpen?'▲':'▼'}</span>` : '';
-    const entriesHtml = isOpen ? `<div class="cat-entries">${
-      catTx.length ? catTx.map(t=>`
-        <div class="tx-item" data-editcatentry="${t.id}" style="cursor:pointer; padding-left:2px;">
-          <div class="chip-icon" style="width:30px;height:30px;font-size:14px;background:${meta.bg};">${meta.em}</div>
-          <div class="tx-body"><div class="tx-top"><span class="tx-title">${t.payee}</span><span class="tx-amt ${t.type==='income'?'pos':'neg'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</span></div>
-          <div class="tx-meta">${new Date(t.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${targetName(t.account)}</div></div>
-        </div>`).join('') : '<div class="empty" style="padding:14px 0;">No entries in this category yet.</div>'
-    }</div>` : '';
-    return `<div class="budget-row">
-      <div class="budget-head" data-togglecat="${b.cat}" style="cursor:pointer;"><div class="chip-icon" style="width:32px;height:32px;font-size:14px;background:${meta.bg};">${meta.em}</div><span class="cat">${b.cat}</span>${chevron}<span class="figs">${fmt(b.actual)} / ${fmt(b.budget)}</span></div>
-      <div class="bar-track"><div class="bar-fill ${over?'over':''}" style="width:${pct}%"></div></div>
-      ${entriesHtml}
+    return `<div class="budget-card ${over?'over':''}" data-opencat="${b.cat}">
+      <div class="bc-top"><div class="bc-icon" style="background:${meta.bg};">${meta.em}</div>${over?'<span class="bc-chev" style="color:var(--debt);">over</span>':''}</div>
+      <div class="bc-name">${b.cat}</div>
+      <div class="bc-figs"><b class="maskable">${fmt(b.actual)}</b> <span class="maskable">/ ${fmt(b.budget)}</span></div>
+      <div class="bc-track"><div class="bc-fill ${over?'over':''}" style="width:${pct}%"></div></div>
     </div>`;
   }
-  document.getElementById('budget-list').innerHTML = '<div class="divider-label">Income</div>' + bIncome.map(rowHtml).join('') + '<div class="divider-label">Expenses</div>' + bExpense.map(rowHtml).join('');
-  document.querySelectorAll('[data-togglecat]').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      const cat = el.getAttribute('data-togglecat');
-      if(expandedCats.has(cat)) expandedCats.delete(cat); else expandedCats.add(cat);
-      render();
-    });
-  });
-  document.querySelectorAll('[data-editcatentry]').forEach(el=>{
-    el.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      const tx = state.transactions.find(t=>t.id===el.getAttribute('data-editcatentry'));
-      if(tx) openEditTx(tx);
-    });
+  document.getElementById('budget-list').innerHTML =
+    (bIncome.length? '<div class="divider-label">Income</div><div class="budget-grid">' + bIncome.map(cardHtml).join('') + '</div>' : '') +
+    '<div class="divider-label">Expenses</div><div class="budget-grid">' + bExpense.map(cardHtml).join('') + '</div>';
+  document.querySelectorAll('[data-opencat]').forEach(el=>{
+    el.addEventListener('click', ()=> openBudgetDetail(el.getAttribute('data-opencat')));
   });
 
   const monthlyNeed = state.commitments.reduce((s,c)=>{
