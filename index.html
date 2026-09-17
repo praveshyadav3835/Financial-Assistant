@@ -960,6 +960,7 @@ const SEED = {
   balanceAdjustments: [],
   payeeMemory: {},
   pendingImports: [],
+  dismissedImports: [],
   gmailConnectedEmails: [],
   processedGmailIds: [],
   emailAccountHistory: {},
@@ -1089,6 +1090,10 @@ function migrateState(){
     if(!state.emailAccountHistory) state.emailAccountHistory = {};
     state.schemaVersion = 17;
   }
+  if(state.schemaVersion < 18){
+    if(!state.dismissedImports) state.dismissedImports = [];
+    state.schemaVersion = 18;
+  }
 }
 
 async function loadState(){
@@ -1127,6 +1132,7 @@ const COLLECTION_FIELDS = {
   transactions: 'transaction',
   personLedger: 'personLedger',
   pendingImports: 'pendingImport',
+  dismissedImports: 'dismissedImport',
   people: 'person',
   balanceAdjustments: 'balanceAdjustment',
   accounts: 'account',
@@ -1134,7 +1140,7 @@ const COLLECTION_FIELDS = {
   processedGmailIds: 'processedGmailId'
 };
 const META_FIELDS = ['budget','mutualFunds','equities','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts'];
-let previousArrays = { transactions:[], personLedger:[], pendingImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[] };
+let previousArrays = { transactions:[], personLedger:[], pendingImports:[], dismissedImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[] };
 
 // ---- Outbox for cloud writes that haven't been confirmed yet ----
 // A write to Firestore takes a moment to complete. If the app is closed before it does
@@ -3272,32 +3278,56 @@ function renderAcctStatement(targetId, isCard){
     ? `Anchored on your adjustment of ${fmt(anchorVal)} on ${anchorTs.toLocaleDateString('en-IN',{day:'numeric',month:'short'})} — ${entries.length} entr${entries.length===1?'y':'ies'} since`
     : `No adjustment on record — showing everything ever logged (opening balance ${fmt(anchorVal)})`;
 
-  // Diagnostic for when the numbers don't reconcile: collect every entry dated BEFORE the
-  // anchor too (normally assumed to already be baked into the adjusted value) — if one of
-  // them was actually added or edited AFTER the adjustment was made, it would shift the live
-  // total without ever appearing in the "since" list above. Flag any single one whose amount
-  // matches the gap, since that's very likely the actual cause.
+  // Diagnostic for when the numbers don't reconcile. Two kinds of gap, checked in order:
+  //
+  // 1. One-sided email evidence — a transaction the bank confirmed by email but that never
+  //    made it into your ledger, because it's still sitting unapproved, or you dismissed it
+  //    as "not real" when it may actually have been. This is the strongest kind of lead,
+  //    since it's independent of your own bookkeeping and doesn't depend on there being an
+  //    anchor at all.
+  // 2. Failing that, the older check: an entry dated BEFORE the anchor (normally assumed to
+  //    already be baked into the adjusted value) that was actually added or edited AFTER —
+  //    which would shift the live total without ever appearing in the "since" list above.
   const discrepancy = Math.abs(running - liveTotal);
-  let preAnchorEntries = [];
   let suspectHtml = '';
-  if(discrepancy >= 1 && anchorTs){
-    state.transactions.forEach(t=>{
-      if(new Date(t.ts) >= anchorTs) return;
-      if(isCard){
-        if(t.type==='expense' && t.account===targetId) preAnchorEntries.push({ts:t.ts, label:t.payee+' · '+t.category, amount:t.amount});
-        if(t.type==='transfer' && t.to===targetId) preAnchorEntries.push({ts:t.ts, label:'Payment from '+targetName(t.from), amount:t.amount});
-        return;
+  if(discrepancy >= 1){
+    const pendingMatch = (state.pendingImports||[]).find(p=> p.accountId===targetId && Math.abs(p.amount-discrepancy)<1);
+    const dismissedMatch = !pendingMatch && (state.dismissedImports||[]).find(p=> p.accountId===targetId && Math.abs(p.amount-discrepancy)<1);
+    if(pendingMatch){
+      suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px; cursor:pointer;" data-openpending="${pendingMatch.id}"><div><div class="name">🎯 Likely cause: ${pendingMatch.payee||'a transaction'} — still needs approval</div><div class="sub">Dated ${new Date(pendingMatch.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · found via email but not yet added to your ledger — tap to review it now.</div></div><div class="amt">${fmt(pendingMatch.amount)}</div></div>`;
+    } else if(dismissedMatch){
+      suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">🎯 Likely cause: ${dismissedMatch.payee||'a transaction'} — dismissed as not real</div><div class="sub">Dated ${new Date(dismissedMatch.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · the bank's email said this happened, but it was marked "not a real transaction." If that was a mistake, logging it manually will close this gap.</div></div><div class="amt">${fmt(dismissedMatch.amount)}</div></div>`;
+    } else if(anchorTs){
+      let preAnchorEntries = [];
+      state.transactions.forEach(t=>{
+        if(new Date(t.ts) >= anchorTs) return;
+        if(isCard){
+          if(t.type==='expense' && t.account===targetId) preAnchorEntries.push({ts:t.ts, label:t.payee+' · '+t.category, amount:t.amount});
+          if(t.type==='transfer' && t.to===targetId) preAnchorEntries.push({ts:t.ts, label:'Payment from '+targetName(t.from), amount:t.amount});
+          return;
+        }
+        if(t.type==='transfer'){
+          if(t.from===targetId) preAnchorEntries.push({ts:t.ts, label:'Transfer to '+targetName(t.to), amount:t.amount});
+          if(t.to===targetId) preAnchorEntries.push({ts:t.ts, label:'Transfer from '+targetName(t.from), amount:t.amount});
+        } else if(t.account===targetId){
+          preAnchorEntries.push({ts:t.ts, label:t.payee+' · '+t.category, amount:t.amount});
+        }
+      });
+      // This diagnostic only ever scanned regular transactions — never the People Ledger, even
+      // though an account used heavily for "for someone" entries is exactly where a backdated
+      // or edited person-ledger entry is a likely cause. Scanning both is what actually gives
+      // this a real chance of finding the gap instead of leaving it to manual searching.
+      state.personLedger.forEach(e=>{
+        if(e.account!==targetId) return;
+        if(new Date(e.ts) >= anchorTs) return;
+        const person = state.people.find(p=>p.id===e.personId);
+        const who = person ? person.name : 'someone';
+        preAnchorEntries.push({ts:e.ts, label:(e.type==='gave' ? 'Paid for ' : 'Repaid by ') + who, amount:Math.abs(e.delta)});
+      });
+      const suspect = preAnchorEntries.find(e=> Math.abs(e.amount - discrepancy) < 1);
+      if(suspect){
+        suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">🎯 Likely cause: ${suspect.label}</div><div class="sub">Dated ${new Date(suspect.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} — before your anchor, so it should already be baked in. If it was added or its account changed after ${anchorTs.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}, that's the gap.</div></div><div class="amt">${fmt(suspect.amount)}</div></div>`;
       }
-      if(t.type==='transfer'){
-        if(t.from===targetId) preAnchorEntries.push({ts:t.ts, label:'Transfer to '+targetName(t.to), amount:t.amount});
-        if(t.to===targetId) preAnchorEntries.push({ts:t.ts, label:'Transfer from '+targetName(t.from), amount:t.amount});
-      } else if(t.account===targetId){
-        preAnchorEntries.push({ts:t.ts, label:t.payee+' · '+t.category, amount:t.amount});
-      }
-    });
-    const suspect = preAnchorEntries.find(e=> Math.abs(e.amount - discrepancy) < 1);
-    if(suspect){
-      suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">🎯 Likely cause: ${suspect.label}</div><div class="sub">Dated ${new Date(suspect.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} — before your anchor, so it should already be baked in. If it was added or its account changed after ${anchorTs.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}, that's the gap.</div></div><div class="amt">${fmt(suspect.amount)}</div></div>`;
     }
   }
 
@@ -3318,6 +3348,14 @@ function renderAcctStatement(targetId, isCard){
       acctstatementBackdrop.classList.remove('open');
       openReconSheet(targetId, isCard);
     });
+    const pendingLink = document.querySelector('[data-openpending]');
+    if(pendingLink){
+      pendingLink.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        acctstatementBackdrop.classList.remove('open');
+        openReviewImport(pendingLink.getAttribute('data-openpending'));
+      });
+    }
   }
 
   // Full all-time history for this account, regardless of anchor — every transaction that ever
@@ -4335,6 +4373,15 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
   showToast('✅ Added to your ledger!');
 });
 document.getElementById('ri-dismiss-btn').addEventListener('click', async ()=>{
+  const imp = state.pendingImports.find(p=>p.id===activeImportId);
+  // Keep a lightweight trace of what was dismissed, not just discard it — this is what lets
+  // an "unaccounted for" gap later be traced back to "you dismissed a real transaction as
+  // fake" instead of leaving that possibility invisible. Capped so this can't grow forever.
+  if(imp){
+    if(!state.dismissedImports) state.dismissedImports = [];
+    state.dismissedImports.push({id:genId('di'), ts:imp.ts, amount:imp.amount, type:imp.type, accountId:imp.accountId, payee:imp.payee, sourceEmail:imp.sourceEmail});
+    if(state.dismissedImports.length > 200) state.dismissedImports = state.dismissedImports.slice(-200);
+  }
   state.pendingImports = state.pendingImports.filter(p=>p.id!==activeImportId);
   await saveState();
   render();
