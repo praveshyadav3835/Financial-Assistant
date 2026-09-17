@@ -1656,6 +1656,17 @@ function cardDue(card){
     if(t.type==='expense' && t.account===card.id) due += t.amount;
     if(t.type==='transfer' && t.to===card.id) due -= t.amount;
   });
+  state.personLedger.forEach(e=>{
+    if(e.account===card.id){
+      // 'gave' means this card was charged on someone's behalf — increases the due, same
+      // direction as a normal expense. 'received' (e.g. a refund landing on the card)
+      // reduces it. Mirrors accountBalance()'s handling below, sign flipped because a
+      // card's balance is a liability, not cash sitting in the account. This loop was
+      // missing entirely before, which is why paying for someone on a credit card never
+      // moved its outstanding balance.
+      due += e.delta;
+    }
+  });
   return due;
 }
 function personBalance(id){
@@ -2718,7 +2729,7 @@ let personSelectedAccount = null;
 function renderPersonAcctChips(){
   const dir = segValue('person-dir');
   document.getElementById('person-acct-label').textContent = dir==='gave' ? 'Paid from which account?' : 'Landed in which account?';
-  const targets = state.accounts; // bank-type accounts + cash + sinking fund, no cards here
+  const targets = [...state.accounts, ...state.cards]; // bank accounts, cash, sinking fund, AND cards — paying for someone on credit counts too
   if(!targets.find(a=>a.id===personSelectedAccount)) personSelectedAccount = 'cash_wallet';
   document.getElementById('person-acct-row').innerHTML = targets.map(a=>
     `<div class="acct-chip ${a.id===personSelectedAccount?'on':''}" data-pacct="${a.id}">${a.em||'🏦'} ${a.name}</div>`
@@ -2757,7 +2768,7 @@ const editPersonEntryBackdrop = document.getElementById('editpersonentry-backdro
 let editingPersonEntry = null;
 let editPeSelectedAccount = null;
 function renderEditPeAcctChips(){
-  const options = [{id:null, name:'No account (historical)', em:'🗂️'}, ...state.accounts];
+  const options = [{id:null, name:'No account (historical)', em:'🗂️'}, ...state.accounts, ...state.cards];
   document.getElementById('editpe-acct-row').innerHTML = options.map(a=>{
     const isOn = (a.id===null && !editPeSelectedAccount) || (a.id===editPeSelectedAccount);
     return `<div class="acct-chip ${isOn?'on':''}" data-editpeacct="${a.id===null?'':a.id}">${a.em||'🏦'} ${a.name}</div>`;
