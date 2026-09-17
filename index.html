@@ -2317,7 +2317,10 @@ function guessCategory(clean, payee, type){
 // account-matching logic — every email already marked "seen" at an older version becomes
 // eligible for a fresh read on the next sweep, rather than being permanently stuck with
 // whatever the parsing logic produced the first time it was read.
-const PARSING_LOGIC_VERSION = 2;
+// v3: fixed a debit/transfer being misread as income when the email also mentions the money
+// being "credited to" the beneficiary (someone else's account) — that word alone was
+// outweighing the correct debit signal. Bumping so already-seen emails get re-evaluated.
+const PARSING_LOGIC_VERSION = 3;
 const EMAIL_ACCOUNT_MAP = {
   'divya9477@gmail.com': ['divya_indusind', 'divya_icici', 'divya_axis'],
   'praveshyadav3835@gmail.com': ['pravesh_axis', 'sib', 'sbi_card', 'pravesh_sbi'],
@@ -2351,10 +2354,16 @@ function parseBankSMS(text, sourceEmail){
   // is a more general fallback signal that catches phrasings like "transaction happened of X
   // from your account" or "payment of X was done from account" without needing to have seen
   // that exact wording before. This list should keep growing as new real phrasings turn up.
-  const hasCreditVerb = /credited|received|deposit(ed)?|refund|\bcredit\s+by\b|has\s+a\s+credit/i.test(clean);
-  const hasDebitVerb = /debited|debit of|spent|used for|used to make|withdrawn|\bpaid\b|payment.{0,15}(of|was|done|made|successful)|\bdebit\s+by\b|has\s+a\s+debit/i.test(clean);
+  //
+  // Bug fixed here: a debit/transfer-OUT email often also says the money was "credited to"
+  // the BENEFICIARY (e.g. "transferred from your account ... and credited to XYZ") — that's
+  // still describing money leaving you, but the bare word "credited" anywhere in the text was
+  // being read as proof of income and winning the classification. "Credited" now only counts
+  // as income evidence when it's your own account being credited, not a beneficiary's.
+  const hasCreditVerb = /received|deposit(ed)?|refund|\bcredit\s+by\b|has\s+a\s+credit|credited\s+(to\s+|in\s+)?your\b|\bcredited\b(?!\s+to\b)/i.test(clean);
+  const hasDebitVerb = /debited|debit of|spent|used for|used to make|withdrawn|\btransferred\b|\bsent\b|\bpaid\b|payment.{0,15}(of|was|done|made|successful)|\bdebit\s+by\b|has\s+a\s+debit/i.test(clean);
   const hasFromAccount = /\bfrom\s+(your\s+)?(a\/c|acct|account)\b/i.test(clean);
-  const hasToAccount = /\b(to|in)\s+(your\s+)?(a\/c|acct|account)\b|credited\s+to/i.test(clean);
+  const hasToAccount = /\b(to|in)\s+(your\s+)?(a\/c|acct|account)\b|credited\s+to\s+your\b/i.test(clean);
 
   // A genuine transaction always shows positive evidence of something that actually happened —
   // a real verb, or a real direction of money movement. A promotional email (credit limit
@@ -3872,6 +3881,17 @@ function mostLikelyAccountForEmail(email, allowedIds){
   candidates.sort((a,b)=> b[1]-a[1]);
   return candidates[0][0];
 }
+// Re-validates an accountId against EMAIL_ACCOUNT_MAP at the point of USE, not just at the
+// point the pending import was first created. This is what makes the "Aman/Divya IndusInd"
+// class of bug self-heal for anything already sitting in the review queue from before that
+// map existed or before it covered a given inbox — the display simply refuses to trust an
+// accountId outside its source inbox's allowed list, regardless of how it got there.
+function validatedAccountId(accountId, sourceEmail){
+  if(!accountId) return null;
+  const allowed = sourceEmail && EMAIL_ACCOUNT_MAP[sourceEmail];
+  if(allowed && !allowed.includes(accountId)) return null;
+  return accountId;
+}
 
 function looksLikePromotional(text){
   // Promotional/offer emails often mention a currency amount (credit limit, loan offer,
@@ -4121,7 +4141,7 @@ function renderPendingReview(){
     ${items.map(it=>{
       const meta = catMeta(it.category);
       const isDup = it.status==='duplicate';
-      const acctObj = it.accountId ? [...state.accounts, ...state.cards].find(a=>a.id===it.accountId) : null;
+      const acctObj = it.accountId ? [...state.accounts, ...state.cards].find(a=>a.id===validatedAccountId(it.accountId, it.sourceEmail)) : null;
       const acctLabel = acctObj ? acctObj.name : '⚠️ account not detected';
       const matchedObj = it.matchedAccount ? [...state.accounts, ...state.cards].find(a=>a.id===it.matchedAccount) : null;
       const mismatchNote = (isDup && matchedObj && matchedObj.id !== it.accountId)
@@ -4204,8 +4224,9 @@ function renderReviewChips(imp){
   });
 
   const targets = imp.type==='expense' ? [...state.accounts, ...state.cards] : state.accounts;
-  const detected = imp.accountId && targets.find(a=>a.id===imp.accountId);
-  if(!targets.find(a=>a.id===riSelectedAccount)) riSelectedAccount = detected ? imp.accountId : null;
+  const validImpAccountId = validatedAccountId(imp.accountId, imp.sourceEmail);
+  const detected = validImpAccountId && targets.find(a=>a.id===validImpAccountId);
+  if(!targets.find(a=>a.id===riSelectedAccount)) riSelectedAccount = detected ? validImpAccountId : null;
   document.getElementById('ri-acct-row').innerHTML = targets.map(a=>
     `<div class="pli ${a.id===riSelectedAccount?'on':''}" data-riacct="${a.id}"><div class="pli-icon">${a.em||'🏦'}</div><div class="pli-name">${a.name}</div><div class="pli-check">✓</div></div>`
   ).join('');
@@ -4230,7 +4251,7 @@ function openReviewImport(id){
   if(!imp) return;
   activeImportId = id;
   riSelectedCat = imp.category;
-  riSelectedAccount = imp.accountId;
+  riSelectedAccount = validatedAccountId(imp.accountId, imp.sourceEmail);
   riSelectedPerson = null;
   riCatPickerOpen = false; riAcctPickerOpen = false;
   document.getElementById('ri-mode').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v==='regular'));
