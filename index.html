@@ -3590,19 +3590,32 @@ function parseCsvToRows(csvText){
   const parsed = Papa.parse(csvText.trim(), {skipEmptyLines:true});
   const rows = parsed.data;
   if(!rows.length){ return {error:'Could not read any rows from that CSV.'}; }
-  const headers = rows[0];
-  const dateIdx = findCol(headers, ['date']);
-  const descIdx = findCol(headers, ['narration','description','particular','remark','details']);
-  const debitIdx = findCol(headers, ['debit','withdrawal']);
-  const creditIdx = findCol(headers, ['credit','deposit']);
-  const amountIdx = findCol(headers, ['amount']);
-  const balanceIdx = findCol(headers, ['balance','closing bal']);
-  if(dateIdx===-1 || (debitIdx===-1 && creditIdx===-1 && amountIdx===-1)){
-    return {error:'Could not detect date/amount columns. Make sure the first row has headers like Date, Description, Debit, Credit.'};
+  // Most Indian bank CSV/Excel exports put several preamble lines first — account name,
+  // address, statement period — before the row that's actually the column header. Scanning
+  // for the first row that looks like a real header (has both a date-like and an amount-like
+  // column) instead of assuming row 1 is the header is what makes this work on a real
+  // downloaded statement rather than only a hand-built test file.
+  let headerRowIdx = -1, dateIdx = -1, descIdx = -1, debitIdx = -1, creditIdx = -1, amountIdx = -1, balanceIdx = -1;
+  for(let i=0; i<Math.min(rows.length,20); i++){
+    const candidate = rows[i];
+    if(!candidate || candidate.length<2) continue;
+    const dIdx = findCol(candidate, ['date']);
+    const debIdx = findCol(candidate, ['debit','withdrawal']);
+    const creIdx = findCol(candidate, ['credit','deposit']);
+    const amtIdx = findCol(candidate, ['amount']);
+    if(dIdx>-1 && (debIdx>-1 || creIdx>-1 || amtIdx>-1)){
+      headerRowIdx = i; dateIdx = dIdx; debitIdx = debIdx; creditIdx = creIdx; amountIdx = amtIdx;
+      descIdx = findCol(candidate, ['narration','description','particular','remark','details']);
+      balanceIdx = findCol(candidate, ['balance','closing bal']);
+      break;
+    }
+  }
+  if(headerRowIdx===-1){
+    return {error:'Could not detect date/amount columns in the first 20 rows. Make sure the file has a row with headers like Date, Description, Debit, Credit somewhere near the top.'};
   }
   const stRows = [];
   let lastBalance = null, lastBalanceDate = null;
-  for(let i=1;i<rows.length;i++){
+  for(let i=headerRowIdx+1;i<rows.length;i++){
     const r = rows[i];
     if(r.length<2) continue;
     const date = parseDateLoose(r[dateIdx]);
@@ -3623,7 +3636,7 @@ function parseCsvToRows(csvText){
     if(debit===0 && credit===0) continue;
     stRows.push({date, desc, debit, credit});
   }
-  if(!stRows.length){ return {error:'No usable transaction rows found in that file.'}; }
+  if(!stRows.length){ return {error:'Found a header row but no usable transaction rows after it. Double check the file wasn\'t truncated.'}; }
   return {stRows, lastBalance};
 }
 
