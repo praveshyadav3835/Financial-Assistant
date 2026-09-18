@@ -3333,6 +3333,13 @@ function renderAcctStatement(targetId, isCard){
         suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">🎯 Likely cause: ${suspect.label}</div><div class="sub">Dated ${new Date(suspect.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} — before your anchor, so it should already be baked in. If it was added or its account changed after ${anchorTs.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}, that's the gap.</div></div><div class="amt">${fmt(suspect.amount)}</div></div>`;
       }
     }
+    // No automatic match — say so plainly rather than silently offering nothing. Comparing
+    // against a real bank statement is a separate, heavier step (needs the file uploaded);
+    // it's offered here as an explicit choice, not something tapping the warning jumps into.
+    if(!suspectHtml){
+      suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">No matching email transaction found</div><div class="sub">Nothing pending, dismissed, or backdated lines up with this amount. It may be a transaction that was never logged anywhere — check against a real statement to be sure.</div></div></div>
+      <p class="section-sub" id="acctstatement-reconcile-link" style="color:var(--peri); margin-top:8px; cursor:pointer; text-decoration:underline;">Compare against a bank statement instead →</p>`;
+    }
   }
 
   const rowsHtml = rows.map(r=>`<div class="row"><div><div class="name">${r.label}</div><div class="sub">${new Date(r.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div>
@@ -3345,7 +3352,7 @@ function renderAcctStatement(targetId, isCard){
     <div class="row"><div class="name">${adj?'Adjusted to':'Opening'}</div><div class="amt">${fmt(anchorVal)}</div></div>
     ${rowsSection}
     <div class="row" style="border-top:2px solid var(--peri); margin-top:8px; padding-top:12px;"><div class="name">Current (live)</div><div class="amt" style="font-weight:700;">${fmt(liveTotal)}</div></div>
-    ${discrepancy>=1 ? `<p class="section-sub" id="acctstatement-discrepancy" style="color:var(--debt); margin-top:8px; cursor:pointer; text-decoration:underline;">⚠️ ${fmt(discrepancy)} unaccounted for — tap to investigate or clear</p>${suspectHtml}` : ''}
+    ${discrepancy>=1 ? `<p class="section-sub" style="color:var(--debt); margin-top:8px;">⚠️ ${fmt(discrepancy)} unaccounted for</p>${suspectHtml}` : ''}
   `;
   // NOTE: click handlers for #acctstatement-discrepancy and [data-openpending] are wired
   // further below, AFTER the "Full history" section is appended — appending via innerHTML +=
@@ -3401,16 +3408,18 @@ function renderAcctStatement(targetId, isCard){
     });
   });
   if(discrepancy>=1){
-    document.getElementById('acctstatement-discrepancy').addEventListener('click', ()=>{
-      acctstatementBackdrop.classList.remove('open');
-      openReconSheet(targetId, isCard);
-    });
     const pendingLink = document.querySelector('[data-openpending]');
     if(pendingLink){
-      pendingLink.addEventListener('click', (e)=>{
-        e.stopPropagation();
+      pendingLink.addEventListener('click', ()=>{
         acctstatementBackdrop.classList.remove('open');
         openReviewImport(pendingLink.getAttribute('data-openpending'));
+      });
+    }
+    const reconLink = document.getElementById('acctstatement-reconcile-link');
+    if(reconLink){
+      reconLink.addEventListener('click', ()=>{
+        acctstatementBackdrop.classList.remove('open');
+        openReconSheet(targetId, isCard);
       });
     }
   }
