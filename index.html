@@ -689,8 +689,8 @@
 <div class="sheet-backdrop" id="recon-backdrop">
   <div class="sheet">
     <h3 id="recon-title">Reconcile statement</h3>
-    <p class="section-sub">Upload the CSV export of this month's statement, or paste it below.</p>
-    <div class="field"><label>Upload CSV</label><input type="file" id="recon-file" accept=".csv,text/csv"></div>
+    <p class="section-sub">Upload the statement — CSV/Excel export if your bank offers one, or the PDF if that's all you get (common for credit cards). Or paste CSV text below.</p>
+    <div class="field"><label>Upload statement (CSV or PDF)</label><input type="file" id="recon-file" accept=".csv,text/csv,.pdf,application/pdf"></div>
     <div class="field"><label>...or paste CSV text</label><textarea id="recon-paste" placeholder="Date,Description,Debit,Credit&#10;01/09/2026,Swiggy,430,"></textarea></div>
     <button class="btn-primary" id="recon-run">Compare with app</button>
     <div id="recon-results"></div>
@@ -799,9 +799,13 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
+if(typeof pdfjsLib !== 'undefined'){
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
 const fmt = n => {
   const neg = n < 0;
   const v = Math.abs(Math.round(n));
@@ -3343,20 +3347,10 @@ function renderAcctStatement(targetId, isCard){
     <div class="row" style="border-top:2px solid var(--peri); margin-top:8px; padding-top:12px;"><div class="name">Current (live)</div><div class="amt" style="font-weight:700;">${fmt(liveTotal)}</div></div>
     ${discrepancy>=1 ? `<p class="section-sub" id="acctstatement-discrepancy" style="color:var(--debt); margin-top:8px; cursor:pointer; text-decoration:underline;">⚠️ ${fmt(discrepancy)} unaccounted for — tap to investigate or clear</p>${suspectHtml}` : ''}
   `;
-  if(discrepancy>=1){
-    document.getElementById('acctstatement-discrepancy').addEventListener('click', ()=>{
-      acctstatementBackdrop.classList.remove('open');
-      openReconSheet(targetId, isCard);
-    });
-    const pendingLink = document.querySelector('[data-openpending]');
-    if(pendingLink){
-      pendingLink.addEventListener('click', (e)=>{
-        e.stopPropagation();
-        acctstatementBackdrop.classList.remove('open');
-        openReviewImport(pendingLink.getAttribute('data-openpending'));
-      });
-    }
-  }
+  // NOTE: click handlers for #acctstatement-discrepancy and [data-openpending] are wired
+  // further below, AFTER the "Full history" section is appended — appending via innerHTML +=
+  // re-parses and rebuilds this entire container from scratch, which would silently discard
+  // any listener attached here (this is exactly why tapping the discrepancy line did nothing).
 
   // Full all-time history for this account, regardless of anchor — every transaction that ever
   // touched it, newest first, each one tappable to verify or correct. This is separate from the
@@ -3406,6 +3400,20 @@ function renderAcctStatement(targetId, isCard){
       openEditTx(statementHistoryRefs[parseInt(el.getAttribute('data-stmthist'))]);
     });
   });
+  if(discrepancy>=1){
+    document.getElementById('acctstatement-discrepancy').addEventListener('click', ()=>{
+      acctstatementBackdrop.classList.remove('open');
+      openReconSheet(targetId, isCard);
+    });
+    const pendingLink = document.querySelector('[data-openpending]');
+    if(pendingLink){
+      pendingLink.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        acctstatementBackdrop.classList.remove('open');
+        openReviewImport(pendingLink.getAttribute('data-openpending'));
+      });
+    }
+  }
 }
 document.addEventListener('click', (e)=>{
   const row = e.target.closest('[data-acctstatement]');
@@ -3569,7 +3577,7 @@ function findCol(headers, keywords){
   }
   return -1;
 }
-function runReconciliation(csvText){
+function parseCsvToRows(csvText){
   const parsed = Papa.parse(csvText.trim(), {skipEmptyLines:true});
   const rows = parsed.data;
   if(!rows.length){ return {error:'Could not read any rows from that CSV.'}; }
@@ -3607,7 +3615,66 @@ function runReconciliation(csvText){
     stRows.push({date, desc, debit, credit});
   }
   if(!stRows.length){ return {error:'No usable transaction rows found in that file.'}; }
+  return {stRows, lastBalance};
+}
 
+// Credit-card and some bank statement PDFs list each transaction as: a date, a merchant/
+// description in the middle, and an amount at the end — often with "Cr"/"CR" marking a
+// refund or payment-received line, and no marker (or "Dr") meaning a normal charge. This is
+// deliberately loose: PDFs have no real column structure once extracted, so this looks for
+// that shape on each line rather than expecting exact positions.
+function parsePdfLineToRow(line){
+  const dateMatch = line.match(/\b(\d{1,2}[\/\-. ](?:\d{1,2}|[A-Za-z]{3,9})[\/\-. ]\d{2,4})\b/);
+  if(!dateMatch) return null;
+  const date = parseDateLoose(dateMatch[1]);
+  if(!date) return null;
+  const amtMatches = [...line.matchAll(/(?:₹|rs\.?|inr)?\s?([\d,]+\.\d{2})\s?(cr|dr)?\b/gi)];
+  if(!amtMatches.length) return null;
+  const last = amtMatches[amtMatches.length-1];
+  const amount = parseFloat(last[1].replace(/,/g,''));
+  if(!amount || amount<=0) return null;
+  const isCredit = /cr\b/i.test(last[2]||'') || /\bcr\b/i.test(line.slice(last.index, last.index+40));
+  const descStart = dateMatch.index + dateMatch[0].length;
+  const desc = line.slice(descStart, last.index).replace(/\s+/g,' ').trim().slice(0,60);
+  return { date, desc, debit: isCredit?0:amount, credit: isCredit?amount:0 };
+}
+async function parsePdfToRows(file){
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+  const lines = [];
+  for(let p=1; p<=pdf.numPages; p++){
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    // Text items come back as individual fragments with x/y positions, not pre-joined lines —
+    // group by rounded Y (same row) and sort by X (left to right) so a line reads in the
+    // order it actually appears on the page, not the order the PDF happens to store it in.
+    const byY = {};
+    content.items.forEach(item=>{
+      const y = Math.round(item.transform[5]/2)*2;
+      (byY[y] = byY[y]||[]).push(item);
+    });
+    Object.keys(byY).sort((a,b)=> b-a).forEach(y=>{
+      const line = byY[y].sort((a,b)=> a.transform[4]-b.transform[4]).map(i=>i.str).join(' ').replace(/\s+/g,' ').trim();
+      if(line) lines.push(line);
+    });
+  }
+  const stRows = [];
+  let lastBalance = null, lastBalanceDate = null;
+  const balanceLineRe = /\b(closing balance|total (amount )?due|statement balance)\b.{0,20}?([\d,]+\.\d{2})/i;
+  lines.forEach(line=>{
+    const balMatch = line.match(balanceLineRe);
+    if(balMatch){
+      const v = parseFloat(balMatch[3].replace(/,/g,''));
+      if(!isNaN(v)) lastBalance = v;
+    }
+    const row = parsePdfLineToRow(line);
+    if(row) stRows.push(row);
+  });
+  if(!stRows.length){ return {error:'Could not find any transaction lines in that PDF. Statement PDFs vary a lot by bank — if this keeps failing, paste a couple of sample lines and I\'ll adjust the parser to match.'}; }
+  return {stRows, lastBalance};
+}
+
+function matchStatementRows(stRows, lastBalance){
   const minDate = new Date(Math.min(...stRows.map(r=>r.date)));
   const maxDate = new Date(Math.max(...stRows.map(r=>r.date)));
   const pad = 3*24*60*60*1000;
@@ -3654,6 +3721,12 @@ function runReconciliation(csvText){
   return {matched, missingInApp, missingInStatement, range:{minDate,maxDate}, statementClosingBalance: lastBalance};
 }
 
+function runReconciliation(csvText){
+  const parsed = parseCsvToRows(csvText);
+  if(parsed.error) return parsed;
+  return matchStatementRows(parsed.stRows, parsed.lastBalance);
+}
+
 document.getElementById('recon-run').addEventListener('click', async ()=>{
   const fileInput = document.getElementById('recon-file');
   const pasteText = document.getElementById('recon-paste').value;
@@ -3665,12 +3738,29 @@ document.getElementById('recon-run').addEventListener('click', async ()=>{
     if(res.error){ resultsEl.innerHTML = `<p class="status-note">${res.error}</p>`; return; }
     renderReconResults(res);
   };
+  const processPdf = async (file)=>{
+    try{
+      const parsed = await parsePdfToRows(file);
+      if(parsed.error){ resultsEl.innerHTML = `<p class="status-note">${parsed.error}</p>`; return; }
+      renderReconResults(matchStatementRows(parsed.stRows, parsed.lastBalance));
+    }catch(e){
+      console.error('PDF reconciliation failed', e);
+      resultsEl.innerHTML = '<p class="status-note">Could not read that PDF — it may be a scanned image rather than real text, or password-protected. If it keeps failing, try the CSV/Excel export instead if your bank offers one.</p>';
+    }
+  };
 
   if(fileInput.files && fileInput.files.length){
-    const reader = new FileReader();
-    reader.onload = e => processText(e.target.result);
-    reader.onerror = () => { resultsEl.innerHTML = '<p class="status-note">Could not read that file.</p>'; };
-    reader.readAsText(fileInput.files[0]);
+    const file = fileInput.files[0];
+    const isPdf = file.type==='application/pdf' || /\.pdf$/i.test(file.name);
+    if(isPdf){
+      resultsEl.innerHTML = '<p class="status-note">Reading PDF…</p>';
+      await processPdf(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = e => processText(e.target.result);
+      reader.onerror = () => { resultsEl.innerHTML = '<p class="status-note">Could not read that file.</p>'; };
+      reader.readAsText(file);
+    }
   } else if(pasteText.trim()){
     processText(pasteText);
   } else {
