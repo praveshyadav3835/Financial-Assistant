@@ -3579,9 +3579,21 @@ function parseDateLoose(str){
   return isNaN(d) ? null : d;
 }
 function findCol(headers, keywords){
-  const lower = headers.map(h=>h.toLowerCase());
+  const lower = headers.map(h=>(h||'').toLowerCase());
   for(const kw of keywords){
     const idx = lower.findIndex(h=>h.includes(kw));
+    if(idx>-1) return idx;
+  }
+  return -1;
+}
+// Some bank exports (Axis included) abbreviate the debit/credit/balance columns down to bare
+// "DR"/"CR"/"BAL" rather than spelling them out. Those are too short to safely match as a
+// substring (e.g. "Address" contains "dr"), so they're matched as the WHOLE trimmed header
+// text instead — exact, not "contains".
+function findColExact(headers, exactWords){
+  const lower = headers.map(h=>(h||'').toLowerCase().trim());
+  for(const kw of exactWords){
+    const idx = lower.indexOf(kw);
     if(idx>-1) return idx;
   }
   return -1;
@@ -3600,13 +3612,13 @@ function parseCsvToRows(csvText){
     const candidate = rows[i];
     if(!candidate || candidate.length<2) continue;
     const dIdx = findCol(candidate, ['date']);
-    const debIdx = findCol(candidate, ['debit','withdrawal']);
-    const creIdx = findCol(candidate, ['credit','deposit']);
+    const debIdx = findCol(candidate, ['debit','withdrawal']) !== -1 ? findCol(candidate, ['debit','withdrawal']) : findColExact(candidate, ['dr']);
+    const creIdx = findCol(candidate, ['credit','deposit']) !== -1 ? findCol(candidate, ['credit','deposit']) : findColExact(candidate, ['cr']);
     const amtIdx = findCol(candidate, ['amount']);
     if(dIdx>-1 && (debIdx>-1 || creIdx>-1 || amtIdx>-1)){
       headerRowIdx = i; dateIdx = dIdx; debitIdx = debIdx; creditIdx = creIdx; amountIdx = amtIdx;
       descIdx = findCol(candidate, ['narration','description','particular','remark','details']);
-      balanceIdx = findCol(candidate, ['balance','closing bal']);
+      balanceIdx = findCol(candidate, ['balance','closing bal']) !== -1 ? findCol(candidate, ['balance','closing bal']) : findColExact(candidate, ['bal']);
       break;
     }
   }
