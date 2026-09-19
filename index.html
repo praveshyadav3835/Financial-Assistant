@@ -3625,6 +3625,35 @@ function parseCsvToRows(csvText){
   if(headerRowIdx===-1){
     return {error:'Could not detect date/amount columns in the first 20 rows. Make sure the file has a row with headers like Date, Description, Debit, Credit somewhere near the top.'};
   }
+  // Don't trust "DR"/"CR"/"Debit"/"Credit" column labels blindly — some exports use them
+  // backwards from the usual convention. The running balance can't lie: a real debit must
+  // decrease it and a real credit must increase it. Tally which reading actually matches the
+  // balance movement across the file, and swap the two columns if the labels disagree with it.
+  if(balanceIdx>-1 && debitIdx>-1 && creditIdx>-1){
+    let prevBal = null, agree = 0, disagree = 0;
+    for(let i=headerRowIdx+1; i<rows.length; i++){
+      const r = rows[i];
+      if(!r || r.length<2) continue;
+      const balVal = parseFloat((r[balanceIdx]||'').toString().replace(/[^0-9.\-]/g,''));
+      const debVal = parseFloat((r[debitIdx]||'0').toString().replace(/[^0-9.\-]/g,'')) || 0;
+      const credVal = parseFloat((r[creditIdx]||'0').toString().replace(/[^0-9.\-]/g,'')) || 0;
+      if(!isNaN(balVal) && prevBal!==null){
+        const delta = balVal - prevBal;
+        if(debVal>0){
+          if(Math.abs(delta+debVal)<1) agree++;
+          else if(Math.abs(delta-debVal)<1) disagree++;
+        }
+        if(credVal>0){
+          if(Math.abs(delta-credVal)<1) agree++;
+          else if(Math.abs(delta+credVal)<1) disagree++;
+        }
+      }
+      if(!isNaN(balVal)) prevBal = balVal;
+    }
+    if(disagree > agree){
+      const tmp = debitIdx; debitIdx = creditIdx; creditIdx = tmp;
+    }
+  }
   const stRows = [];
   let lastBalance = null, lastBalanceDate = null;
   for(let i=headerRowIdx+1;i<rows.length;i++){
@@ -3731,6 +3760,19 @@ function matchStatementRows(stRows, lastBalance){
       return {tx:t, amount, isOut};
     });
   }
+  // People Ledger entries against this account/card were never included here — for an account
+  // used heavily for "for someone" payments, that alone can account for most of a "not in app"
+  // pile, since none of that real activity was ever in the comparison pool to begin with.
+  const peopleTx = state.personLedger.filter(e=>
+    e.account===reconTargetId && new Date(e.ts) >= new Date(+minDate-pad) && new Date(e.ts) <= new Date(+maxDate+pad)
+  ).map(e=>{
+    // 'gave' means money left this account (paid for someone) — same direction as an expense.
+    // For a card, 'gave' increases the due, same direction as a charge. Either way, isOut
+    // tracks "money moved away from this account/card", matching the bank statement's debit.
+    const isOut = e.type==='gave';
+    return {tx:e, amount:Math.abs(e.delta), isOut};
+  });
+  appTx = appTx.concat(peopleTx);
 
   const usedApp = new Set();
   let matched = 0;
@@ -3820,10 +3862,19 @@ function renderReconResults(res){
   }
   if(res.missingInStatement.length){
     html += `<div class="recon-group-title">Logged in app, not found on statement — review</div>`;
-    html += res.missingInStatement.map(a=>`
+    html += res.missingInStatement.map(a=>{
+      let label;
+      if(a.tx.personId){
+        const person = state.people.find(p=>p.id===a.tx.personId);
+        label = (a.isOut?'Paid for ':'Repaid by ') + (person?person.name:'someone');
+      } else {
+        label = a.tx.payee || (a.tx.type==='transfer'?'Transfer':'');
+      }
+      return `
       <div class="recon-row">
-        <div><div class="d">${a.tx.payee || (a.tx.type==='transfer'?'Transfer':'')}</div><div class="m">${new Date(a.tx.ts).toLocaleDateString('en-IN')} · ${fmt(a.amount)}</div></div>
-      </div>`).join('');
+        <div><div class="d">${label}</div><div class="m">${new Date(a.tx.ts).toLocaleDateString('en-IN')} · ${fmt(a.amount)}</div></div>
+      </div>`;
+    }).join('');
   }
   if(!res.missingInApp.length && !res.missingInStatement.length){
     html += '<p class="status-note">Everything matches for this period. Nicely reconciled.</p>';
