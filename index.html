@@ -519,10 +519,13 @@
       </div>
       <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">Who?</label>
       <div class="acct-row" id="tx-person-row"></div>
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;" id="tx-person-cat-label">What was it for? <span style="font-weight:400;">(optional)</span></label>
+      <div class="pick-summary" id="tx-person-cat-summary"></div>
+      <div class="cat-grid hide" id="tx-person-cat-grid"></div>
       <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">Through which account?</label>
       <div class="acct-row" id="tx-person-acct-row"></div>
       <div class="field"><label>Note (optional)</label><input id="tx-person-note" placeholder="e.g. metro card recharge"></div>
-      <p class="section-sub">This won't show up as an expense or income — it just settles in their People Ledger.</p>
+      <p class="section-sub" id="tx-person-note-sub">This won't show up as an expense or income — it just settles in their People Ledger.</p>
     </div>
 
     <div class="toggle-row" id="tx-household-row">
@@ -552,6 +555,12 @@
     <div class="field">
       <label id="person-acct-label">Which account?</label>
       <div class="acct-row" id="person-acct-row"></div>
+    </div>
+    <div class="field">
+      <label>What was it for? <span style="font-weight:400;">(optional)</span></label>
+      <div class="pick-summary" id="person-cat-summary"></div>
+      <div class="cat-grid hide" id="person-cat-grid"></div>
+      <p class="section-sub" id="person-cat-sub"></p>
     </div>
     <div class="field"><label>Amount (₹)</label><input id="person-amount" type="number" inputmode="decimal" placeholder="0"></div>
     <div class="field"><label>Notes (optional)</label><input id="person-remarks" placeholder=""></div>
@@ -595,6 +604,12 @@
       <div class="acct-row" id="editpe-acct-row"></div>
     </div>
     <div class="field"><label>Amount (₹)</label><input id="editpe-amount" type="number" inputmode="decimal"></div>
+    <div class="field">
+      <label>What was it for? <span style="font-weight:400;">(optional)</span></label>
+      <div class="pick-summary" id="editpe-cat-summary"></div>
+      <div class="cat-grid hide" id="editpe-cat-grid"></div>
+      <p class="section-sub" id="editpe-cat-sub"></p>
+    </div>
     <div class="field"><label>Notes</label><input id="editpe-remarks" placeholder=""></div>
     <button class="btn-primary" id="editpe-save">Save changes</button>
     <button class="btn-ghost" id="editpe-delete" style="color:var(--debt); border-color:var(--debt);">Delete this entry</button>
@@ -623,11 +638,15 @@
     <div class="field" id="ri-person-field">
       <label>Who / what was this for?</label>
       <div class="acct-row" id="ri-person-row"></div>
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">What was it for? <span style="font-weight:400;">(optional)</span></label>
+      <div class="pick-summary" id="ri-person-cat-summary"></div>
+      <div class="cat-grid hide" id="ri-person-cat-grid"></div>
       <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">Which way did the money move?</label>
       <div class="seg" id="ri-person-dir">
         <button data-v="gave" class="on">You paid for them</button>
         <button data-v="received">They paid you back</button>
       </div>
+      <p class="section-sub" id="ri-person-cat-sub"></p>
     </div>
 
     <div class="field">
@@ -1544,17 +1563,36 @@ function openBudgetDetail(cat){
   bar.className = 'bar-fill' + (over?' over':'');
   const catTx = state.transactions.filter(t=>t.type!=='transfer' && findBudgetRowForCategory(t.category)===b)
     .sort((a,c)=> new Date(c.ts)-new Date(a.ts));
-  document.getElementById('budgetdetail-list').innerHTML = catTx.length ? catTx.map(t=>`
+  const catPeople = state.personLedger.filter(e=> e.type==='received' && e.category && findBudgetRowForCategory(e.category)===b)
+    .sort((a,c)=> new Date(c.ts)-new Date(a.ts));
+  const rowsHtml = catTx.map(t=>`
     <div class="tx-item" data-editbudgettx="${t.id}" style="cursor:pointer;">
       <div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
       <div class="tx-body"><div class="tx-top"><span class="tx-title">${t.payee}</span><span class="tx-amt ${t.type==='income'?'pos':'neg'} maskable">${t.type==='income'?'+':'-'}${fmt(t.amount)}</span></div>
       <div class="tx-meta">${new Date(t.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${targetName(t.account)}</div></div>
-    </div>`).join('') : '<div class="empty">No entries in this category yet.</div>';
+    </div>`).join('') +
+    catPeople.map(e=>{
+      const person = state.people.find(p=>p.id===e.personId);
+      return `
+    <div class="tx-item" data-editpersonbudgettx="${e.id}" style="cursor:pointer;">
+      <div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
+      <div class="tx-body"><div class="tx-top"><span class="tx-title">${person?person.name:'Someone'} paid — you owe them</span><span class="tx-amt neg maskable">-${fmt(Math.abs(e.delta))}</span></div>
+      <div class="tx-meta">${new Date(e.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · People Ledger — real spending, they fronted the cash</div></div>
+    </div>`;
+    }).join('');
+  document.getElementById('budgetdetail-list').innerHTML = rowsHtml || '<div class="empty">No entries in this category yet.</div>';
   document.querySelectorAll('[data-editbudgettx]').forEach(el=>{
     el.addEventListener('click', ()=>{
       const tx = state.transactions.find(t=>t.id===el.getAttribute('data-editbudgettx'));
       budgetdetailBackdrop.classList.remove('open');
       if(tx) openEditTx(tx);
+    });
+  });
+  document.querySelectorAll('[data-editpersonbudgettx]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const entry = state.personLedger.find(e=>e.id===el.getAttribute('data-editpersonbudgettx'));
+      budgetdetailBackdrop.classList.remove('open');
+      if(entry) openEditPersonEntry(entry);
     });
   });
   applyMaskUI();
@@ -1712,6 +1750,16 @@ function recomputeBudgetActuals(){
     if(t.type==='transfer') return;
     const b = findBudgetRowForCategory(t.category);
     if(b) b.actual += t.amount;
+  });
+  // A "for someone" entry tagged with a category counts as your real spending only when the
+  // money flowed the way that makes it YOUR expense: someone else fronted the cash for
+  // something you consumed (type 'received' — you now owe them). The reverse ('gave' — you
+  // fronted cash for THEM) is never your expense, no matter what category it's tagged with —
+  // that's you lending money, not you spending it; it stays off the budget entirely.
+  state.personLedger.forEach(e=>{
+    if(e.type!=='received' || !e.category) return;
+    const b = findBudgetRowForCategory(e.category);
+    if(b) b.actual += Math.abs(e.delta);
   });
 }
 
@@ -2069,7 +2117,7 @@ function render(){
         <div class="tx-item" data-editpersonentry="${e.id}" style="cursor:pointer; padding-left:2px;">
           <div class="chip-icon" style="width:30px;height:30px;font-size:14px;background:${e.delta<0?'var(--rose-dim)':'var(--sage-dim)'};">${e.delta<0?'📤':'📥'}</div>
           <div class="tx-body"><div class="tx-top"><span class="tx-title">${e.remarks || (e.type==='opening'?'Opening balance':(e.delta<0?'You gave them money':'They gave you money'))}</span><span class="tx-amt ${e.delta<0?'neg':'pos'}">${e.delta<0?'-':'+'}${fmt(Math.abs(e.delta))}</span></div>
-          <div class="tx-meta">${new Date(e.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}${e.account? ' · '+targetName(e.account):''}</div></div>
+          <div class="tx-meta">${new Date(e.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}${e.account? ' · '+targetName(e.account):''}${e.category? ' · '+e.category.split(' (')[0].split(',')[0] : ''}</div></div>
         </div>`).join('') : '<div class="empty" style="padding:14px 0;">No entries yet.</div>'
     }</div>` : '';
     return `<div class="person-block">
@@ -2540,14 +2588,20 @@ wireSeg('tx-type', (v)=>{
 });
 wireSeg('tx-household');
 wireSeg('ri-household');
-wireSeg('ri-person-dir');
-wireSeg('tx-person-dir');
-wireSeg('person-dir', ()=> renderPersonAcctChips());
+wireSeg('ri-person-dir', ()=>{
+  const imp = state.pendingImports.find(p=>p.id===activeImportId);
+  if(imp) renderReviewChips(imp);
+});
+wireSeg('tx-person-dir', ()=> renderTxPersonChips());
+wireSeg('person-dir', ()=> { renderPersonAcctChips(); renderPersonCatPicker(); });
 wireSeg('ap-dir');
 renderKeypad();
 
 let txSelectedPerson = null;
 let txSelectedPersonAcct = null;
+let txPersonSelectedCat = null;
+let txPersonCatPickerOpen = false;
+let lastPersonSaveCountedSpend = null;
 function renderTxPersonChips(){
   if(!txSelectedPerson && state.people.length) txSelectedPerson = state.people[0].id;
   document.getElementById('tx-person-row').innerHTML =
@@ -2565,6 +2619,38 @@ function renderTxPersonChips(){
     await saveState();
     renderTxPersonChips();
   });
+  // A category here is optional — it's just for your own record of what money spent "for
+  // someone" was actually for (e.g. "Parties"). It never counts toward budget actuals, same
+  // as the rest of a People Ledger entry — that stays a receivable/payable, not spending,
+  // until it's settled one way or the other.
+  const catOptions = [...state.budget.filter(b=>!b.income).map(b=>b.cat), OTHER_EXPENSE_CAT];
+  document.getElementById('tx-person-cat-grid').innerHTML = catOptions.map(c=>{
+    const meta = catMeta(c);
+    return `<div class="cat-chip ${c===txPersonSelectedCat?'on':''}" data-txpersoncat="${c}"><div class="em" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="lb">${c.split(' (')[0].split(',')[0]}</div></div>`;
+  }).join('');
+  document.querySelectorAll('#tx-person-cat-grid .cat-chip').forEach(el=>{
+    el.addEventListener('click', ()=>{ txPersonSelectedCat = el.dataset.txpersoncat; txPersonCatPickerOpen = false; renderTxPersonChips(); });
+  });
+  if(txPersonSelectedCat){
+    const meta = catMeta(txPersonSelectedCat);
+    document.getElementById('tx-person-cat-summary').innerHTML =
+      `<div class="ps-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="ps-name">${txPersonSelectedCat}</div><div class="ps-change">${txPersonCatPickerOpen?'Cancel':'Change'}</div>`;
+  } else {
+    document.getElementById('tx-person-cat-summary').innerHTML =
+      `<div class="ps-icon" style="background:var(--paper-dim);">＋</div><div class="ps-name" style="color:var(--ink-soft);">Not tagged</div><div class="ps-change">${txPersonCatPickerOpen?'Cancel':'Add'}</div>`;
+  }
+  document.getElementById('tx-person-cat-summary').onclick = ()=>{ txPersonCatPickerOpen = !txPersonCatPickerOpen; renderTxPersonChips(); };
+  document.getElementById('tx-person-cat-grid').classList.toggle('hide', !txPersonCatPickerOpen);
+  const dirNow = segValue('tx-person-dir');
+  const noteSub = document.getElementById('tx-person-note-sub');
+  if(noteSub){
+    noteSub.textContent = (dirNow==='received' && txPersonSelectedCat)
+      ? `This counts as ${txPersonSelectedCat} spending in your budget — they fronted it, you owe them back.`
+      : dirNow==='gave'
+        ? "This won't count toward your budget — you're the one fronting the money, so it's a loan, not your expense."
+        : "Tag a category above if you want this counted as spending (only applies when they paid for you).";
+  }
+
   const targets = [...state.accounts, ...state.cards];
   if(!targets.find(a=>a.id===txSelectedPersonAcct)) txSelectedPersonAcct = targets[0] ? targets[0].id : null;
   document.getElementById('tx-person-acct-row').innerHTML = targets.map(a=>
@@ -2586,6 +2672,7 @@ document.getElementById('fab-add').addEventListener('click', ()=>{
   userTouchedCategory = false; userTouchedAccount = false;
   catPickerOpen = false; acctPickerOpen = false;
   txSelectedPerson = null; txSelectedPersonAcct = null;
+  txPersonSelectedCat = null; txPersonCatPickerOpen = false;
   renderTxFormLists();
   txBackdrop.classList.add('open');
 });
@@ -2628,7 +2715,9 @@ document.getElementById('tx-save').addEventListener('click', async ()=>{
     const dir = segValue('tx-person-dir');
     const delta = dir==='gave' ? amount : -amount;
     const remarks = document.getElementById('tx-person-note').value.trim() || (dir==='gave' ? 'You gave them money' : 'They gave you money');
-    state.personLedger.push({id:genId('pl'), personId:txSelectedPerson, ts, type:dir, delta, account:txSelectedPersonAcct, remarks});
+    state.personLedger.push({id:genId('pl'), personId:txSelectedPerson, ts, type:dir, delta, account:txSelectedPersonAcct, remarks, category:txPersonSelectedCat||null});
+    recomputeBudgetActuals();
+    lastPersonSaveCountedSpend = (dir==='received' && txPersonSelectedCat) ? txPersonSelectedCat : null;
   } else {
     const payeeInput = document.getElementById('tx-payee').value.trim();
     const payee = payeeInput || (type==='income'?'Income':'Expense');
@@ -2649,7 +2738,7 @@ document.getElementById('tx-save').addEventListener('click', async ()=>{
   await saveState();
   render();
   txBackdrop.classList.remove('open');
-  showToast(type==='transfer' ? '🔄 Moved, all sorted!' : type==='person' ? '🤝 Settled in their ledger — not counted as spending.' : type==='income' ? '🤑 Nice, logged!' : '✅ Logged it, well done!');
+  showToast(type==='transfer' ? '🔄 Moved, all sorted!' : type==='person' ? (lastPersonSaveCountedSpend ? `🤝 Logged as ${lastPersonSaveCountedSpend} spending — they fronted it, you owe them.` : '🤝 Settled in their ledger — not counted as spending.') : type==='income' ? '🤑 Nice, logged!' : '✅ Logged it, well done!');
 });
 
 // ---- EDIT TRANSACTION ----
@@ -2736,6 +2825,8 @@ document.getElementById('edittx-delete').addEventListener('click', async ()=>{
 const personBackdrop = document.getElementById('person-backdrop');
 let activePerson = null;
 let personSelectedAccount = null;
+let personSelectedCat = null;
+let personCatPickerOpen = false;
 function renderPersonAcctChips(){
   const dir = segValue('person-dir');
   document.getElementById('person-acct-label').textContent = dir==='gave' ? 'Paid from which account?' : 'Landed in which account?';
@@ -2748,6 +2839,35 @@ function renderPersonAcctChips(){
     el.addEventListener('click', ()=>{ personSelectedAccount = el.dataset.pacct; renderPersonAcctChips(); });
   });
 }
+function renderPersonCatPicker(){
+  const catOptions = [...state.budget.filter(b=>!b.income).map(b=>b.cat), OTHER_EXPENSE_CAT];
+  document.getElementById('person-cat-grid').innerHTML = catOptions.map(c=>{
+    const meta = catMeta(c);
+    return `<div class="cat-chip ${c===personSelectedCat?'on':''}" data-personcat="${c}"><div class="em" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="lb">${c.split(' (')[0].split(',')[0]}</div></div>`;
+  }).join('');
+  document.querySelectorAll('#person-cat-grid .cat-chip').forEach(el=>{
+    el.addEventListener('click', ()=>{ personSelectedCat = el.dataset.personcat; personCatPickerOpen = false; renderPersonCatPicker(); });
+  });
+  if(personSelectedCat){
+    const meta = catMeta(personSelectedCat);
+    document.getElementById('person-cat-summary').innerHTML =
+      `<div class="ps-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="ps-name">${personSelectedCat}</div><div class="ps-change">${personCatPickerOpen?'Cancel':'Change'}</div>`;
+  } else {
+    document.getElementById('person-cat-summary').innerHTML =
+      `<div class="ps-icon" style="background:var(--paper-dim);">＋</div><div class="ps-name" style="color:var(--ink-soft);">Not tagged</div><div class="ps-change">${personCatPickerOpen?'Cancel':'Add'}</div>`;
+  }
+  document.getElementById('person-cat-summary').onclick = ()=>{ personCatPickerOpen = !personCatPickerOpen; renderPersonCatPicker(); };
+  document.getElementById('person-cat-grid').classList.toggle('hide', !personCatPickerOpen);
+  const dirNow = segValue('person-dir');
+  const sub = document.getElementById('person-cat-sub');
+  if(sub){
+    sub.textContent = (dirNow==='received' && personSelectedCat)
+      ? `Counts as ${personSelectedCat} spending in your budget — they fronted it, you owe them back.`
+      : dirNow==='gave'
+        ? "Won't count toward your budget — you're fronting the money, so it's a loan, not your expense."
+        : "Tag a category if you want this counted as spending (only applies when they paid for you).";
+  }
+}
 function openPersonSheet(id){
   activePerson = id;
   const p = state.people.find(x=>x.id===id);
@@ -2755,7 +2875,10 @@ function openPersonSheet(id){
   document.getElementById('person-amount').value='';
   document.getElementById('person-remarks').value='';
   personSelectedAccount = 'cash_wallet';
+  personSelectedCat = null;
+  personCatPickerOpen = false;
   renderPersonAcctChips();
+  renderPersonCatPicker();
   personBackdrop.classList.add('open');
 }
 document.getElementById('person-cancel').addEventListener('click', ()=> personBackdrop.classList.remove('open'));
@@ -2766,7 +2889,8 @@ document.getElementById('person-save').addEventListener('click', async ()=>{
   const dir = segValue('person-dir');
   const delta = dir==='gave' ? amount : -amount;
   const remarks = document.getElementById('person-remarks').value.trim() || (dir==='gave' ? 'You gave them money' : 'They gave you money');
-  state.personLedger.push({id:'pl_'+Date.now(), personId:activePerson, ts:new Date().toISOString(), type:dir, delta, account:personSelectedAccount, remarks});
+  state.personLedger.push({id:'pl_'+Date.now(), personId:activePerson, ts:new Date().toISOString(), type:dir, delta, account:personSelectedAccount, remarks, category:personSelectedCat||null});
+  recomputeBudgetActuals();
   await saveState();
   render();
   personBackdrop.classList.remove('open');
@@ -2777,6 +2901,8 @@ document.getElementById('person-save').addEventListener('click', async ()=>{
 const editPersonEntryBackdrop = document.getElementById('editpersonentry-backdrop');
 let editingPersonEntry = null;
 let editPeSelectedAccount = null;
+let editPeSelectedCat = null;
+let editPeCatPickerOpen = false;
 function renderEditPeAcctChips(){
   const options = [{id:null, name:'No account (historical)', em:'🗂️'}, ...state.accounts, ...state.cards];
   document.getElementById('editpe-acct-row').innerHTML = options.map(a=>{
@@ -2786,6 +2912,35 @@ function renderEditPeAcctChips(){
   document.querySelectorAll('#editpe-acct-row .acct-chip').forEach(el=>{
     el.addEventListener('click', ()=>{ editPeSelectedAccount = el.dataset.editpeacct || null; renderEditPeAcctChips(); });
   });
+}
+function renderEditPeCatPicker(){
+  const catOptions = [...state.budget.filter(b=>!b.income).map(b=>b.cat), OTHER_EXPENSE_CAT];
+  document.getElementById('editpe-cat-grid').innerHTML = catOptions.map(c=>{
+    const meta = catMeta(c);
+    return `<div class="cat-chip ${c===editPeSelectedCat?'on':''}" data-editpecat="${c}"><div class="em" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="lb">${c.split(' (')[0].split(',')[0]}</div></div>`;
+  }).join('');
+  document.querySelectorAll('#editpe-cat-grid .cat-chip').forEach(el=>{
+    el.addEventListener('click', ()=>{ editPeSelectedCat = el.dataset.editpecat; editPeCatPickerOpen = false; renderEditPeCatPicker(); });
+  });
+  if(editPeSelectedCat){
+    const meta = catMeta(editPeSelectedCat);
+    document.getElementById('editpe-cat-summary').innerHTML =
+      `<div class="ps-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="ps-name">${editPeSelectedCat}</div><div class="ps-change">${editPeCatPickerOpen?'Cancel':'Change'}</div>`;
+  } else {
+    document.getElementById('editpe-cat-summary').innerHTML =
+      `<div class="ps-icon" style="background:var(--paper-dim);">＋</div><div class="ps-name" style="color:var(--ink-soft);">Not tagged</div><div class="ps-change">${editPeCatPickerOpen?'Cancel':'Add'}</div>`;
+  }
+  document.getElementById('editpe-cat-summary').onclick = ()=>{ editPeCatPickerOpen = !editPeCatPickerOpen; renderEditPeCatPicker(); };
+  document.getElementById('editpe-cat-grid').classList.toggle('hide', !editPeCatPickerOpen);
+  const dirNow = segValue('editpe-dir');
+  const sub = document.getElementById('editpe-cat-sub');
+  if(sub){
+    sub.textContent = (dirNow==='received' && editPeSelectedCat)
+      ? `Counts as ${editPeSelectedCat} spending in your budget — they fronted it, you owe them back.`
+      : dirNow==='gave'
+        ? "Won't count toward your budget — you're fronting the money, so it's a loan, not your expense."
+        : "Tag a category if you want this counted as spending (only applies when they paid for you).";
+  }
 }
 function openEditPersonEntry(entry){
   editingPersonEntry = entry;
@@ -2797,10 +2952,13 @@ function openEditPersonEntry(entry){
   document.getElementById('editpe-amount').value = Math.abs(entry.delta);
   document.getElementById('editpe-remarks').value = entry.remarks || '';
   editPeSelectedAccount = entry.account || null;
+  editPeSelectedCat = entry.category || null;
+  editPeCatPickerOpen = false;
   renderEditPeAcctChips();
+  renderEditPeCatPicker();
   editPersonEntryBackdrop.classList.add('open');
 }
-wireSeg('editpe-dir');
+wireSeg('editpe-dir', ()=> renderEditPeCatPicker());
 document.getElementById('editpe-cancel').addEventListener('click', ()=> editPersonEntryBackdrop.classList.remove('open'));
 editPersonEntryBackdrop.addEventListener('click', e=>{ if(e.target===editPersonEntryBackdrop) editPersonEntryBackdrop.classList.remove('open'); });
 document.getElementById('editpe-save').addEventListener('click', async ()=>{
@@ -2810,7 +2968,9 @@ document.getElementById('editpe-save').addEventListener('click', async ()=>{
   editingPersonEntry.type = dir;
   editingPersonEntry.delta = dir==='gave' ? amount : -amount;
   editingPersonEntry.account = editPeSelectedAccount || undefined;
+  editingPersonEntry.category = editPeSelectedCat || null;
   editingPersonEntry.remarks = document.getElementById('editpe-remarks').value.trim();
+  recomputeBudgetActuals();
   await saveState();
   render();
   editPersonEntryBackdrop.classList.remove('open');
@@ -2820,6 +2980,7 @@ document.getElementById('editpe-delete').addEventListener('click', async ()=>{
   if(!confirm('Delete this entry? This cannot be undone.')) return;
   const idx = state.personLedger.indexOf(editingPersonEntry);
   if(idx>-1) state.personLedger.splice(idx,1);
+  recomputeBudgetActuals();
   await saveState();
   render();
   editPersonEntryBackdrop.classList.remove('open');
@@ -4189,6 +4350,14 @@ if(document.getElementById('gmail-custom-date')) document.getElementById('gmail-
 
 async function runGmailCheck(fullSweep, customDate){
   const statusEl = document.getElementById('gmail-status-text');
+  const checkBtn = document.getElementById('gmail-check-btn');
+  const customBtn = document.getElementById('gmail-custom-fetch-btn');
+  if(checkBtn && checkBtn.disabled){ showToast('Already checking — hang on.'); return; }
+  const setBusy = (busy)=>{
+    if(checkBtn){ checkBtn.disabled = busy; checkBtn.textContent = busy ? '⏳ Checking…' : '🔄 Check for new transactions'; }
+    if(customBtn) customBtn.disabled = busy;
+  };
+  setBusy(true);
   const validAccounts = gmailAccounts.filter(a=>Date.now() < a.expiry - 60000);
   const rememberedCount = (state.gmailConnectedEmails||[]).length;
   if(validAccounts.length < rememberedCount){
@@ -4198,6 +4367,7 @@ async function runGmailCheck(fullSweep, customDate){
   if(!validAccounts.length){
     statusEl.textContent = gmailAccounts.length ? 'All sessions expired — tap Reconnect below' : 'Not connected';
     renderGmailAccountsList();
+    setBusy(false);
     return;
   }
 
@@ -4225,7 +4395,14 @@ async function runGmailCheck(fullSweep, customDate){
 
     const alreadySeenMessageIds = new Set([
       ...(customDate ? [] : (state.processedGmailIds||[]).filter(p=>(p.version||0) >= PARSING_LOGIC_VERSION).map(p=>p.id)),
-      ...state.pendingImports.map(p=>p.gmailMessageId).filter(Boolean)
+      ...state.pendingImports.map(p=>p.gmailMessageId).filter(Boolean),
+      // Dismissing something is a deliberate, permanent decision — it should never come back
+      // just because the parsing logic improved later, or because a custom-date fetch widens
+      // the search window. Bumping PARSING_LOGIC_VERSION for a real classification fix (the
+      // whole point of that mechanism) was silently un-dismissing everything ever dismissed,
+      // since dismissed items only had their old-version processedGmailIds entry protecting
+      // them. This is checked unconditionally, with no version or customDate exception.
+      ...(state.dismissedImports||[]).map(p=>p.gmailMessageId).filter(Boolean)
     ]);
     const freshCandidates = allCandidates.filter(c=> !alreadySeenMessageIds.has(c.gmailMessageId));
 
@@ -4261,6 +4438,8 @@ async function runGmailCheck(fullSweep, customDate){
   }catch(e){
     console.error('Gmail check failed', e);
     statusEl.textContent = 'Check failed — try again';
+  } finally {
+    setBusy(false);
   }
 }
 async function checkGmailTransactions(){ return runGmailCheck(false); }
@@ -4411,8 +4590,8 @@ function renderPendingReview(){
 
 const reviewImportBackdrop = document.getElementById('reviewimport-backdrop');
 let activeImportId = null;
-let riSelectedCat = null, riSelectedAccount = null, riSelectedPerson = null;
-let riCatPickerOpen = false, riAcctPickerOpen = false;
+let riSelectedCat = null, riSelectedAccount = null, riSelectedPerson = null, riPersonSelectedCat = null;
+let riCatPickerOpen = false, riAcctPickerOpen = false, riPersonCatPickerOpen = false;
 function renderReviewChips(imp){
   const mode = segValue('ri-mode');
   document.getElementById('ri-cat-field').classList.toggle('hide', mode==='person');
@@ -4461,6 +4640,37 @@ function renderReviewChips(imp){
     });
   });
 
+  // Defaults to whatever category the email parser already guessed, since that guess doesn't
+  // go away just because this is being logged as "for someone" instead of a regular expense.
+  const personCatOptions = [...state.budget.filter(b=>!b.income).map(b=>b.cat), OTHER_EXPENSE_CAT];
+  if(riPersonSelectedCat===null) riPersonSelectedCat = personCatOptions.includes(imp.category) ? imp.category : null;
+  document.getElementById('ri-person-cat-grid').innerHTML = personCatOptions.map(c=>{
+    const meta = catMeta(c);
+    return `<div class="cat-chip ${c===riPersonSelectedCat?'on':''}" data-ripersoncat="${c}"><div class="em" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="lb">${c.split(' (')[0].split(',')[0]}</div></div>`;
+  }).join('');
+  document.querySelectorAll('#ri-person-cat-grid .cat-chip').forEach(el=>{
+    el.addEventListener('click', ()=>{ riPersonSelectedCat = el.dataset.ripersoncat; riPersonCatPickerOpen = false; renderReviewChips(imp); });
+  });
+  if(riPersonSelectedCat){
+    const meta = catMeta(riPersonSelectedCat);
+    document.getElementById('ri-person-cat-summary').innerHTML =
+      `<div class="ps-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="ps-name">${riPersonSelectedCat}</div><div class="ps-change">${riPersonCatPickerOpen?'Cancel':'Change'}</div>`;
+  } else {
+    document.getElementById('ri-person-cat-summary').innerHTML =
+      `<div class="ps-icon" style="background:var(--paper-dim);">＋</div><div class="ps-name" style="color:var(--ink-soft);">Not tagged</div><div class="ps-change">${riPersonCatPickerOpen?'Cancel':'Add'}</div>`;
+  }
+  document.getElementById('ri-person-cat-summary').onclick = ()=>{ riPersonCatPickerOpen = !riPersonCatPickerOpen; renderReviewChips(imp); };
+  document.getElementById('ri-person-cat-grid').classList.toggle('hide', !riPersonCatPickerOpen);
+  const riDirNow = segValue('ri-person-dir');
+  const riPersonSub = document.getElementById('ri-person-cat-sub');
+  if(riPersonSub){
+    riPersonSub.textContent = (riDirNow==='received' && riPersonSelectedCat)
+      ? `Counts as ${riPersonSelectedCat} spending in your budget — they fronted it, you owe them back.`
+      : riDirNow==='gave'
+        ? "Won't count toward your budget — you're fronting the money, so it's a loan, not your expense."
+        : "Tag a category if you want this counted as spending (only applies when they paid for you).";
+  }
+
   const targets = imp.type==='expense' ? [...state.accounts, ...state.cards] : state.accounts;
   const validImpAccountId = validatedAccountId(imp.accountId, imp.sourceEmail);
   const detected = validImpAccountId && targets.find(a=>a.id===validImpAccountId);
@@ -4492,6 +4702,7 @@ function openReviewImport(id){
   riSelectedAccount = validatedAccountId(imp.accountId, imp.sourceEmail);
   riSelectedPerson = null;
   riCatPickerOpen = false; riAcctPickerOpen = false;
+  riPersonSelectedCat = null; riPersonCatPickerOpen = false;
   document.getElementById('ri-mode').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v==='regular'));
   document.getElementById('ri-person-dir').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v === (imp.type==='income' ? 'received' : 'gave')));
   const sourceLine = 'Found in ' + (imp.sourceEmail||'your email') + ' · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
@@ -4520,13 +4731,14 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
     if(!riSelectedPerson){ alert('Pick who this was for.'); return; }
     const dir = segValue('ri-person-dir');
     const delta = dir==='gave' ? amount : -amount;
-    state.personLedger.push({id:genId('pl'), personId:riSelectedPerson, ts:imp.ts, type:dir, delta, account:riSelectedAccount, remarks: payee});
+    state.personLedger.push({id:genId('pl'), personId:riSelectedPerson, ts:imp.ts, type:dir, delta, account:riSelectedAccount, remarks: payee, category:riPersonSelectedCat||null});
+    recomputeBudgetActuals();
     if(imp.sourceEmail) recordEmailAccountMatch(imp.sourceEmail, riSelectedAccount);
     state.pendingImports = state.pendingImports.filter(p=>p.id!==activeImportId);
     await saveState();
     render();
     reviewImportBackdrop.classList.remove('open');
-    showToast('✅ Added to the People Ledger!');
+    showToast((dir==='received' && riPersonSelectedCat) ? `✅ Added — logged as ${riPersonSelectedCat} spending, since they fronted it.` : '✅ Added to the People Ledger!');
     return;
   }
 
@@ -4554,7 +4766,7 @@ document.getElementById('ri-dismiss-btn').addEventListener('click', async ()=>{
   // fake" instead of leaving that possibility invisible. Capped so this can't grow forever.
   if(imp){
     if(!state.dismissedImports) state.dismissedImports = [];
-    state.dismissedImports.push({id:genId('di'), ts:imp.ts, amount:imp.amount, type:imp.type, accountId:imp.accountId, payee:imp.payee, sourceEmail:imp.sourceEmail});
+    state.dismissedImports.push({id:genId('di'), ts:imp.ts, amount:imp.amount, type:imp.type, accountId:imp.accountId, payee:imp.payee, sourceEmail:imp.sourceEmail, gmailMessageId:imp.gmailMessageId});
     if(state.dismissedImports.length > 200) state.dismissedImports = state.dismissedImports.slice(-200);
   }
   state.pendingImports = state.pendingImports.filter(p=>p.id!==activeImportId);
