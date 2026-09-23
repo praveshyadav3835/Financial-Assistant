@@ -370,17 +370,14 @@
       <p class="section-sub">Balances update live. Reconcile after month-end statements land.</p>
       <div class="card" style="margin-bottom:16px;">
         <div class="row">
-          <div><div class="name">📧 Email auto-import</div><div class="sub" id="gmail-status-text">Not connected</div></div>
-          <button class="link-btn" id="gmail-connect-btn">+ Add Gmail account</button>
+          <div><div class="name">📧 Email auto-import</div><div class="sub" id="gmail-status-text">Checked automatically every 12 hours</div></div>
         </div>
-        <div id="gmail-accounts-list"></div>
-        <div id="gmail-check-row" class="hide" style="margin-top:11px; padding-top:11px; border-top:1px dashed var(--line);">
-          <button class="btn-ghost" id="gmail-check-btn" style="margin:0 0 8px;">🔄 Check for new transactions</button>
+        <div style="margin-top:11px; padding-top:11px; border-top:1px dashed var(--line);">
           <div style="display:flex; gap:8px; align-items:center;">
             <input type="date" id="gmail-custom-date" style="flex:1; padding:9px; border-radius:10px; border:1px solid var(--line); font-family:'Manrope',sans-serif;">
-            <button class="btn-primary" id="gmail-custom-fetch-btn" style="background:var(--peri); margin:0; white-space:nowrap;">Select date &amp; fetch</button>
+            <button class="btn-primary" id="gmail-custom-fetch-btn" style="background:var(--peri); margin:0; white-space:nowrap;">Fetch from this date</button>
           </div>
-          <p class="section-sub" style="margin-top:6px;">Shows everything found from that date, reconciled fresh against your ledger — including ones already logged, clearly marked.</p>
+          <p class="section-sub" style="margin-top:6px;">Runs an immediate check instead of waiting for the next automatic one — useful right after a transaction you know just happened. Anything found shows up in your review queue on Home.</p>
         </div>
       </div>
       <div class="wallet-carousel" id="wallet-carousel"></div>
@@ -2389,7 +2386,13 @@ function guessCategory(clean, payee, type){
 // v3: fixed a debit/transfer being misread as income when the email also mentions the money
 // being "credited to" the beneficiary (someone else's account) — that word alone was
 // outweighing the correct debit signal. Bumping so already-seen emails get re-evaluated.
-const PARSING_LOGIC_VERSION = 3;
+// v4: fixed extractEmailBody() always preferring text/plain over HTML even when the plain
+// version was just an empty "view in HTML" stub — this silently killed parsing for any bank
+// (SIB/OneCard confirmed) that sends its real content as HTML. Bumping so anything previously
+// mis-parsed under this bug gets a fresh look.
+// v5: extractEmailBody() now concatenates every text part found (HTML first, then plain)
+// instead of picking just one — nothing in the email is discarded before parsing sees it.
+const PARSING_LOGIC_VERSION = 5;
 const EMAIL_ACCOUNT_MAP = {
   'divya9477@gmail.com': ['divya_indusind', 'divya_icici', 'divya_axis'],
   'praveshyadav3835@gmail.com': ['pravesh_axis', 'sib', 'sbi_card', 'pravesh_sbi'],
@@ -4104,14 +4107,23 @@ function stripHtml(html){
     .replace(/\s+/g,' ').trim();
 }
 function extractEmailBody(payload){
+  // Some banks (SIB/OneCard confirmed among them) send a near-empty text/plain stub — "please
+  // view this email in HTML" — alongside the real, fully-detailed HTML version. Picking
+  // "whichever is longer" (the previous fix) already solved the SIB case, but it still throws
+  // one version away — if a bank ever splits real details across BOTH parts (e.g. amount only
+  // in plain text, merchant only in the HTML table), discarding either one loses information.
+  // Concatenating every text part found means nothing that exists anywhere in the email is
+  // ever thrown away before parsing gets a chance to look at it. HTML is listed first: it's
+  // the version banks actually design, so if both parts happen to mention a number, the first
+  // (and therefore matched) one should be the real content, not an unrelated stub mention.
+  const htmlParts = [], plainParts = [];
   function walk(part){
-    if(part.mimeType==='text/plain' && part.body && part.body.data) return {text: base64UrlDecode(part.body.data), isHtml:false};
-    if(part.parts){ for(const p of part.parts){ const r = walk(p); if(r) return r; } }
-    if(part.mimeType==='text/html' && part.body && part.body.data) return {text: stripHtml(base64UrlDecode(part.body.data)), isHtml:true};
-    return null;
+    if(part.mimeType==='text/plain' && part.body && part.body.data) plainParts.push(base64UrlDecode(part.body.data));
+    if(part.mimeType==='text/html' && part.body && part.body.data) htmlParts.push(stripHtml(base64UrlDecode(part.body.data)));
+    if(part.parts){ part.parts.forEach(walk); }
   }
-  const result = walk(payload);
-  return result ? result.text : '';
+  walk(payload);
+  return [...htmlParts, ...plainParts].join(' \n ');
 }
 function isDuplicateOf(candidate, existing, toleranceMinutes, requireAccountMatch){
   const sameAmount = Math.abs(candidate.amount - existing.amount) < 1;
@@ -4198,46 +4210,35 @@ function filterNewImportCandidates(candidates, existingTransactions, existingPen
 }
 
 function initGmailAuth(){
-  if(!window.google || !google.accounts){
-    document.getElementById('gmail-status-text').textContent = 'Gmail sign-in still loading… try again in a moment';
-    return;
-  }
-  gmailTokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: GMAIL_CLIENT_ID,
-    scope: 'https://www.googleapis.com/auth/gmail.readonly',
-    callback: async (resp)=>{
-      if(resp.error){ document.getElementById('gmail-status-text').textContent = 'Connection failed — tap to retry'; return; }
-      const accessToken = resp.access_token;
-      const expiry = Date.now() + (resp.expires_in*1000);
-      let email = 'Connected account';
-      try{
-        const profRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', { headers:{ Authorization:'Bearer '+accessToken } });
-        if(profRes.ok){ const prof = await profRes.json(); email = prof.emailAddress || email; }
-      }catch(e){ /* keep generic label if this fails */ }
-      const existingIdx = gmailAccounts.findIndex(a=>a.email===email);
-      const entry = {email, accessToken, expiry};
-      if(existingIdx>-1) gmailAccounts[existingIdx] = entry; else gmailAccounts.push(entry);
-      if(!state.gmailConnectedEmails.includes(email)){
-        state.gmailConnectedEmails.push(email);
-        await saveState();
-      }
-      renderGmailAccountsList();
-      showToast('📧 ' + email + ' connected!');
-      checkGmailTransactions();
-    }
-  });
-  renderGmailAccountsList(); // show remembered accounts (needing reconnect) right away, before any click
+  // The app no longer needs its own Gmail sign-in — the background Cloud Function holds a
+  // permanent connection to each inbox now (see SETUP.md / manualFetch below). This is kept
+  // as a no-op rather than deleted outright, since removing it would mean also untangling the
+  // duplicate-detection helpers below (isDuplicateOf, classifyImportCandidates, etc.) that are
+  // still shared with other parts of the review-queue UI.
 }
-document.getElementById('gmail-connect-btn').addEventListener('click', ()=>{
-  if(!gmailTokenClient){ alert('Still loading Google sign-in — please try again in a moment.'); return; }
-  gmailTokenClient.requestAccessToken({prompt:'select_account'});
-});
-document.getElementById('gmail-check-btn').addEventListener('click', ()=> checkGmailTransactions());
-document.getElementById('gmail-custom-fetch-btn').addEventListener('click', ()=>{
+// The app used to connect to Gmail itself (a "+ Add Gmail account" button, per-account
+// reconnect links) — that's all gone now that the background job holds a permanent
+// connection. This button is the one thing kept: an on-demand trigger for that same backend
+// job, for when you don't want to wait for its normal 12-hour cycle.
+document.getElementById('gmail-custom-fetch-btn').addEventListener('click', async ()=>{
   const dateVal = document.getElementById('gmail-custom-date').value;
   if(!dateVal){ alert('Pick a date first.'); return; }
-  if(confirm(`Fetch everything from ${dateVal} to now, across all connected inboxes, and reconcile it against your ledger? This can take a minute for a wide date range.`)){
-    runGmailCheck(true, dateVal);
+  const btn = document.getElementById('gmail-custom-fetch-btn');
+  const statusEl = document.getElementById('gmail-status-text');
+  btn.disabled = true; btn.textContent = 'Fetching…';
+  statusEl.textContent = 'Checking all connected inboxes now…';
+  try{
+    const res = await fetch(`https://manualfetch-vutct22mpa-uc.a.run.app?after=${dateVal}`);
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || 'Unknown error');
+    statusEl.textContent = `Checked automatically every 12 hours · last manual check found ${data.totalFound} across ${data.inboxCount} inbox(es)`;
+    showToast(data.totalFound ? `📧 Found ${data.totalFound} transaction(s) — check Home` : '📧 Nothing new found from that date');
+  }catch(e){
+    console.error('Manual fetch failed', e);
+    statusEl.textContent = 'Checked automatically every 12 hours';
+    showToast('⚠️ Fetch failed — try again in a moment');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Fetch from this date';
   }
 });
 
