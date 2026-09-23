@@ -4228,7 +4228,7 @@ document.getElementById('gmail-custom-fetch-btn').addEventListener('click', asyn
   btn.disabled = true; btn.textContent = 'Fetching…';
   statusEl.textContent = 'Checking all connected inboxes now…';
   try{
-    const res = await fetch(`https://manualfetch-vutct22mpa-uc.a.run.app?after=${dateVal}`);
+    const res = await fetch(`https://us-central1-financial-assistant-141e8.cloudfunctions.net/manualFetch?after=${dateVal}`);
     const data = await res.json();
     if(!data.ok) throw new Error(data.error || 'Unknown error');
     statusEl.textContent = `Checked automatically every 12 hours · last manual check found ${data.totalFound} across ${data.inboxCount} inbox(es)`;
