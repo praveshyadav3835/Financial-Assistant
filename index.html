@@ -662,6 +662,7 @@
     <div class="field"><label>Who / what was this?</label><input id="ri-payee"></div>
     <div class="field"><label>Amount (₹)</label><input id="ri-amount" type="number" inputmode="decimal"></div>
     <button class="btn-primary" id="ri-approve-btn">✅ Approve &amp; add to ledger</button>
+    <button class="btn-ghost" id="ri-already-logged-btn">📋 Already logged this manually</button>
     <button class="btn-ghost" id="ri-dismiss-btn" style="color:var(--debt); border-color:var(--debt);">✕ Not a real transaction — dismiss</button>
     <button class="btn-ghost" id="ri-cancel-btn">Cancel</button>
   </div>
@@ -2392,7 +2393,10 @@ function guessCategory(clean, payee, type){
 // mis-parsed under this bug gets a fresh look.
 // v5: extractEmailBody() now concatenates every text part found (HTML first, then plain)
 // instead of picking just one — nothing in the email is discarded before parsing sees it.
-const PARSING_LOGIC_VERSION = 5;
+// v6: matches the backend's copy — removed the promotional-content check (was rejecting real
+// transactions with an ad banner attached), added UPI/P2M/ merchant payee parsing, and gave
+// stripHtml a real field-boundary marker at table cell/row endings.
+const PARSING_LOGIC_VERSION = 6;
 const EMAIL_ACCOUNT_MAP = {
   'divya9477@gmail.com': ['divya_indusind', 'divya_icici', 'divya_axis'],
   'praveshyadav3835@gmail.com': ['pravesh_axis', 'sib', 'sbi_card', 'pravesh_sbi'],
@@ -2499,7 +2503,7 @@ function parseBankSMS(text, sourceEmail){
   // The name is always ALL CAPS here, which naturally bounds the match — real prose that follows
   // (e.g. "If this transaction...") starts with a capital+lowercase word, so the all-caps
   // requirement stops there without needing a fragile character cap.
-  const upiInfoMatch = payeeSearchText.match(/UPI\/P2A\/(\d+)\/([A-Z][A-Z ]{1,25}[A-Z])(?:\/|\s+[A-Z][a-z]|\.|,|$)/);
+  const upiInfoMatch = payeeSearchText.match(/UPI\/P2[AM]\/(\d+)\/([A-Za-z][A-Za-z .]{1,29}?)(?:\/|\.|,|\||$)/);
   const merchantMatch = payeeSearchText.match(/Merchant:\s*([A-Za-z0-9 .&'_-]{2,40}?)(?:\s+Date:|\.|,|$)/i);
   if(merchantMatch){
     payee = merchantMatch[1];
@@ -3567,8 +3571,21 @@ function renderAcctStatement(targetId, isCard){
   `;
   document.getElementById('acctstatement-list').querySelectorAll('[data-stmthist]').forEach(el=>{
     el.addEventListener('click', ()=>{
+      // This list was built from fullHistory, which holds COPIES ({...t}), never the actual
+      // objects living in state.transactions/state.personLedger — so both edits and deletes
+      // made from here were silently operating on a copy that gets thrown away, never the
+      // real record. Looking the real object up by id here is the fix: openEditTx/
+      // openEditPersonEntry now always receive something that's actually part of state.
+      const item = statementHistoryRefs[parseInt(el.getAttribute('data-stmthist'))];
+      if(!item) return;
       acctstatementBackdrop.classList.remove('open');
-      openEditTx(statementHistoryRefs[parseInt(el.getAttribute('data-stmthist'))]);
+      if(item._kind==='people'){
+        const real = state.personLedger.find(e=>e.id===item.id);
+        if(real) openEditPersonEntry(real);
+      } else {
+        const real = state.transactions.find(t=>t.id===item.id);
+        if(real) openEditTx(real);
+      }
     });
   });
   if(discrepancy>=1){
@@ -4101,7 +4118,12 @@ function stripHtml(html){
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi,'')
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi,'')
     .replace(/<br\s*\/?>/gi,' ')
-    .replace(/<\/(p|div|td|tr)>/gi,' ')
+    // Table cell/row endings get a distinctive marker (not just a space) so a field boundary —
+    // e.g. between "Transaction Info:" and its value in the next cell — survives being
+    // flattened to plain text, instead of running straight into the next sentence with
+    // nothing to tell them apart.
+    .replace(/<\/(td|tr)>/gi,' | ')
+    .replace(/<\/(p|div)>/gi,' ')
     .replace(/<[^>]+>/g,' ')
     .replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&#39;/g,"'")
     .replace(/\s+/g,' ').trim();
@@ -4231,7 +4253,8 @@ document.getElementById('gmail-custom-fetch-btn').addEventListener('click', asyn
     const res = await fetch(`https://us-central1-financial-assistant-141e8.cloudfunctions.net/manualFetch?after=${dateVal}`);
     const data = await res.json();
     if(!data.ok) throw new Error(data.error || 'Unknown error');
-    statusEl.textContent = `Checked automatically every 12 hours · last manual check found ${data.totalFound} across ${data.inboxCount} inbox(es)`;
+    const dismissedNote = data.totalAutoDismissed ? ` · ${data.totalAutoDismissed} auto-dismissed as recognized junk` : '';
+    statusEl.textContent = `Checked automatically every 12 hours · last manual check found ${data.totalFound} across ${data.inboxCount} inbox(es)${dismissedNote}`;
     showToast(data.totalFound ? `📧 Found ${data.totalFound} transaction(s) — check Home` : '📧 Nothing new found from that date');
   }catch(e){
     console.error('Manual fetch failed', e);
@@ -4760,20 +4783,30 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
   reviewImportBackdrop.classList.remove('open');
   showToast('✅ Added to your ledger!');
 });
-document.getElementById('ri-dismiss-btn').addEventListener('click', async ()=>{
+// Shared by both "Already logged" and "Not a real transaction" — same mechanics (stop
+// asking about this exact email again), different REASON recorded. That distinction matters:
+// repeatedly dismissing something as "not real" is a pattern the backend can learn from and
+// auto-reject next time; "already logged" just means it was real but redundant, which should
+// never train the system to start rejecting genuinely new transactions that happen to look
+// similar.
+async function dismissImport(reason){
   const imp = state.pendingImports.find(p=>p.id===activeImportId);
-  // Keep a lightweight trace of what was dismissed, not just discard it — this is what lets
-  // an "unaccounted for" gap later be traced back to "you dismissed a real transaction as
-  // fake" instead of leaving that possibility invisible. Capped so this can't grow forever.
   if(imp){
     if(!state.dismissedImports) state.dismissedImports = [];
-    state.dismissedImports.push({id:genId('di'), ts:imp.ts, amount:imp.amount, type:imp.type, accountId:imp.accountId, payee:imp.payee, sourceEmail:imp.sourceEmail, gmailMessageId:imp.gmailMessageId});
+    state.dismissedImports.push({id:genId('di'), ts:imp.ts, amount:imp.amount, type:imp.type, accountId:imp.accountId, payee:imp.payee, sourceEmail:imp.sourceEmail, gmailMessageId:imp.gmailMessageId, reason});
     if(state.dismissedImports.length > 200) state.dismissedImports = state.dismissedImports.slice(-200);
   }
   state.pendingImports = state.pendingImports.filter(p=>p.id!==activeImportId);
   await saveState();
   render();
   reviewImportBackdrop.classList.remove('open');
+}
+document.getElementById('ri-already-logged-btn').addEventListener('click', async ()=>{
+  await dismissImport('already_logged');
+  showToast('📋 Marked as already logged — won\'t ask again about this one.');
+});
+document.getElementById('ri-dismiss-btn').addEventListener('click', async ()=>{
+  await dismissImport('not_real');
   showToast('Dismissed.');
 });
 // ================= END GMAIL AUTO-IMPORT =================
