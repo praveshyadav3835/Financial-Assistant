@@ -4653,7 +4653,12 @@ function renderReviewChips(imp){
   document.getElementById('ri-household-row').classList.toggle('hide', imp.type!=='expense' || effectiveMode!=='regular');
 
   if(effectiveMode==='transfer'){
-    const targets = [...state.cards, ...state.accounts].filter(a=>a.id!==riSelectedAccount);
+    // Always show every card and account here, regardless of what got auto-detected as the
+    // source — filtering out "whatever the source is" only works if that detection is
+    // reliable, and it just wasn't (a bank-to-card payment email got its own card picked as
+    // the source instead of the actual bank account, which then hid that very card from
+    // this list). Simpler and more robust: show all of them, always.
+    const targets = [...state.cards, ...state.accounts];
     if(!targets.find(a=>a.id===riTransferTarget)) riTransferTarget = targets[0] ? targets[0].id : null;
     document.getElementById('ri-transfer-row').innerHTML = targets.map(a=>
       `<div class="pli ${a.id===riTransferTarget?'on':''}" data-ritransfer="${a.id}"><div class="pli-icon">${a.em||'💳'}</div><div class="pli-name">${a.name}</div><div class="pli-check">✓</div></div>`
