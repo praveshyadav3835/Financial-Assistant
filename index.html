@@ -619,17 +619,26 @@
   <div class="sheet">
     <h3>Review this transaction</h3>
     <p class="section-sub" id="ri-source-note">Found in your email</p>
+    <p class="section-sub" id="ri-direction-note" style="font-weight:700; color:var(--ink);"></p>
 
     <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">What was this?</label>
     <div class="seg" id="ri-mode" style="margin-bottom:14px;">
-      <button data-v="regular" class="on">Regular expense</button>
-      <button data-v="person">For someone</button>
+      <button data-v="regular" class="on" id="ri-mode-regular-btn">Regular expense</button>
+      <button data-v="transfer" id="ri-mode-transfer-btn">Paid off a card</button>
+      <button data-v="person" id="ri-mode-person-btn">For someone</button>
     </div>
 
     <div class="field" id="ri-cat-field">
       <label>Category</label>
       <div class="pick-summary" id="ri-cat-summary"></div>
       <div class="cat-grid hide" id="ri-cat-grid"></div>
+    </div>
+
+    <div class="field" id="ri-transfer-field">
+      <label>Which card (or account) did this pay off?</label>
+      <div class="pick-summary" id="ri-transfer-summary"></div>
+      <div class="pick-list hide" id="ri-transfer-row"></div>
+      <p class="section-sub">Logged as a transfer, not spending — this reduces that card's outstanding due and leaves your budget untouched, same as paying it off manually already works.</p>
     </div>
 
     <div class="field" id="ri-person-field">
@@ -4614,13 +4623,51 @@ function renderPendingReview(){
 
 const reviewImportBackdrop = document.getElementById('reviewimport-backdrop');
 let activeImportId = null;
-let riSelectedCat = null, riSelectedAccount = null, riSelectedPerson = null, riPersonSelectedCat = null;
-let riCatPickerOpen = false, riAcctPickerOpen = false, riPersonCatPickerOpen = false;
+let riSelectedCat = null, riSelectedAccount = null, riSelectedPerson = null, riPersonSelectedCat = null, riTransferTarget = null;
+let riCatPickerOpen = false, riAcctPickerOpen = false, riPersonCatPickerOpen = false, riTransferPickerOpen = false;
 function renderReviewChips(imp){
   const mode = segValue('ri-mode');
-  document.getElementById('ri-cat-field').classList.toggle('hide', mode==='person');
-  document.getElementById('ri-person-field').classList.toggle('hide', mode!=='person');
-  document.getElementById('ri-household-row').classList.toggle('hide', imp.type!=='expense' || mode==='person');
+  const isCredit = imp.type==='income';
+  // Say plainly what the bank itself reported — a credit isn't automatically "income"; it
+  // could just as easily be someone paying you back. This used to be hidden entirely, then
+  // briefly mislabeled as "Regular income" regardless of which one it actually was. Now the
+  // raw direction is always visible, and the choices below are framed correctly for it:
+  // a credit splits into Income vs Transfer-in, a debit into Expense, Transfer-out (paying
+  // off a card — this is what fixed the IDFC-bank-debit-that's-really-a-card-payment case),
+  // or Transfer-out to a person.
+  const dirNoteEl = document.getElementById('ri-direction-note');
+  if(dirNoteEl) dirNoteEl.textContent = isCredit ? '↓ Money came IN (credit)' : '↑ Money went OUT (debit)';
+  const regularBtn = document.getElementById('ri-mode-regular-btn');
+  if(regularBtn) regularBtn.textContent = isCredit ? 'Income' : 'Regular expense';
+  const personBtn = document.getElementById('ri-mode-person-btn');
+  if(personBtn) personBtn.textContent = isCredit ? 'Transfer — they paid me back' : 'Transfer — I paid for them';
+  // "Paid off a card" only makes sense for money leaving your account — hide it for a
+  // credit, and silently fall back to Regular if it was somehow left selected from a
+  // previous item.
+  const transferBtn = document.getElementById('ri-mode-transfer-btn');
+  if(transferBtn) transferBtn.classList.toggle('hide', isCredit);
+  const effectiveMode = (isCredit && mode==='transfer') ? 'regular' : mode;
+  document.getElementById('ri-cat-field').classList.toggle('hide', effectiveMode==='person' || effectiveMode==='transfer');
+  document.getElementById('ri-transfer-field').classList.toggle('hide', effectiveMode!=='transfer');
+  document.getElementById('ri-person-field').classList.toggle('hide', effectiveMode!=='person');
+  document.getElementById('ri-household-row').classList.toggle('hide', imp.type!=='expense' || effectiveMode!=='regular');
+
+  if(effectiveMode==='transfer'){
+    const targets = [...state.cards, ...state.accounts].filter(a=>a.id!==riSelectedAccount);
+    if(!targets.find(a=>a.id===riTransferTarget)) riTransferTarget = targets[0] ? targets[0].id : null;
+    document.getElementById('ri-transfer-row').innerHTML = targets.map(a=>
+      `<div class="pli ${a.id===riTransferTarget?'on':''}" data-ritransfer="${a.id}"><div class="pli-icon">${a.em||'💳'}</div><div class="pli-name">${a.name}</div><div class="pli-check">✓</div></div>`
+    ).join('');
+    document.querySelectorAll('#ri-transfer-row .pli').forEach(el=>{
+      el.addEventListener('click', ()=>{ riTransferTarget = el.dataset.ritransfer; riTransferPickerOpen = false; renderReviewChips(imp); });
+    });
+    const targetSel = targets.find(a=>a.id===riTransferTarget);
+    document.getElementById('ri-transfer-summary').innerHTML = targetSel
+      ? `<div class="ps-icon" style="background:var(--paper-dim);">${targetSel.em||'💳'}</div><div class="ps-name">${targetSel.name}</div><div class="ps-change">${riTransferPickerOpen?'Cancel':'Change'}</div>`
+      : `<div class="ps-icon" style="background:var(--paper-dim); color:var(--debt);">?</div><div class="ps-name" style="color:var(--debt);">Choose a card or account</div><div class="ps-change">Change</div>`;
+    document.getElementById('ri-transfer-summary').onclick = ()=>{ riTransferPickerOpen = !riTransferPickerOpen; renderReviewChips(imp); };
+    document.getElementById('ri-transfer-row').classList.toggle('hide', !riTransferPickerOpen);
+  }
 
   const catOptions = imp.type==='income' ? state.budget.filter(b=>b.income).map(b=>b.cat) : state.budget.filter(b=>!b.income).map(b=>b.cat);
   const cats = [...catOptions, OTHER_EXPENSE_CAT];
@@ -4727,6 +4774,7 @@ function openReviewImport(id){
   riSelectedPerson = null;
   riCatPickerOpen = false; riAcctPickerOpen = false;
   riPersonSelectedCat = null; riPersonCatPickerOpen = false;
+  riTransferTarget = null; riTransferPickerOpen = false;
   document.getElementById('ri-mode').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v==='regular'));
   document.getElementById('ri-person-dir').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v === (imp.type==='income' ? 'received' : 'gave')));
   const sourceLine = 'Found in ' + (imp.sourceEmail||'your email') + ' · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
@@ -4763,6 +4811,27 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
     render();
     reviewImportBackdrop.classList.remove('open');
     showToast((dir==='received' && riPersonSelectedCat) ? `✅ Added — logged as ${riPersonSelectedCat} spending, since they fronted it.` : '✅ Added to the People Ledger!');
+    return;
+  }
+
+  if(mode==='transfer'){
+    // The classic case this fixes: a bank debit that's really you paying off a credit card
+    // bill. That's money moving between two things you own, not spending — it belongs as a
+    // transfer (which already correctly reduces the card's outstanding due, same as paying
+    // it off any other way), never as a category expense that would inflate your budget.
+    if(!riTransferTarget){ alert('Pick which card or account this paid off.'); return; }
+    if(riTransferTarget===riSelectedAccount){ alert('The destination can\'t be the same as the source account.'); return; }
+    const tx = {
+      id: genId('tx'), ts: imp.ts, type: 'transfer',
+      from: riSelectedAccount, to: riTransferTarget, amount, remarks: payee || 'Imported from email'
+    };
+    state.transactions.push(tx);
+    if(imp.sourceEmail) recordEmailAccountMatch(imp.sourceEmail, riSelectedAccount);
+    state.pendingImports = state.pendingImports.filter(p=>p.id!==activeImportId);
+    await saveState();
+    render();
+    reviewImportBackdrop.classList.remove('open');
+    showToast('✅ Logged as a transfer — not counted as spending.');
     return;
   }
 
