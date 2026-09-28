@@ -226,6 +226,21 @@
   @media (max-width:480px){ .fab{right:18px;} }
 
   .sheet-backdrop{position:fixed; inset:0; background:rgba(44,32,48,0.55); display:none; align-items:flex-end; justify-content:center; z-index:50;}
+  #story-overlay{position:fixed; inset:0; background:var(--paper); z-index:60; overflow-y:auto; display:none; -webkit-overflow-scrolling:touch;}
+  #story-overlay.open{display:block;}
+  .story-wrap{max-width:640px; margin:0 auto; padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 70px;}
+  .story-sec{font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--peri); margin:34px 0 10px;}
+  .story-p{font-size:15px; line-height:1.65; margin:0 0 14px;}
+  .story-card{background:var(--paper-dim); border-radius:16px; padding:16px; margin-bottom:12px;}
+  .story-note{font-size:12px; color:var(--ink-soft); border:1px dashed var(--line); border-radius:10px; padding:9px 11px; margin:8px 0 12px; line-height:1.5;}
+  .story-hero{font-size:32px; font-weight:800;}
+  .story-row{display:flex; align-items:center; gap:10px; margin:9px 0; font-size:13px;}
+  .story-track{flex:1; height:9px; background:var(--line); border-radius:5px; overflow:hidden;}
+  .story-fill{height:100%; border-radius:5px; background:var(--peri);}
+  .story-tbl{width:100%; border-collapse:collapse; font-size:13px;}
+  .story-tbl td{padding:7px 3px; border-bottom:1px solid var(--line);}
+  .story-tbl td:not(:first-child){text-align:right; font-weight:700;}
+  .story-card .neg{color:var(--icon-neg);}
   .sheet-backdrop.open{display:flex;}
   .sheet{background:var(--paper); width:100%; max-width:480px; border-radius:26px 26px 0 0; padding:18px 18px calc(env(safe-area-inset-bottom,0) + 18px); max-height:92vh; overflow-y:auto; box-shadow:0 -12px 40px rgba(0,0,0,0.25);}
   .sheet h3{font-family:'Manrope',sans-serif; margin:0 0 14px; font-size:19px; color:var(--ink);}
@@ -343,10 +358,12 @@
       <div id="learning-match-wrap"></div>
       <div id="last-fetch-summary-wrap"></div>
       <div class="bento">
+        <div class="bento-tile hero" data-breakdown="networth" style="border:1px solid var(--peri);"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim); color:var(--peri);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></div><div class="bt-label">Net Worth — Realistically Accessible</div></div><div class="bt-value maskable" id="ov-networth">—</div><div class="section-sub" id="ov-networth-sub" style="margin-top:2px;"></div></div>
         <div class="bento-tile hero" data-breakdown="cash"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim); color:var(--icon-pos);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10h19"/><circle cx="16.5" cy="14" r="1.2" fill="currentColor" stroke="none"/></svg></div><div class="bt-label">Liquid Bank Cash</div></div><div class="bt-value pos maskable" id="ov-cash">—</div></div>
         <div class="bento-tile hero" data-breakdown="cards"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim); color:var(--icon-neg);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5.5" width="19" height="13" rx="2"/><path d="M2.5 10h19"/><path d="M6 15h4"/></svg></div><div class="bt-label">Credit Card Dues</div></div><div class="bt-value neg maskable" id="ov-cards">—</div></div>
         <div class="bento-tile" data-breakdown="sink"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim); color:var(--icon-neutral);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 5l9 5.5"/><path d="M4.5 10.5v8M9 10.5v8M15 10.5v8M19.5 10.5v8"/><path d="M3 20.5h18"/></svg></div><div class="bt-label">Sinking Fund</div></div><div class="bt-value maskable" id="ov-sink">—</div></div>
         <div class="bento-tile" data-breakdown="invest"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim); color:var(--icon-pos);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5.5-6.5L13 15l8-9"/><path d="M17 6h4v4"/></svg></div><div class="bt-label">Investments</div></div><div class="bt-value pos maskable" id="ov-invest">—</div></div>
+        <div class="bento-tile" data-breakdown="otherassets"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim); color:var(--icon-pos);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M9.5 12h5M12 9v6"/></svg></div><div class="bt-label">Gold, Property, NPS &amp; EPF</div></div><div class="bt-value maskable" id="ov-otherassets">—</div></div>
         <div class="bento-tile" data-breakdown="recv"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim); color:var(--icon-pos);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12.5 6 9l3 2 2-2 2 2 3-2 3.5 3.5"/><path d="M6 9v4l3 3 2-2 2 2 3-3V9"/></svg></div><div class="bt-label">Receivables</div></div><div class="bt-value pos maskable" id="ov-recv">—</div></div>
         <div class="bento-tile" data-breakdown="pay"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim); color:var(--icon-neg);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10M8 9l4-4 4 4"/><path d="M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/></svg></div><div class="bt-label">Family Payables</div></div><div class="bt-value neg maskable" id="ov-pay">—</div></div>
       </div>
@@ -403,6 +420,11 @@
       <div class="divider-label">Direct equities</div>
       <div class="card" id="eq-list"></div>
       <button class="link-btn" id="add-investment-btn" style="margin-top:8px;">+ Add / update an investment</button>
+
+      <div class="divider-label" style="margin-top:22px;">Other assets — Gold, Property, NPS &amp; EPF</div>
+      <p class="section-sub">Update these by hand occasionally — not pulled live.</p>
+      <div class="card" id="other-assets-list"></div>
+      <button class="link-btn" id="add-other-asset-btn" style="margin-top:8px;">+ Add another asset</button>
     </section>
 
     <section class="tab" id="tab-budget">
@@ -417,9 +439,15 @@
       </details>
       <button class="link-btn" id="add-commitment-btn" style="margin-top:8px;">+ Add a new bill</button>
 
+      <div class="divider-label">Savings goals</div>
+      <div class="card" id="savings-goals-list"></div>
+      <button class="link-btn" id="add-savings-goal-btn" style="margin-top:8px;">+ Add a savings goal</button>
+
       <div class="divider-label">Month-end</div>
+      <button class="btn-primary" id="open-story-btn" style="margin-bottom:10px;">📖 Open the month-end story</button>
       <button class="btn-primary" id="gen-report-btn" style="background:var(--peri);">📊 Generate Month-End Report</button>
       <p class="section-sub" style="margin-top:8px;">A snapshot PDF of accounts, budget, people, and investments — good for record-keeping or sharing with family.</p>
+
 
       <div id="adj-log-wrap"></div>
 
@@ -766,6 +794,8 @@
   </div>
 </div>
 
+<div id="story-overlay"><div class="story-wrap"><button class="btn-ghost" id="story-close-btn" style="margin:0 0 14px; width:auto; padding:8px 16px;">✕ Close</button><div id="story-body"></div></div></div>
+
 <div class="sheet-backdrop" id="acctstatement-backdrop">
   <div class="sheet" style="max-height:85vh; overflow-y:auto;">
     <h3 id="acctstatement-title">Statement</h3>
@@ -947,6 +977,31 @@ const SEED = {
   equities: [
     {name:'Divya Misra (Zerodha)', holder:'25 stocks · live pull 03 Sep 2026', invested:630717, current:550568}
   ],
+  // Assets outside the app's own transaction tracking — updated by hand occasionally, not
+  // pulled live (gold rates and property values move too slowly, and too informally, to
+  // justify the complexity of fetching them automatically).
+  // liquidPct is what actually distinguishes "Total" net worth from "Realistically
+  // Accessible" net worth: gold, property and EPF can genuinely become cash (even if selling
+  // a house takes a while), but a portion of an NPS corpus is locked into a MANDATORY annuity
+  // by law — it converts to a lifetime pension, never a lump sum, no matter how long you
+  // wait. 60% is the long-standing default lump-sum share; recent PFRDA reform allows more
+  // for some non-government subscribers above a corpus threshold — adjust the % if that
+  // applies to your specific account type.
+  otherAssets: [
+    {id:'asset_gold', name:'Gold (jewellery, 175g)', current:2450000, liquidPct:100, note:'Estimated at ~₹14,000/g (22K) — update when you actually check/sell; grams matter more than the rupee figure since gold price moves daily.'},
+    {id:'asset_property', name:'Property', current:0, liquidPct:100, note:'Not yet filled in — add current market value here.'},
+    {id:'asset_nps', name:'Pravesh — NPS Fund', current:1321564, liquidPct:60, note:'60% assumed lump-sum eligible; the remaining 40% is a mandatory annuity — real money, but it becomes a monthly pension, never a lump sum.'},
+    {id:'asset_epf', name:"Divya — EPF Balance", current:650000, liquidPct:100, note:'EPF has no mandatory annuity carve-out like NPS — fully accessible on resignation/retirement.'}
+  ],
+  // Distinct from `commitments` (recurring bills — quarterly/yearly, repeats forever) — a
+  // savings goal is a one-time target by a specific date, where the monthly rate needed
+  // depends on exactly how many months remain, not a fixed recurrence pattern. Forcing this
+  // into the commitments list would have quietly computed the wrong monthly figure.
+  savingsGoals: [
+    {id:'goal_baby', name:'Baby — first year', target:250000, byDate:'2027-12-31', saved:0, note:'Reference range for a Gurgaon/NCR household: ₹1.5–3 lakh for the newborn stage, plus ~₹40k–60k/year in ongoing essentials. Adjust this target once your own plans (hospital choice especially) are clearer.'}
+  ],
+  planning: {divyaMonthly:0, years:3},
+  storyNotes: {},
   commitments: [
     {name:'C113 Society Maintenance', freq:'Quarterly (Jan, Apr, Jul, Oct)', due:'Oct 2026', amount:40000},
     {name:'Pravesh LIC Policy', freq:'Half-Yearly (Sep & Mar)', due:'Sep 2026', amount:17500},
@@ -1124,6 +1179,23 @@ function migrateState(){
     if(!state.dismissedImports) state.dismissedImports = [];
     state.schemaVersion = 18;
   }
+  if(state.schemaVersion < 19){
+    if(!state.otherAssets) state.otherAssets = [
+      {id:'asset_gold', name:'Gold (jewellery, 175g)', current:2450000, liquidPct:100, note:'Estimated at ~₹14,000/g (22K) — update when you actually check/sell; grams matter more than the rupee figure since gold price moves daily.'},
+      {id:'asset_property', name:'Property', current:0, liquidPct:100, note:'Not yet filled in — add current market value here.'},
+      {id:'asset_nps', name:'Pravesh — NPS Fund', current:1321564, liquidPct:60, note:'60% assumed lump-sum eligible; the remaining 40% is a mandatory annuity — real money, but it becomes a monthly pension, never a lump sum.'},
+      {id:'asset_epf', name:"Divya — EPF Balance", current:650000, liquidPct:100, note:'EPF has no mandatory annuity carve-out like NPS — fully accessible on resignation/retirement.'}
+    ];
+    if(!state.savingsGoals) state.savingsGoals = [
+      {id:'goal_baby', name:'Baby — first year', target:250000, byDate:'2027-12-31', saved:0, note:'Reference range for a Gurgaon/NCR household: ₹1.5–3 lakh for the newborn stage, plus ~₹40k–60k/year in ongoing essentials. Adjust this target once your own plans (hospital choice especially) are clearer.'}
+    ];
+    state.schemaVersion = 19;
+  }
+  if(state.schemaVersion < 20){
+    if(!state.planning) state.planning = {divyaMonthly:0, years:3};
+    if(!state.storyNotes) state.storyNotes = {};
+    state.schemaVersion = 20;
+  }
 }
 
 async function loadState(){
@@ -1169,7 +1241,7 @@ const COLLECTION_FIELDS = {
   cards: 'card',
   processedGmailIds: 'processedGmailId'
 };
-const META_FIELDS = ['budget','mutualFunds','equities','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts'];
+const META_FIELDS = ['budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts'];
 let previousArrays = { transactions:[], personLedger:[], pendingImports:[], dismissedImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[] };
 
 // ---- Outbox for cloud writes that haven't been confirmed yet ----
@@ -1492,6 +1564,19 @@ function openBreakdown(kind){
       {label:'Direct Equities', icon:ICON.chart, bg:CAT_ICON_BG, tint:'var(--icon-pos)', value:t.eq, goNav:'invest'}
     ];
     total = t.invest;
+  } else if(kind==='otherassets'){
+    title = 'Gold, Property, NPS & EPF';
+    sub = 'Updated by hand, not tracked live — gold rates and property values move too slowly to justify pulling automatically. Tap to edit any of these in the Invest tab.';
+    rows = (state.otherAssets||[]).map(a=>({label:a.name + (a.liquidPct<100 ? ` (${a.liquidPct}% accessible)` : ''), icon:ICON.bank, bg:CAT_ICON_BG, tint:'var(--icon-pos)', value:a.current, goNav:'invest'}));
+    total = t.otherAssetsTotal;
+  } else if(kind==='networth'){
+    title = 'Net Worth';
+    sub = 'Everything you hold, minus what you owe. The gap between the two figures below is the part of Pravesh\'s NPS locked into a mandatory annuity by law — real money, but it becomes a monthly pension, never a lump sum.';
+    rows = [
+      {label:'Total (everything)', icon:ICON.chart, bg:CAT_ICON_BG, tint:'var(--icon-pos)', value:t.netWorthTotal},
+      {label:'Realistically Accessible', icon:ICON.wallet, bg:CAT_ICON_BG, tint:'var(--icon-pos)', value:t.netWorthAccessible}
+    ];
+    total = t.netWorthAccessible;
   } else if(kind==='recv' || kind==='pay'){
     title = kind==='recv' ? 'Receivables' : 'Family Payables';
     sub = kind==='recv' ? 'People who currently owe you money. Tap a name to log a repayment.' : 'People you currently owe money to. Tap a name to log a repayment.';
@@ -1746,7 +1831,15 @@ function totals(){
   const mf = state.mutualFunds.reduce((s,f)=>s+f.current,0);
   const eq = state.equities.reduce((s,e)=>s+e.current,0);
   const sink = accountBalance(state.accounts.find(a=>a.id==='sinking_fund'));
-  return {cash, cardTotal, net: cash-cardTotal, recv, pay, gap: recv+pay, invest: mf+eq, mf, eq, sink};
+  const otherAssetsTotal = (state.otherAssets||[]).reduce((s,a)=>s+a.current,0);
+  const otherAssetsAccessible = (state.otherAssets||[]).reduce((s,a)=>s+a.current*((a.liquidPct??100)/100),0);
+  // Two numbers, deliberately, not one — "Total" is everything you hold, informational;
+  // "Realistically Accessible" is what could actually become spendable cash, which matters
+  // more for real planning. The gap between them right now is entirely the NPS annuity
+  // portion, which becomes a lifetime pension by law, never a lump sum, however you slice it.
+  const netWorthTotal = cash - cardTotal + mf + eq + sink + recv + pay + otherAssetsTotal;
+  const netWorthAccessible = cash - cardTotal + mf + eq + sink + recv + pay + otherAssetsAccessible;
+  return {cash, cardTotal, net: cash-cardTotal, recv, pay, gap: recv+pay, invest: mf+eq, mf, eq, sink, otherAssetsTotal, otherAssetsAccessible, netWorthTotal, netWorthAccessible};
 }
 function findBudgetRowForCategory(category){
   return state.budget.find(b=>b.cat===category) || state.budget.find(b=>b.cat===OTHER_EXPENSE_CAT);
@@ -2044,6 +2137,12 @@ function render(){
   document.getElementById('ov-recv').textContent = fmt(Math.abs(t.recv));
   document.getElementById('ov-pay').textContent = fmt(Math.abs(t.pay));
   document.getElementById('ov-invest').textContent = fmt(t.invest);
+  document.getElementById('ov-otherassets').textContent = fmt(t.otherAssetsTotal);
+  document.getElementById('ov-networth').textContent = fmt(t.netWorthAccessible);
+  const lockedAway = t.netWorthTotal - t.netWorthAccessible;
+  document.getElementById('ov-networth-sub').textContent = lockedAway > 1
+    ? `${fmt(t.netWorthTotal)} total · ${fmt(lockedAway)} locked in NPS annuity`
+    : `${fmt(t.netWorthTotal)} total`;
 
   const m = monthTotals();
   document.getElementById('mo-income').textContent = fmt(m.income);
@@ -2180,6 +2279,12 @@ function render(){
   }).join('');
   document.querySelectorAll('[data-editeq]').forEach(el=> el.addEventListener('click', ()=> openEditInvestment('eq', parseInt(el.getAttribute('data-editeq')))));
 
+  document.getElementById('other-assets-list').innerHTML = (state.otherAssets||[]).map((a,i)=>`
+    <div class="row" data-editotherasset="${i}" style="cursor:pointer;"><div><div class="name">${a.name}</div><div class="sub">${a.liquidPct<100?`${a.liquidPct}% accessible — `:''}${a.note||''}</div></div>
+      <div class="amt pos maskable">${fmt(a.current)}</div>
+    </div>`).join('');
+  document.querySelectorAll('[data-editotherasset]').forEach(el=> el.addEventListener('click', ()=> openEditOtherAsset(parseInt(el.getAttribute('data-editotherasset')))));
+
   const bIncome = state.budget.filter(b=>b.income);
   const bExpense = state.budget.filter(b=>!b.income);
   const totalIncActual = bIncome.reduce((s,b)=>s+b.actual,0);
@@ -2237,6 +2342,21 @@ function cardHtml(b){
   `).join('');
   document.querySelectorAll('[data-editcommit]').forEach(el=>{
     el.addEventListener('click', ()=> openEditCommitment(parseInt(el.getAttribute('data-editcommit'))));
+  });
+
+  document.getElementById('savings-goals-list').innerHTML = (state.savingsGoals||[]).length ? (state.savingsGoals||[]).map((g,i)=>{
+    const monthsLeft = Math.max(1, Math.round((new Date(g.byDate) - new Date()) / (30*24*60*60*1000)));
+    const remaining = Math.max(0, g.target - (g.saved||0));
+    const perMonth = remaining / monthsLeft;
+    const pct = g.target>0 ? Math.min(100, ((g.saved||0)/g.target)*100) : 0;
+    return `<div class="row" data-editgoal="${i}" style="cursor:pointer; flex-direction:column; align-items:stretch; gap:6px;">
+      <div style="display:flex; justify-content:space-between;"><div class="name">${g.name}</div><div class="amt maskable">${fmt(g.saved||0)} / ${fmt(g.target)}</div></div>
+      <div class="bar-track" style="margin-left:0;"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div class="sub">${monthsLeft} month${monthsLeft===1?'':'s'} left · ~${fmt(perMonth)}/mo needed · by ${new Date(g.byDate).toLocaleDateString('en-IN',{month:'short',year:'numeric'})}</div>
+    </div>`;
+  }).join('') : '<div class="empty" style="padding:10px 0;">No savings goals yet — add one for something specific you\'re both saving toward.</div>';
+  document.querySelectorAll('[data-editgoal]').forEach(el=>{
+    el.addEventListener('click', ()=> openEditSavingsGoal(parseInt(el.getAttribute('data-editgoal'))));
   });
 
   const adjWrap = document.getElementById('adj-log-wrap');
@@ -3195,6 +3315,277 @@ function generateMonthEndReport(){
   doc.save(`Month_End_Report_${new Date().toISOString().slice(0,10)}.pdf`);
   showToast('📊 Report ready!');
 }
+// ---------------------------------------------------------------------------
+// Month-end story — a live, in-app report read straight from `state`. Nothing here is
+// stored except two small things you type in (Divya's take-home / planning years, and the
+// reasons you give for an overspend); every figure is recomputed each time it opens.
+// ---------------------------------------------------------------------------
+const storyCatLabel = k => /^Personal/.test(k) ? k : k.split(' (')[0].split(',')[0];
+const storyEsc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const STORY_SAVING_RE = /^(Wealth SIPs|Other Investments|Sinking Fund)/;
+function storyMedian(a){ if(!a.length) return 0; const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2 ? s[m] : (s[m-1]+s[m])/2; }
+function storyDonutSVG(slices){
+  const total = slices.reduce((s,x)=>s+x.val,0);
+  if(total<=0) return '';
+  const size=170, r=64, cx=85, cy=85, c=2*Math.PI*r;
+  let off=0;
+  const arcs = slices.map(s=>{
+    const len=(s.val/total)*c;
+    const a=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="26" stroke-dasharray="${len} ${c-len}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})"/>`;
+    off+=len; return a;
+  }).join('');
+  return `<svg viewBox="0 0 ${size} ${size}" width="170" height="170" role="img" aria-label="Where your assets sit">${arcs}</svg>`;
+}
+function storyBar(label, valueText, pct, color){
+  return `<div class="story-row"><div style="width:128px; flex-shrink:0; color:var(--ink-soft);">${storyEsc(label)}</div><div class="story-track"><div class="story-fill" style="width:${Math.max(0,Math.min(100,pct))}%; ${color?`background:${color};`:''}"></div></div><div style="min-width:86px; text-align:right; font-weight:700;">${valueText}</div></div>`;
+}
+
+function renderStoryReport(){
+  const t = totals();
+  const now = new Date();
+  const y = now.getFullYear(), mo = now.getMonth();
+  const monthStart = new Date(y, mo, 1);
+  const daysInMonth = new Date(y, mo+1, 0).getDate();
+  const daysElapsed = Math.min(daysInMonth, now.getDate());
+  const proj = daysElapsed < daysInMonth ? daysInMonth/daysElapsed : 1;
+  const monthKey = `${y}-${String(mo+1).padStart(2,'0')}`;
+  const monthName = now.toLocaleDateString('en-IN',{month:'long', year:'numeric'});
+  const sum = arr => arr.reduce((s,x)=>s+x.amount,0);
+
+  const monthTx = state.transactions.filter(x=> new Date(x.ts)>=monthStart && x.type!=='transfer');
+  const incTx = monthTx.filter(x=>x.type==='income');
+  const expTx = monthTx.filter(x=>x.type==='expense');
+  const income = sum(incTx);
+
+  // Per-category spend for THIS month — transactions plus People Ledger "they paid for us" entries
+  // that carry a category (same rule the budget uses), so this matches what Budget shows.
+  const catTotals = {};
+  const catTx = {};
+  expTx.forEach(x=>{
+    const b = findBudgetRowForCategory(x.category);
+    const k = b ? b.cat : (x.category || OTHER_EXPENSE_CAT);
+    catTotals[k] = (catTotals[k]||0) + x.amount;
+    (catTx[k] = catTx[k]||[]).push(x);
+  });
+  state.personLedger.filter(e=>e.type==='received' && e.category && new Date(e.ts)>=monthStart).forEach(e=>{
+    const b = findBudgetRowForCategory(e.category);
+    const k = b ? b.cat : e.category;
+    catTotals[k] = (catTotals[k]||0) + Math.abs(e.delta);
+  });
+  const catEntries = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
+  const saved = catEntries.filter(([k])=>STORY_SAVING_RE.test(k)).reduce((s,[,v])=>s+v,0);
+  const spending = catEntries.filter(([k])=>!STORY_SAVING_RE.test(k)).reduce((s,[,v])=>s+v,0);
+  const kept = income - spending;
+  const keptPct = income>0 ? (kept/income)*100 : null;
+
+  let h = '';
+
+  // ---------------- Opening ----------------
+  h += `<div style="font-size:13px; color:var(--ink-soft);">Pravesh &amp; Divya</div>`;
+  h += `<h1 style="font-size:28px; margin:2px 0 4px;">${monthName}</h1>`;
+  h += `<div style="font-size:13px; color:var(--ink-soft); margin-bottom:18px;">As of ${now.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})} · day ${daysElapsed} of ${daysInMonth}</div>`;
+  h += `<p class="story-p">This is your first full month keeping one set of books together. The point isn't to grade September — it's to start a record that, month by month, shows how you actually live, so the big decisions ahead (a step back from work, a baby) rest on real numbers rather than guesses.</p>`;
+
+  // ---------------- 1. Snapshot ----------------
+  h += `<div class="story-sec">1 · Where you stand</div>`;
+  const lockedAway = t.netWorthTotal - t.netWorthAccessible;
+  h += `<div class="story-card"><div style="font-size:12px; color:var(--ink-soft);">Net worth — realistically accessible</div><div class="story-hero">${fmt(t.netWorthAccessible)}</div><div style="font-size:12px; color:var(--ink-soft); margin-top:3px;">${fmt(t.netWorthTotal)} in total${lockedAway>1?` · ${fmt(lockedAway)} is the NPS annuity slice, a lifetime pension rather than a lump sum`:''}</div></div>`;
+
+  const npsAsset = (state.otherAssets||[]).filter(a=>a.liquidPct<100);
+  const slices = [
+    {label:'Bank cash', val:t.cash, color:'#378ADD'},
+    {label:'Investments', val:t.invest, color:'#7F77DD'},
+    {label:'Sinking fund', val:t.sink, color:'#5DCAA5'},
+    {label:'People owe you', val:Math.max(0,t.recv), color:'#D4537E'}
+  ];
+  (state.otherAssets||[]).forEach((a,i)=>{
+    const pal = ['#EF9F27','#1D9E75','#BA7517','#639922','#888780'];
+    if(a.current<=0) return;
+    if(a.liquidPct<100){
+      slices.push({label:`${a.name} (accessible)`, val:a.current*a.liquidPct/100, color:'#0F6E56'});
+      slices.push({label:`${a.name} (annuity-locked)`, val:a.current*(100-a.liquidPct)/100, color:'#F0997B'});
+    } else slices.push({label:a.name, val:a.current, color:pal[i%pal.length]});
+  });
+  const assetSlices = slices.filter(s=>s.val>0);
+  const assetTotal = assetSlices.reduce((s,x)=>s+x.val,0);
+  h += `<div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap; margin:6px 0 10px;"><div style="flex-shrink:0;">${storyDonutSVG(assetSlices)}</div><div style="flex:1; min-width:150px; font-size:12px;">${assetSlices.map(s=>`<div style="display:flex; align-items:center; gap:6px; margin:4px 0;"><span style="width:9px; height:9px; border-radius:2px; background:${s.color}; flex-shrink:0;"></span><span style="flex:1;">${storyEsc(s.label)}</span><span style="font-weight:700;">${Math.round(s.val/assetTotal*100)}%</span></div>`).join('')}</div></div>`;
+  h += `<p class="story-p" style="font-size:13px; color:var(--ink-soft);">Against those assets you owe ${fmt(Math.abs(t.cardTotal))} on cards and ${fmt(Math.abs(t.pay))} to family.</p>`;
+
+  h += `<div class="story-card">`;
+  h += storyBar('Came in', fmt(income), 100, 'var(--icon-pos)');
+  h += storyBar('Spent', fmt(spending), income>0 ? spending/income*100 : 100, 'var(--icon-neg)');
+  h += storyBar('Put aside (SIPs, sinking)', fmt(saved), income>0 ? saved/income*100 : 0, 'var(--peri)');
+  h += `<div style="margin-top:8px; font-size:13px;">${income<=0 ? 'No income logged yet this month, so there is nothing to compare spending against.' : (kept>=0 ? `You kept <b>${fmt(kept)}</b> of what came in — about <b>${Math.round(keptPct)}%</b>.` : `You spent <b>${fmt(-kept)}</b> more than came in so far this month — worth checking whether some income hasn't been logged yet.`)}</div>`;
+  h += `</div>`;
+
+  // ---------------- 2. Where the money went ----------------
+  h += `<div class="story-sec">2 · Where the money went</div>`;
+  h += `<div class="story-note">Month 1 of a 3-month exercise. A payee seen only once can't be called recurring yet — by month 3 these patterns will be solid, and the "ideal budget" below will be built from how you really spend, not from the starting guess.</div>`;
+
+  const topCats = catEntries.filter(([k])=>!STORY_SAVING_RE.test(k)).slice(0,8);
+  h += `<div class="story-card">${topCats.length ? topCats.map(([k,v])=>{
+    const b = state.budget.find(x=>x.cat===k);
+    const bud = b ? b.budget : 0;
+    const over = bud>0 && v>bud;
+    return storyBar(storyCatLabel(k), `${fmt(v)}${bud>0?` / ${fmt(bud)}`:''}`, bud>0 ? v/bud*100 : 100, over?'var(--icon-neg)':(bud>0?'var(--peri)':'var(--ink-soft)'));
+  }).join('') : '<div style="font-size:13px; color:var(--ink-soft);">No spending logged this month yet.</div>'}</div>`;
+
+  // Habits per category: how often, how much, when, and who to
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const partOf = hr => hr<12 ? 'mornings' : hr<17 ? 'afternoons' : hr<21 ? 'evenings' : 'late nights';
+  const suggestions = [];
+  h += `<div style="font-size:13px; font-weight:700; margin:16px 0 6px;">Patterns behind the biggest categories</div>`;
+  topCats.slice(0,6).forEach(([k,v])=>{
+    const txs = catTx[k] || [];
+    if(!txs.length) return;
+    const amts = txs.map(x=>x.amount);
+    const med = storyMedian(amts);
+    const byPayee = {};
+    txs.forEach(x=>{ const key = normalizePayee(x.payee||'') || 'unknown'; (byPayee[key] = byPayee[key]||{name:x.payee||'Unknown', n:0, total:0, max:0}); byPayee[key].n++; byPayee[key].total+=x.amount; byPayee[key].max=Math.max(byPayee[key].max,x.amount); });
+    const payees = Object.values(byPayee).sort((a,b)=>b.total-a.total);
+    const oneOffs = payees.filter(p=>p.n===1 && p.max>=Math.max(1500, 2*med));
+    const oneOffTotal = oneOffs.reduce((s,p)=>s+p.total,0);
+    const dayCount = {}; const partCount = {};
+    txs.forEach(x=>{ const d=new Date(x.ts); dayCount[d.getDay()]=(dayCount[d.getDay()]||0)+1; const p=partOf(d.getHours()); partCount[p]=(partCount[p]||0)+1; });
+    const topDay = Object.entries(dayCount).sort((a,b)=>b[1]-a[1])[0];
+    const topPart = Object.entries(partCount).sort((a,b)=>b[1]-a[1])[0];
+    const small = txs.filter(x=>x.amount<200).length;
+    const recurring = Math.max(0, v - oneOffTotal);
+    // Only scale up categories that are spent on often (3+ times) — a once-a-month item like a
+    // fixed transfer or EMI already happened in full, and scaling it would overstate it.
+    const scale = txs.length>=3 ? proj : 1;
+    const suggested = Math.ceil((recurring*scale)/500)*500;
+    suggestions.push({cat:k, now:v, oneOffTotal, suggested});
+    h += `<div class="story-card" style="padding:13px 15px;">
+      <div style="display:flex; justify-content:space-between; font-weight:700;"><span>${storyEsc(storyCatLabel(k))}</span><span>${fmt(v)}</span></div>
+      <div style="font-size:12.5px; color:var(--ink-soft); margin-top:4px; line-height:1.55;">${txs.length} transaction${txs.length===1?'':'s'}, typically ${fmt(med)}${topDay && txs.length>=3 ? ` · most often on ${dayNames[topDay[0]]}, ${topPart[0]}` : ''}${small>=3?` · ${small} of them under ₹200`:''}.
+      Biggest: ${payees.slice(0,3).map(p=>`${storyEsc(p.name)} (${fmt(p.total)}${p.n>1?`, ${p.n}×`:''})`).join(', ')}.${oneOffs.length?`<br><b>One-off:</b> ${oneOffs.map(p=>`${storyEsc(p.name)} ${fmt(p.total)}`).join(', ')} — looks like a single purchase, so I've left it out of the suggested budget.`:''}</div>
+    </div>`;
+  });
+
+  // Overspends — asked for a reason, not just flagged
+  const overs = state.budget.filter(b=>!b.income && b.budget>0 && (catTotals[b.cat]||0) > b.budget);
+  const unbudgeted = catEntries.filter(([k,v])=>{ const b=state.budget.find(x=>x.cat===k); return !STORY_SAVING_RE.test(k) && b && b.budget===0 && v>0 && k!==OTHER_EXPENSE_CAT; });
+  if(overs.length || unbudgeted.length){
+    h += `<div style="font-size:13px; font-weight:700; margin:16px 0 6px;">What ran over — and why</div>`;
+    h += `<div class="story-note">The starting budget was a first guess, so "over" here means "worth a conversation", not "failed". Tell me the reason and it's kept alongside the number.</div>`;
+    [...overs.map(b=>({cat:b.cat, v:catTotals[b.cat], bud:b.budget})), ...unbudgeted.map(([k,v])=>({cat:k, v, bud:0}))].forEach(o=>{
+      const note = (state.storyNotes||{})[`${monthKey}|${o.cat}`];
+      h += `<div class="story-card" style="padding:13px 15px;"><div style="display:flex; justify-content:space-between; font-weight:700;"><span>${storyEsc(storyCatLabel(o.cat))}</span><span class="neg">${fmt(o.v)}${o.bud>0?` vs ${fmt(o.bud)}`:' · no budget set'}</span></div>
+        <div style="font-size:12.5px; margin-top:5px; color:var(--ink-soft);">${note ? `Your reason: <span style="color:var(--ink);">${storyEsc(note)}</span>` : 'No reason recorded yet.'}</div>
+        <button class="link-btn" data-storynote="${storyEsc(o.cat)}" style="margin-top:4px;">${note?'Edit reason':'Add reason'}</button></div>`;
+    });
+  }
+
+  // Suggested standard budget for next month
+  if(suggestions.length){
+    h += `<div style="font-size:13px; font-weight:700; margin:18px 0 6px;">Draft standard budget for next month</div>`;
+    h += `<div class="story-card"><table class="story-tbl"><tr style="font-size:11px; color:var(--ink-soft);"><td>Category</td><td>This month</td><td>Now budgeted</td><td>Suggested</td></tr>${suggestions.map(s=>{
+      const b = state.budget.find(x=>x.cat===s.cat);
+      return `<tr><td>${storyEsc(storyCatLabel(s.cat))}</td><td>${fmt(s.now)}</td><td>${b&&b.budget?fmt(b.budget):'—'}</td><td style="color:var(--peri);">${fmt(s.suggested)}</td></tr>`;
+    }).join('')}</table><div style="font-size:11.5px; color:var(--ink-soft); margin-top:8px;">Suggested = this month's regular spending${proj>1?`; frequent categories are scaled from ${daysElapsed} to ${daysInMonth} days`:''}, one-offs left out, rounded up to the next ₹500. A draft to react to — after three months it becomes the ideal budget, and variance is measured against that.</div></div>`;
+  }
+
+  // ---------------- 3. Divya stepping back ----------------
+  h += `<div class="story-sec">3 · If Divya steps back from work</div>`;
+  const planning = state.planning || {divyaMonthly:0, years:3};
+  const divyaLogged = sum(incTx.filter(x=>x.category==='Divya Salary'));
+  const divyaIncome = divyaLogged>0 ? divyaLogged : (planning.divyaMonthly||0);
+  const years = planning.years || 3;
+  if(divyaIncome<=0){
+    h += `<div class="story-card"><div style="font-size:14px; line-height:1.55;">To separate what Divya brings in from the rest, I need her monthly take-home — it isn't logged as "Divya Salary" this month, and none is set here.</div><button class="btn-primary" data-storyplan="1" style="margin-top:10px; background:var(--peri);">Set Divya's take-home &amp; planning years</button></div>`;
+  } else {
+    const otherIncome = divyaLogged>0 ? Math.max(0, income - divyaLogged) : income;
+    const run = spending*proj;
+    const gap = run - otherIncome;
+    const liquid = Math.max(0, t.net + t.sink);
+    const investable = t.invest + (state.otherAssets||[]).filter(a=>/EPF|NPS/i.test(a.name)).reduce((s,a)=>s+a.current*(a.liquidPct??100)/100,0);
+    h += `<p class="story-p">Divya's ${divyaLogged>0?'logged salary this month':'take-home (as you set it)'} is ${fmt(divyaIncome)}. Without it, ${fmt(otherIncome)} comes in against a spending pace of about ${fmt(run)} a month${proj>1?' (this month scaled to a full month)':''}.</p>`;
+    if(gap<=0){
+      h += `<div class="story-card">On today's pace, the rest of your income already covers your spending — a surplus of <b>${fmt(-gap)}</b> a month. Worth stress-testing again once the 3-month average is in.</div>`;
+    } else {
+      const runway = liquid/gap;
+      const corpus = gap*12/0.04;
+      const shortfall = Math.max(0, corpus - investable);
+      const r = 0.10/12, n = years*12;
+      const remaining = Math.max(0, corpus - investable*Math.pow(1.10, years));
+      const sip = n>0 ? remaining / (((Math.pow(1+r,n)-1)/r)*(1+r)) : 0;
+      h += `<div class="story-card">`;
+      h += storyBar('Monthly gap', fmt(gap), 100, 'var(--icon-neg)');
+      h += `<div style="font-size:13px; margin:8px 0;">Cash plus sinking fund would carry that gap for about <b>${runway.toFixed(1)} months</b> if nothing else changed.</div>`;
+      h += `<div style="font-size:13px; margin:8px 0;">To cover it permanently from investments (withdrawing about 4% a year), you'd want roughly <b>${fmt(corpus)}</b>. You hold about <b>${fmt(investable)}</b> in investments plus EPF/NPS-accessible money — a shortfall of <b>${fmt(shortfall)}</b>.</div>`;
+      h += `<div style="font-size:13px; margin:8px 0;">Planning for <b>${years} year${years===1?'':'s'}</b> and assuming 10% a year (an assumption, not a promise), closing that would take about <b>${fmt(sip)}</b> a month in new SIPs.</div>`;
+      h += `<div style="font-size:12px; color:var(--ink-soft);">The other lever is the gap itself: every ₹1,000 you can trim from monthly spending lowers the corpus needed by about ₹3 lakh.</div>`;
+      h += `<button class="link-btn" data-storyplan="1" style="margin-top:8px;">Change take-home or years</button></div>`;
+    }
+  }
+
+  // ---------------- 4. Baby fund ----------------
+  h += `<div class="story-sec">4 · The baby fund</div>`;
+  const goals = state.savingsGoals || [];
+  if(goals.length){
+    goals.forEach(g=>{
+      const monthsLeft = Math.max(1, Math.round((new Date(g.byDate)-now)/(30*24*60*60*1000)));
+      const rem = Math.max(0, g.target-(g.saved||0));
+      const per = rem/monthsLeft;
+      h += `<div class="story-card"><div style="display:flex; justify-content:space-between; font-weight:700;"><span>${storyEsc(g.name)}</span><span>${fmt(g.saved||0)} / ${fmt(g.target)}</span></div>
+        <div class="story-track" style="margin:8px 0;"><div class="story-fill" style="width:${g.target>0?Math.min(100,(g.saved||0)/g.target*100):0}%;"></div></div>
+        <div style="font-size:12.5px; color:var(--ink-soft);">${monthsLeft} months to ${new Date(g.byDate).toLocaleDateString('en-IN',{month:'long',year:'numeric'})} · about ${fmt(per)} a month to stay on pace${income>0?` · that's ${Math.round(per/income*100)}% of this month's income`:''}.</div></div>`;
+    });
+  } else h += `<div class="story-card" style="font-size:13px;">No savings goals set — add one in the Budget tab.</div>`;
+
+  // ---------------- 5. What's locked away ----------------
+  h += `<div class="story-sec">5 · What's held, and how reachable it is</div>`;
+  h += `<div class="story-card">${(state.otherAssets||[]).map(a=>{
+    const acc = a.liquidPct<100 ? `${a.liquidPct}% reachable as a lump sum` : 'fully reachable';
+    return `<div style="margin:9px 0;"><div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700;"><span>${storyEsc(a.name)}</span><span>${a.current>0?fmt(a.current):'not set'}</span></div><div style="font-size:11.5px; color:var(--ink-soft);">${a.current>0?acc:'add a value in the Invest tab'}</div></div>`;
+  }).join('')}</div>`;
+
+  // ---------------- 6. Lens ----------------
+  h += `<div class="story-sec">6 · Reading it through widely-taught money ideas</div>`;
+  const lens = [];
+  if(income>0) lens.push(`<b>Pay yourself first.</b> You set aside ${Math.round(saved/income*100)}% of income before it could be spent (SIPs and sinking fund). A common rule of thumb is to fix that share first and let spending flex, rather than saving whatever is left.`);
+  const personalShare = spending>0 ? ((catTotals['Personal (Pravesh)']||0)+(catTotals['Personal (Divya)']||0))/spending*100 : 0;
+  if(spending>0) lens.push(`<b>Lifestyle creep is quiet.</b> Personal spending is ${Math.round(personalShare)}% of what you spent. It's rarely one big item — it's small, frequent ones, which is why the patterns above matter more than any single purchase.`);
+  lens.push(`<b>Assets versus liabilities.</b> You hold ${fmt(t.invest)} in investments and carry ${fmt(Math.abs(t.cardTotal))} on cards. The classic test is whether the money you own is working for you faster than what you owe is working against you — clearing card dues in full each cycle keeps that one-sided.`);
+  lens.push(`<b>Wealth is what you keep.</b> Income matters less than the gap between income and spending — that gap is what funds both Divya's step back and the baby.`);
+  h += lens.map(l=>`<p class="story-p" style="font-size:14px;">${l}</p>`).join('');
+  h += `<div class="story-note">These are general principles widely taught in personal finance, applied to your own numbers — not personalised financial advice.</div>`;
+
+  h += `<div style="text-align:center; font-size:12px; color:var(--ink-soft); margin-top:30px;">Everything above is computed live from your ledger.</div>`;
+
+  document.getElementById('story-body').innerHTML = h;
+  document.querySelectorAll('[data-storynote]').forEach(el=> el.addEventListener('click', async ()=>{
+    const cat = el.getAttribute('data-storynote');
+    const key = `${monthKey}|${cat}`;
+    const existing = (state.storyNotes||{})[key] || '';
+    const val = prompt(`Why did "${storyCatLabel(cat)}" run over this month?`, existing);
+    if(val===null) return;
+    state.storyNotes = state.storyNotes || {};
+    if(val.trim()) state.storyNotes[key] = val.trim(); else delete state.storyNotes[key];
+    await saveState();
+    renderStoryReport();
+  }));
+  document.querySelectorAll('[data-storyplan]').forEach(el=> el.addEventListener('click', async ()=>{
+    const p = state.planning || {divyaMonthly:0, years:3};
+    const divRaw = prompt("Divya's monthly take-home (₹):", String(p.divyaMonthly||''));
+    if(divRaw===null) return;
+    const yrRaw = prompt('How many years until she steps back (2–5)?', String(p.years||3));
+    if(yrRaw===null) return;
+    state.planning = {divyaMonthly: parseFloat(divRaw)||0, years: Math.max(1, Math.min(10, parseFloat(yrRaw)||3))};
+    await saveState();
+    renderStoryReport();
+  }));
+}
+document.getElementById('open-story-btn').addEventListener('click', ()=>{
+  renderStoryReport();
+  document.getElementById('story-overlay').classList.add('open');
+  document.getElementById('story-overlay').scrollTop = 0;
+});
+document.getElementById('story-close-btn').addEventListener('click', ()=>{
+  document.getElementById('story-overlay').classList.remove('open');
+});
+
 document.getElementById('gen-report-btn').addEventListener('click', generateMonthEndReport);
 document.getElementById('clear-since-btn').addEventListener('click', async ()=>{
   const defaultDate = (typeof HISTORY_START_DATE!=='undefined') ? HISTORY_START_DATE : new Date().toISOString().slice(0,10);
@@ -3256,18 +3647,22 @@ document.getElementById('export-csv-btn').addEventListener('click', ()=>{
     .filter(t=> new Date(t.ts) >= from && new Date(t.ts) <= to)
     .sort((a,b)=> new Date(a.ts)-new Date(b.ts));
   if(!rows.length){ alert('No transactions found in that date range.'); return; }
-  // Matches the required import format exactly: Date, Amount (signed — positive=income,
-  // negative=expense), Category, Payment Mode, Type, To Payment Mode, Note.
+  // Matches the sample import file exactly: Date (YYYY-MM-DD HH:MM:SS), Amount (plain,
+  // unsigned), Category, Payment Mode, Type (Expense/Income/Transfer), To Payment Mode (only
+  // for transfers), Note. Timestamps are stored as local time without a zone, so the date is
+  // built from local parts — going through toISOString() would shift it to UTC and can move
+  // a late-evening transaction onto the wrong day.
+  const pad = n => String(n).padStart(2,'0');
+  const csvDate = ts => { const d = new Date(ts); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
   const header = ['Date','Amount','Category','Payment Mode','Type','To Payment Mode','Note'];
   const lines = [header.join(',')];
   rows.forEach(t=>{
-    const dateStr = new Date(t.ts).toISOString().slice(0,10);
+    const dateStr = csvDate(t.ts);
     if(t.type==='transfer'){
-      lines.push([dateStr, t.amount, '', csvEscape(targetName(t.from)), 'Transfer', csvEscape(targetName(t.to)), csvEscape(t.remarks||'')].join(','));
+      lines.push([dateStr, t.amount, 'Transfer', csvEscape(targetName(t.from)), 'Transfer', csvEscape(targetName(t.to)), csvEscape(t.remarks||'')].join(','));
     } else {
-      const signedAmount = t.type==='income' ? t.amount : -t.amount;
       const typeLabel = t.type==='income' ? 'Income' : 'Expense';
-      lines.push([dateStr, signedAmount, csvEscape(t.category), csvEscape(targetName(t.account)), typeLabel, '', csvEscape(t.payee)].join(','));
+      lines.push([dateStr, t.amount, csvEscape(t.category), csvEscape(targetName(t.account)), typeLabel, '', csvEscape(t.payee||t.remarks||'')].join(','));
     }
   });
   const csvContent = lines.join('\n');
@@ -3705,6 +4100,58 @@ function openEditInvestment(kind, index){
   investmentBackdrop.classList.add('open');
 }
 document.getElementById('add-investment-btn').addEventListener('click', ()=> openEditInvestment('mf', null));
+
+// Simple prompt-based add/edit — matches how the app already handles occasional, simple data
+// entry elsewhere (adding a budget category, editing a sinking-fund bill), rather than a full
+// dedicated sheet for something updated by hand only every so often.
+async function openEditOtherAsset(index){
+  const isNew = index===null || index===undefined;
+  const existing = isNew ? null : state.otherAssets[index];
+  const name = prompt('Asset name:', existing ? existing.name : '');
+  if(name===null || !name.trim()) return;
+  const currentRaw = prompt('Current value (₹):', existing ? String(existing.current) : '0');
+  if(currentRaw===null) return;
+  const current = parseFloat(currentRaw) || 0;
+  const liquidPctRaw = prompt('% realistically accessible as cash (100 for gold/property/EPF; lower for something like NPS, where a portion is locked into a mandatory annuity):', existing ? String(existing.liquidPct) : '100');
+  if(liquidPctRaw===null) return;
+  const liquidPct = Math.max(0, Math.min(100, parseFloat(liquidPctRaw) || 100));
+  const note = prompt('Note (optional — e.g. why this % is locked, or when you last checked the value):', existing ? (existing.note||'') : '') || '';
+  if(isNew){
+    state.otherAssets = state.otherAssets || [];
+    state.otherAssets.push({id: genId('asset'), name: name.trim(), current, liquidPct, note});
+  } else {
+    state.otherAssets[index] = {...existing, name: name.trim(), current, liquidPct, note};
+  }
+  await saveState();
+  render();
+  showToast('✅ Updated!');
+}
+document.getElementById('add-other-asset-btn').addEventListener('click', ()=> openEditOtherAsset(null));
+
+async function openEditSavingsGoal(index){
+  const isNew = index===null || index===undefined;
+  const existing = isNew ? null : state.savingsGoals[index];
+  const name = prompt('What are you saving toward?', existing ? existing.name : '');
+  if(name===null || !name.trim()) return;
+  const targetRaw = prompt('Target amount (₹):', existing ? String(existing.target) : '');
+  if(targetRaw===null) return;
+  const target = parseFloat(targetRaw) || 0;
+  const byDateRaw = prompt('By when (YYYY-MM-DD)?', existing ? existing.byDate : '');
+  if(byDateRaw===null || isNaN(new Date(byDateRaw))) { if(byDateRaw!==null) alert('Enter a valid date like 2027-12-31.'); return; }
+  const savedRaw = prompt('How much have you already saved toward this (₹)?', existing ? String(existing.saved||0) : '0');
+  if(savedRaw===null) return;
+  const saved = parseFloat(savedRaw) || 0;
+  if(isNew){
+    state.savingsGoals = state.savingsGoals || [];
+    state.savingsGoals.push({id: genId('goal'), name: name.trim(), target, byDate: byDateRaw, saved, note:''});
+  } else {
+    state.savingsGoals[index] = {...existing, name: name.trim(), target, byDate: byDateRaw, saved};
+  }
+  await saveState();
+  render();
+  showToast('✅ Updated!');
+}
+document.getElementById('add-savings-goal-btn').addEventListener('click', ()=> openEditSavingsGoal(null));
 document.getElementById('investment-save').addEventListener('click', async ()=>{
   const kind = segValue('investment-type');
   const name = document.getElementById('inv-name').value.trim();
