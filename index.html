@@ -71,6 +71,17 @@
   header.cover .netlabel{font-size:12.5px;color:rgba(251,243,236,0.6); margin-bottom:2px;}
   header.cover .netvalue{font-family:'Manrope',sans-serif; font-weight:600; font-size:38px; line-height:1.1; color:#F5F5F7; letter-spacing:-0.5px;}
   header.cover .netvalue.neg{color:#F2A79E;}
+  /* Theme-aware version of the same summary, for its new home on the Accounts tab (a plain
+     card, not the dark cover header) — same shape, but using the app's normal text colors
+     instead of the hardcoded light-on-dark ones the cover header needed. */
+  .netsummary-label{font-size:12.5px; color:var(--ink-soft); margin-bottom:2px;}
+  .netsummary-value{font-family:'Manrope',sans-serif; font-weight:700; font-size:32px; line-height:1.1; color:var(--ink); letter-spacing:-0.5px;}
+  .netsummary-value.neg{color:var(--debt);}
+  .netsummary-cell{background:var(--paper-dim); border:1px solid var(--line); border-radius:14px; padding:10px 11px;}
+  .netsummary-cell .l{font-size:10.5px; color:var(--ink-soft); margin-bottom:4px;}
+  .netsummary-cell .v{font-family:'Manrope',sans-serif; font-size:16px; color:var(--ink);}
+  .netsummary-cell .v.neg{color:var(--debt);}
+  .netsummary-cell .v.pos{color:var(--sage);}
   .cover-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:20px;}
   .cover-grid .cell{background:rgba(251,243,236,0.08); border:1px solid rgba(251,243,236,0.12); border-radius:14px; padding:10px 11px;}
   .cover-grid .cell .l{font-size:10.5px;color:rgba(251,243,236,0.55); margin-bottom:4px;}
@@ -354,41 +365,34 @@
       <button class="theme-toggle" id="theme-toggle" title="Toggle theme">🌙</button>
     </div>
     <div id="sync-status" style="font-size:11px; color:var(--ink-soft); margin-bottom:14px;">Connecting…</div>
-    <div class="netlabel">Net Liquid Working Surplus</div>
-    <div class="netvalue maskable" id="hdr-net" data-breakdown="net" style="cursor:pointer;">—</div>
     <div class="mask-toggle-row">
       <span class="lbl">Show balances</span>
       <button class="mask-switch" id="mask-toggle-btn" title="Show/hide balances"></button>
-    </div>
-    <div class="cover-grid">
-      <div class="cell" data-breakdown="cash" style="cursor:pointer;"><div class="l">Bank Cash</div><div class="v maskable" id="hdr-cash">—</div></div>
-      <div class="cell" data-breakdown="cards" style="cursor:pointer;"><div class="l">Card Dues</div><div class="v maskable" id="hdr-cards">—</div></div>
-      <div class="cell" data-breakdown="gap" style="cursor:pointer;"><div class="l">Net Gap (People)</div><div class="v maskable" id="hdr-gap">—</div></div>
     </div>
   </header>
 
   <main>
     <section class="tab active" id="tab-home">
-      <h2 class="section-title">Overview</h2>
-      <div id="heads-up-wrap"></div>
-      <p class="section-sub" id="home-date"></p>
-      <div id="pending-review-wrap"></div>
-      <div id="learning-match-wrap"></div>
-      <div id="last-fetch-summary-wrap"></div>
       <div class="card" id="home-cashflow-card" style="cursor:pointer; margin-bottom:16px;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <div style="font-size:11px; font-weight:800; letter-spacing:.08em; color:var(--ink-soft);">CASH FLOW</div>
           <select id="home-cf-month" style="background:var(--paper-dim); border:none; border-radius:10px; padding:6px 10px; font-family:'Manrope',sans-serif; font-size:12px; font-weight:700; color:var(--ink);"></select>
         </div>
         <div style="display:flex; justify-content:space-between; margin-top:12px;">
-          <div><div style="font-size:11px; font-weight:700; color:var(--icon-neg);">EXPENSES</div><div style="font-size:24px; font-weight:800;" class="maskable" id="home-cf-expense">—</div></div>
-          <div style="text-align:right;"><div style="font-size:11px; font-weight:700; color:var(--icon-pos);">INCOME</div><div style="font-size:24px; font-weight:800;" class="maskable" id="home-cf-income">—</div></div>
+          <div><div style="font-size:11px; font-weight:700; color:var(--debt);">EXPENSES</div><div style="font-size:24px; font-weight:800;" class="maskable" id="home-cf-expense">—</div></div>
+          <div style="text-align:right;"><div style="font-size:11px; font-weight:700; color:var(--sage);">INCOME</div><div style="font-size:24px; font-weight:800;" class="maskable" id="home-cf-income">—</div></div>
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; background:var(--paper-dim); border-radius:12px; padding:10px 14px; margin-top:12px;">
           <div style="font-size:12px; color:var(--ink-soft);">Net Balance</div>
-          <div style="font-weight:800;" class="maskable" id="home-cf-net">—</div>
+          <div style="font-weight:800;" class="amt maskable" id="home-cf-net">—</div>
         </div>
       </div>
+      <h2 class="section-title">Overview</h2>
+      <div id="heads-up-wrap"></div>
+      <p class="section-sub" id="home-date"></p>
+      <div id="pending-review-wrap"></div>
+      <div id="learning-match-wrap"></div>
+      <div id="last-fetch-summary-wrap"></div>
       <div class="divider-label">This month</div>
       <div class="card">
         <div class="row"><div class="name">Income logged</div><div class="amt pos" id="mo-income">—</div></div>
@@ -407,6 +411,17 @@
     <section class="tab" id="tab-money">
       <h2 class="section-title">Accounts &amp; Cards</h2>
       <p class="section-sub">Balances update live. Reconcile after month-end statements land.</p>
+      <div class="card" style="margin-bottom:16px; padding:18px;">
+        <div class="netsummary-label">Net Liquid Working Surplus</div>
+        <div class="netsummary-value maskable" id="hdr-net" data-breakdown="net" style="cursor:pointer;">—</div>
+        <div class="cover-grid" style="grid-template-columns:1fr 1fr; margin-top:14px;">
+          <div class="netsummary-cell" data-breakdown="cash" style="cursor:pointer;"><div class="l">Bank Cash</div><div class="v maskable" id="hdr-cash">—</div></div>
+          <div class="netsummary-cell" data-breakdown="cards" style="cursor:pointer;"><div class="l">Card Dues</div><div class="v maskable" id="hdr-cards">—</div></div>
+        </div>
+        <div class="cover-grid" style="grid-template-columns:1fr; margin-top:8px;">
+          <div class="netsummary-cell" data-breakdown="gap" style="cursor:pointer;"><div class="l">Net Gap (People &amp; Payment)</div><div class="v maskable" id="hdr-gap">—</div></div>
+        </div>
+      </div>
       <button class="link-btn" id="money-see-all-btn" style="margin-bottom:14px;">📅 Browse transactions by month, edit any of them →</button>
       <div class="card" style="margin-bottom:16px;">
         <div class="row">
@@ -848,12 +863,12 @@
     </div>
     <div class="card" style="margin-bottom:16px;">
       <div style="display:flex; justify-content:space-between;">
-        <div><div style="font-size:11px; font-weight:700; color:var(--icon-neg);">EXPENSES</div><div style="font-size:22px; font-weight:800;" class="maskable" id="analysis-expense">—</div></div>
-        <div style="text-align:right;"><div style="font-size:11px; font-weight:700; color:var(--icon-pos);">INCOME</div><div style="font-size:22px; font-weight:800;" class="maskable" id="analysis-income">—</div></div>
+        <div><div style="font-size:11px; font-weight:700; color:var(--debt);">EXPENSES</div><div style="font-size:22px; font-weight:800;" class="maskable" id="analysis-expense">—</div></div>
+        <div style="text-align:right;"><div style="font-size:11px; font-weight:700; color:var(--sage);">INCOME</div><div style="font-size:22px; font-weight:800;" class="maskable" id="analysis-income">—</div></div>
       </div>
       <div style="display:flex; justify-content:space-between; align-items:center; background:var(--paper-dim); border-radius:12px; padding:10px 14px; margin-top:12px;">
         <div style="font-size:12px; color:var(--ink-soft);">Net Balance</div>
-        <div style="font-weight:800;" class="maskable" id="analysis-net">—</div>
+        <div style="font-weight:800;" class="amt maskable" id="analysis-net">—</div>
       </div>
     </div>
     <div class="divider-label">Categories</div>
@@ -2201,12 +2216,12 @@ function render(){
   renderLastFetchSummary();
   const t = totals();
   document.getElementById('hdr-net').textContent = fmt(t.net);
-  document.getElementById('hdr-net').className = 'netvalue' + (t.net<0?' neg':'');
+  document.getElementById('hdr-net').className = 'netsummary-value maskable' + (t.net<0?' neg':'');
   document.getElementById('hdr-cash').textContent = fmt(t.cash);
   document.getElementById('hdr-cards').textContent = fmt(Math.abs(t.cardTotal));
-  document.getElementById('hdr-cards').className = 'v neg';
+  document.getElementById('hdr-cards').className = 'v maskable neg';
   document.getElementById('hdr-gap').textContent = fmt(Math.abs(t.gap));
-  document.getElementById('hdr-gap').className = 'v' + (t.gap<0?' neg':' pos');
+  document.getElementById('hdr-gap').className = 'v maskable' + (t.gap<0?' neg':' pos');
 
   document.getElementById('home-date').textContent = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
   renderHomeCashFlowCard();
@@ -3775,7 +3790,7 @@ function renderAnalysisPage(){
   document.getElementById('analysis-income').textContent = fmt(d.income);
   const netEl = document.getElementById('analysis-net');
   netEl.textContent = (d.net<0?'-':'') + fmt(Math.abs(d.net));
-  netEl.className = d.net<0 ? 'neg' : 'pos';
+  netEl.className = 'amt maskable ' + (d.net<0 ? 'neg' : 'pos');
 
   const cats = analysisCatMode==='expense' ? d.expCats : d.incCats;
   const entries = Object.entries(cats).sort((a,b)=>b[1]-a[1]);
@@ -3864,7 +3879,7 @@ function renderHomeCashFlowCard(){
   document.getElementById('home-cf-income').textContent = fmt(d.income);
   const netEl = document.getElementById('home-cf-net');
   netEl.textContent = (d.net<0?'-':'') + fmt(Math.abs(d.net));
-  netEl.className = 'maskable ' + (d.net<0 ? 'neg' : 'pos');
+  netEl.className = 'amt maskable ' + (d.net<0 ? 'neg' : 'pos');
 }
 document.getElementById('home-cf-month').addEventListener('click', e=> e.stopPropagation());
 document.getElementById('home-cf-month').addEventListener('change', e=>{
