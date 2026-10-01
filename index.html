@@ -377,7 +377,7 @@
       <div class="card" id="trend-chart-wrap"></div>
       <div class="divider-label" style="display:flex; justify-content:space-between; align-items:center;">
         <span>Recent activity</span>
-        <button class="link-btn" id="see-all-month-btn" style="font-size:12px;">See all this month →</button>
+        <button class="link-btn" id="see-all-month-btn" style="font-size:12px;">See all transactions →</button>
       </div>
       <div class="card" id="recent-list"></div>
     </section>
@@ -385,6 +385,7 @@
     <section class="tab" id="tab-money">
       <h2 class="section-title">Accounts &amp; Cards</h2>
       <p class="section-sub">Balances update live. Reconcile after month-end statements land.</p>
+      <button class="link-btn" id="money-see-all-btn" style="margin-bottom:14px;">📅 Browse transactions by month, edit any of them →</button>
       <div class="card" style="margin-bottom:16px;">
         <div class="row">
           <div><div class="name">📧 Email auto-import</div><div class="sub" id="gmail-status-text">Checked automatically every 12 hours</div></div>
@@ -752,9 +753,22 @@
   </div>
 </div>
 
+<div class="sheet-backdrop" id="newmonth-backdrop">
+  <div class="sheet" style="max-height:85vh; overflow-y:auto;">
+    <h3 id="newmonth-title">New month — review your budget</h3>
+    <p class="section-sub">Carried over from last month. Adjust anything that should change, or just confirm as-is.</p>
+    <div id="newmonth-list"></div>
+    <button class="btn-primary" id="newmonth-save" style="margin-top:12px;">✅ Looks good — continue</button>
+  </div>
+</div>
+
 <div class="sheet-backdrop" id="monthview-backdrop">
   <div class="sheet" style="max-height:85vh; overflow-y:auto;">
-    <h3 id="monthview-title">This month's transactions</h3>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+      <button class="icon-btn" id="monthview-prev" aria-label="Previous month">←</button>
+      <h3 id="monthview-title" style="margin:0; text-align:center; flex:1;">This month's transactions</h3>
+      <button class="icon-btn" id="monthview-next" aria-label="Next month">→</button>
+    </div>
     <p class="section-sub" id="monthview-sub"></p>
     <div id="monthview-list"></div>
     <button class="btn-ghost" id="monthview-close">Close</button>
@@ -1241,7 +1255,7 @@ const COLLECTION_FIELDS = {
   cards: 'card',
   processedGmailIds: 'processedGmailId'
 };
-const META_FIELDS = ['budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts'];
+const META_FIELDS = ['budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','lastBudgetReviewMonth','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts'];
 let previousArrays = { transactions:[], personLedger:[], pendingImports:[], dismissedImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[] };
 
 // ---- Outbox for cloud writes that haven't been confirmed yet ----
@@ -2697,7 +2711,61 @@ document.querySelectorAll('nav.tabbar button').forEach(btn=>{
     btn.classList.add('active');
     document.querySelectorAll('.tab').forEach(s=>s.classList.remove('active'));
     document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='budget') maybeShowNewMonthPrompt();
   });
+});
+
+// A new calendar month means last month's spending is final and worth a quick look before
+// building on top of it — not a forced re-entry (categories and amounts already carry over
+// as-is), just a checkpoint so a budget doesn't go stale for months without anyone noticing.
+function currentMonthKey(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function maybeShowNewMonthPrompt(){
+  if(state.lastBudgetReviewMonth === currentMonthKey()) return;
+  renderNewMonthPrompt();
+  document.getElementById('newmonth-backdrop').classList.add('open');
+}
+function renderNewMonthPrompt(){
+  const now = new Date();
+  const prevMonthStart = new Date(now.getFullYear(), now.getMonth()-1, 1);
+  const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 1);
+  const prevTx = state.transactions.filter(t=> t.type==='expense' && new Date(t.ts)>=prevMonthStart && new Date(t.ts)<prevMonthEnd);
+  const prevByCat = {};
+  prevTx.forEach(t=>{ const b=findBudgetRowForCategory(t.category); const k=b?b.cat:t.category; (prevByCat[k]=prevByCat[k]||[]).push(t); });
+  document.getElementById('newmonth-title').textContent = `${now.toLocaleDateString('en-IN',{month:'long',year:'numeric'})} — review your budget`;
+  document.getElementById('newmonth-list').innerHTML = state.budget.filter(b=>!b.income).map((b,i)=>{
+    const meta = catMeta(b.cat);
+    const prev = computeRecurringSpend(prevByCat[b.cat]||[]);
+    const prevLabel = prev.n
+      ? `Last month: ${fmt(prev.total)}${prev.oneOffTotal?` (${fmt(prev.recurring)} regular + ${fmt(prev.oneOffTotal)} one-off)`:''}`
+      : 'No spending logged last month';
+    return `<div class="row" style="flex-direction:column; align-items:stretch; gap:6px; padding:12px 4px;">
+      <div style="display:flex; align-items:center;"><div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
+      <div style="flex:1; margin:0 10px;">${storyCatLabel(b.cat)}</div>
+      <input type="number" data-newmonthbudget="${i}" value="${b.budget}" style="width:100px; padding:7px; border-radius:8px; border:1px solid var(--line); text-align:right; font-family:'Manrope',sans-serif;"></div>
+      <div style="font-size:11.5px; color:var(--ink-soft); margin-left:48px;">${prevLabel}${prev.recurring>0 && Math.abs(prev.recurring-b.budget)>100 ? ` · <span data-usesuggested="${i}" data-suggval="${Math.ceil(prev.recurring/500)*500}" style="color:var(--peri); text-decoration:underline; cursor:pointer;">use ${fmt(Math.ceil(prev.recurring/500)*500)}</span>` : ''}</div>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('[data-usesuggested]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const i = el.getAttribute('data-usesuggested');
+      const input = document.querySelector(`[data-newmonthbudget="${i}"]`);
+      if(input) input.value = el.getAttribute('data-suggval');
+    });
+  });
+}
+document.getElementById('newmonth-save').addEventListener('click', async ()=>{
+  document.querySelectorAll('[data-newmonthbudget]').forEach(el=>{
+    const i = parseInt(el.getAttribute('data-newmonthbudget'));
+    const expenseCats = state.budget.filter(b=>!b.income);
+    const val = parseFloat(el.value) || 0;
+    const realIdx = state.budget.indexOf(expenseCats[i]);
+    if(realIdx>-1) state.budget[realIdx].budget = val;
+  });
+  state.lastBudgetReviewMonth = currentMonthKey();
+  await saveState();
+  render();
+  document.getElementById('newmonth-backdrop').classList.remove('open');
+  showToast('✅ Budget set for the month!');
 });
 
 function wireSeg(id, onChange){
@@ -3339,6 +3407,17 @@ function storyDonutSVG(slices){
 function storyBar(label, valueText, pct, color){
   return `<div class="story-row"><div style="width:128px; flex-shrink:0; color:var(--ink-soft);">${storyEsc(label)}</div><div class="story-track"><div class="story-fill" style="width:${Math.max(0,Math.min(100,pct))}%; ${color?`background:${color};`:''}"></div></div><div style="min-width:86px; text-align:right; font-weight:700;">${valueText}</div></div>`;
 }
+// Shared by the story report and the new-month budget prompt, so "what counts as a one-off"
+// is answered the same way in both places rather than two separate guesses that could drift.
+function computeRecurringSpend(txs){
+  if(!txs.length) return {total:0, oneOffTotal:0, recurring:0};
+  const total = txs.reduce((s,x)=>s+x.amount,0);
+  const med = storyMedian(txs.map(x=>x.amount));
+  const byPayee = {};
+  txs.forEach(x=>{ const key = normalizePayee(x.payee||'') || 'unknown'; (byPayee[key]=byPayee[key]||{n:0,total:0,max:0}); byPayee[key].n++; byPayee[key].total+=x.amount; byPayee[key].max=Math.max(byPayee[key].max,x.amount); });
+  const oneOffTotal = Object.values(byPayee).filter(p=>p.n===1 && p.max>=Math.max(1500,2*med)).reduce((s,p)=>s+p.total,0);
+  return {total, oneOffTotal, recurring: Math.max(0, total-oneOffTotal), n: txs.length};
+}
 
 function renderStoryReport(){
   const t = totals();
@@ -3444,7 +3523,7 @@ function renderStoryReport(){
     txs.forEach(x=>{ const key = normalizePayee(x.payee||'') || 'unknown'; (byPayee[key] = byPayee[key]||{name:x.payee||'Unknown', n:0, total:0, max:0}); byPayee[key].n++; byPayee[key].total+=x.amount; byPayee[key].max=Math.max(byPayee[key].max,x.amount); });
     const payees = Object.values(byPayee).sort((a,b)=>b.total-a.total);
     const oneOffs = payees.filter(p=>p.n===1 && p.max>=Math.max(1500, 2*med));
-    const oneOffTotal = oneOffs.reduce((s,p)=>s+p.total,0);
+    const {oneOffTotal} = computeRecurringSpend(txs);
     const dayCount = {}; const partCount = {};
     txs.forEach(x=>{ const d=new Date(x.ts); dayCount[d.getDay()]=(dayCount[d.getDay()]||0)+1; const p=partOf(d.getHours()); partCount[p]=(partCount[p]||0)+1; });
     const topDay = Object.entries(dayCount).sort((a,b)=>b[1]-a[1])[0];
@@ -3751,8 +3830,12 @@ document.getElementById('recon-close').addEventListener('click', ()=> reconBackd
 
 const monthviewBackdrop = document.getElementById('monthview-backdrop');
 let monthviewTxRefs = [];
+let monthviewSelectedDate = new Date();
 function renderMonthView(){
-  const now = new Date();
+  const now = monthviewSelectedDate;
+  const isCurrentMonth = now.getMonth()===new Date().getMonth() && now.getFullYear()===new Date().getFullYear();
+  document.getElementById('monthview-next').disabled = isCurrentMonth;
+  document.getElementById('monthview-next').style.opacity = isCurrentMonth ? 0.35 : 1;
   const monthTx = state.transactions
     .filter(t=> new Date(t.ts).getMonth()===now.getMonth() && new Date(t.ts).getFullYear()===now.getFullYear())
     .sort((a,b)=> new Date(b.ts)-new Date(a.ts));
@@ -3764,7 +3847,7 @@ function renderMonthView(){
     .sort((a,b)=> new Date(b.ts)-new Date(a.ts));
 
   document.getElementById('monthview-title').textContent = now.toLocaleDateString('en-IN',{month:'long', year:'numeric'});
-  document.getElementById('monthview-sub').textContent = `Tap any entry to edit it, including moving it to a different account`;
+  document.getElementById('monthview-sub').textContent = isCurrentMonth ? `Tap any entry to edit it, including moving it to a different account` : `Looking back — tap any entry to correct it, same as any other month`;
 
   const spendHtml = spendTx.length ? spendTx.map(tx=>{
     const i = monthviewTxRefs.indexOf(tx);
@@ -3797,8 +3880,24 @@ function renderMonthView(){
   });
 }
 document.getElementById('see-all-month-btn').addEventListener('click', ()=>{
+  monthviewSelectedDate = new Date(); // always open on the current month, even if last closed on a past one
   renderMonthView();
   monthviewBackdrop.classList.add('open');
+});
+document.getElementById('money-see-all-btn').addEventListener('click', ()=>{
+  monthviewSelectedDate = new Date();
+  renderMonthView();
+  monthviewBackdrop.classList.add('open');
+});
+document.getElementById('monthview-prev').addEventListener('click', ()=>{
+  monthviewSelectedDate = new Date(monthviewSelectedDate.getFullYear(), monthviewSelectedDate.getMonth()-1, 1);
+  renderMonthView();
+});
+document.getElementById('monthview-next').addEventListener('click', ()=>{
+  const now = new Date();
+  if(monthviewSelectedDate.getMonth()===now.getMonth() && monthviewSelectedDate.getFullYear()===now.getFullYear()) return; // no future months to show
+  monthviewSelectedDate = new Date(monthviewSelectedDate.getFullYear(), monthviewSelectedDate.getMonth()+1, 1);
+  renderMonthView();
 });
 document.getElementById('monthview-close').addEventListener('click', ()=> monthviewBackdrop.classList.remove('open'));
 
