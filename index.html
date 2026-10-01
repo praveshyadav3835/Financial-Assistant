@@ -206,7 +206,7 @@
   .donut-legend .dl-amt{font-family:'Manrope',sans-serif; font-size:13px; font-weight:700; color:var(--ink);}
   .person-block + .person-block{margin-top:11px; padding-top:11px; border-top:1px dashed var(--line);}
 
-  nav.tabbar{position:sticky; bottom:calc(env(safe-area-inset-bottom,0) + 10px); max-width:452px; margin:0 auto; background:var(--card); backdrop-filter:blur(10px); border:1px solid var(--line); border-radius:24px; display:flex; padding:8px 6px; width:calc(100% - 28px); box-shadow:var(--shadow-md); transition:background .25s ease;}
+  nav.tabbar{position:fixed; left:0; right:0; bottom:calc(env(safe-area-inset-bottom,0) + 10px); max-width:452px; margin:0 auto; background:var(--card); backdrop-filter:blur(10px); border:1px solid var(--line); border-radius:24px; display:flex; padding:8px 6px; width:calc(100% - 28px); box-shadow:var(--shadow-md); transition:background .25s ease; z-index:40;}
   nav.tabbar button{flex:1; background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:3px; font-family:'Manrope',sans-serif; font-size:10.5px; font-weight:700; color:var(--ink-soft); padding:7px 2px; border-radius:16px; cursor:pointer; transition:background .15s ease, color .15s ease;}
   nav.tabbar button.active{background:var(--coral-dim);}
   nav.tabbar button[data-tab="home"]{color:var(--coral); opacity:0.55;}
@@ -226,6 +226,24 @@
   @media (max-width:480px){ .fab{right:18px;} }
 
   .sheet-backdrop{position:fixed; inset:0; background:rgba(44,32,48,0.55); display:none; align-items:flex-end; justify-content:center; z-index:50;}
+  /* A real full-screen page, not a sheet peeking over the previous one — nothing of the
+     screen underneath stays visible. Used going forward for anything that was previously a
+     bottom sheet but is being converted to its own page (see JS: openFullscreen/closeFullscreen). */
+  .fullscreen-page{position:fixed; inset:0; background:var(--paper); z-index:65; display:none; flex-direction:column; transition:background .25s ease;}
+  .fullscreen-page.open{display:flex;}
+  .fs-header{display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top,0px) + 16px) 18px 14px; flex-shrink:0;}
+  .fs-header h2{font-size:19px; margin:0; flex:1;}
+  .fs-back{width:38px; height:38px; border-radius:50%; border:none; background:var(--paper-dim); color:var(--ink); font-size:18px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;}
+  .fs-action{width:38px; height:38px; border-radius:50%; border:none; background:var(--paper-dim); color:var(--ink); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;}
+  .fs-body{flex:1; overflow-y:auto; padding:0 18px calc(env(safe-area-inset-bottom,0px) + 30px); -webkit-overflow-scrolling:touch;}
+  .period-tabs{display:flex; background:var(--paper-dim); border-radius:14px; padding:4px; margin-bottom:14px;}
+  .period-tabs button{flex:1; background:none; border:none; padding:9px 4px; border-radius:11px; font-family:'Manrope',sans-serif; font-size:13px; font-weight:700; color:var(--ink-soft); cursor:pointer;}
+  .period-tabs button.on{background:var(--card); color:var(--ink); box-shadow:var(--shadow-sm);}
+  .period-nav{display:flex; align-items:center; justify-content:space-between; background:var(--paper-dim); border-radius:14px; padding:10px 14px; margin-bottom:14px;}
+  .period-nav button{background:none; border:none; font-size:18px; color:var(--ink-soft); cursor:pointer; padding:4px 10px;}
+  .period-nav .period-label{text-align:center; flex:1;}
+  .period-nav .period-label .main{font-weight:800; font-size:15px;}
+  .period-nav .period-label .sub{font-size:11px; color:var(--ink-soft); letter-spacing:.04em;}
   #story-overlay{position:fixed; inset:0; background:var(--paper); z-index:60; overflow-y:auto; display:none; -webkit-overflow-scrolling:touch;}
   #story-overlay.open{display:block;}
   .story-wrap{max-width:640px; margin:0 auto; padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 70px;}
@@ -357,15 +375,19 @@
       <div id="pending-review-wrap"></div>
       <div id="learning-match-wrap"></div>
       <div id="last-fetch-summary-wrap"></div>
-      <div class="bento">
-        <div class="bento-tile hero" data-breakdown="networth" style="border:1px solid var(--peri);"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim); color:var(--peri);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></div><div class="bt-label">Net Worth — Realistically Accessible</div></div><div class="bt-value maskable" id="ov-networth">—</div><div class="section-sub" id="ov-networth-sub" style="margin-top:2px;"></div></div>
-        <div class="bento-tile hero" data-breakdown="cash"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim); color:var(--icon-pos);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10h19"/><circle cx="16.5" cy="14" r="1.2" fill="currentColor" stroke="none"/></svg></div><div class="bt-label">Liquid Bank Cash</div></div><div class="bt-value pos maskable" id="ov-cash">—</div></div>
-        <div class="bento-tile hero" data-breakdown="cards"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim); color:var(--icon-neg);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5.5" width="19" height="13" rx="2"/><path d="M2.5 10h19"/><path d="M6 15h4"/></svg></div><div class="bt-label">Credit Card Dues</div></div><div class="bt-value neg maskable" id="ov-cards">—</div></div>
-        <div class="bento-tile" data-breakdown="sink"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim); color:var(--icon-neutral);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 5l9 5.5"/><path d="M4.5 10.5v8M9 10.5v8M15 10.5v8M19.5 10.5v8"/><path d="M3 20.5h18"/></svg></div><div class="bt-label">Sinking Fund</div></div><div class="bt-value maskable" id="ov-sink">—</div></div>
-        <div class="bento-tile" data-breakdown="invest"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim); color:var(--icon-pos);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5.5-6.5L13 15l8-9"/><path d="M17 6h4v4"/></svg></div><div class="bt-label">Investments</div></div><div class="bt-value pos maskable" id="ov-invest">—</div></div>
-        <div class="bento-tile" data-breakdown="otherassets"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim); color:var(--icon-pos);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M9.5 12h5M12 9v6"/></svg></div><div class="bt-label">Gold, Property, NPS &amp; EPF</div></div><div class="bt-value maskable" id="ov-otherassets">—</div></div>
-        <div class="bento-tile" data-breakdown="recv"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim); color:var(--icon-pos);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12.5 6 9l3 2 2-2 2 2 3-2 3.5 3.5"/><path d="M6 9v4l3 3 2-2 2 2 3-3V9"/></svg></div><div class="bt-label">Receivables</div></div><div class="bt-value pos maskable" id="ov-recv">—</div></div>
-        <div class="bento-tile" data-breakdown="pay"><div class="bt-top"><div class="bt-icon" style="background:var(--paper-dim); color:var(--icon-neg);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10M8 9l4-4 4 4"/><path d="M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/></svg></div><div class="bt-label">Family Payables</div></div><div class="bt-value neg maskable" id="ov-pay">—</div></div>
+      <div class="card" id="home-cashflow-card" style="cursor:pointer; margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div style="font-size:11px; font-weight:800; letter-spacing:.08em; color:var(--ink-soft);">CASH FLOW</div>
+          <select id="home-cf-month" style="background:var(--paper-dim); border:none; border-radius:10px; padding:6px 10px; font-family:'Manrope',sans-serif; font-size:12px; font-weight:700; color:var(--ink);"></select>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:12px;">
+          <div><div style="font-size:11px; font-weight:700; color:var(--icon-neg);">EXPENSES</div><div style="font-size:24px; font-weight:800;" class="maskable" id="home-cf-expense">—</div></div>
+          <div style="text-align:right;"><div style="font-size:11px; font-weight:700; color:var(--icon-pos);">INCOME</div><div style="font-size:24px; font-weight:800;" class="maskable" id="home-cf-income">—</div></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--paper-dim); border-radius:12px; padding:10px 14px; margin-top:12px;">
+          <div style="font-size:12px; color:var(--ink-soft);">Net Balance</div>
+          <div style="font-weight:800;" class="maskable" id="home-cf-net">—</div>
+        </div>
       </div>
       <div class="divider-label">This month</div>
       <div class="card">
@@ -463,12 +485,6 @@
       <div class="field"><label>Move into category</label><input id="bulk-recat-cat" placeholder="e.g. Goa Trip"></div>
       <button class="btn-primary" id="bulk-recat-btn" style="background:var(--rose);">Recategorize this range</button>
 
-      <div class="divider-label">Export expenses</div>
-      <p class="section-sub">Download a CSV of everything logged in a date range — open it in Excel, Sheets, or wherever you need it.</p>
-      <div class="field"><label>From</label><input id="export-from" type="date"></div>
-      <div class="field"><label>To</label><input id="export-to" type="date"></div>
-      <button class="btn-ghost" id="export-csv-btn">📥 Download CSV</button>
-
       <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-09-05 · v56-csv-import-format</p>
     </section>
   </main>
@@ -477,7 +493,7 @@
 
   <nav class="tabbar">
     <button data-tab="home" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>Home</button>
-    <button data-tab="money"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/></svg>Money</button>
+    <button data-tab="money"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/></svg>Accounts</button>
     <button data-tab="people"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="18" cy="9" r="2.4"/><path d="M15.5 14.2c2.6.2 5 2.2 5 5.8"/></svg>People</button>
     <button data-tab="invest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l5-6 4 4 8-10"/><path d="M15 5h5v5"/></svg>Invest</button>
     <button data-tab="budget"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="8"/><rect x="12" y="7" width="3" height="12"/><rect x="17" y="13" width="3" height="6"/></svg>Budget</button>
@@ -808,6 +824,50 @@
   </div>
 </div>
 
+<div class="fullscreen-page" id="analysis-page">
+  <div class="fs-header">
+    <button class="fs-back" id="analysis-back-btn">←</button>
+    <h2>Analysis</h2>
+    <button class="fs-action" id="analysis-download-btn">⬇️</button>
+  </div>
+  <div class="fs-body">
+    <div class="period-tabs" id="analysis-period-tabs">
+      <button data-period="week">Week</button>
+      <button data-period="month" class="on">Month</button>
+      <button data-period="year">Year</button>
+      <button data-period="custom">Custom</button>
+    </div>
+    <div id="analysis-custom-row" class="hide" style="display:flex; gap:8px; margin-bottom:14px;">
+      <input type="date" id="analysis-custom-from" style="flex:1; padding:9px; border-radius:10px; border:1px solid var(--line); font-family:'Manrope',sans-serif;">
+      <input type="date" id="analysis-custom-to" style="flex:1; padding:9px; border-radius:10px; border:1px solid var(--line); font-family:'Manrope',sans-serif;">
+    </div>
+    <div class="period-nav" id="analysis-period-nav">
+      <button id="analysis-prev">‹</button>
+      <div class="period-label"><div class="main" id="analysis-period-main">—</div><div class="sub" id="analysis-period-sub">—</div></div>
+      <button id="analysis-next">›</button>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex; justify-content:space-between;">
+        <div><div style="font-size:11px; font-weight:700; color:var(--icon-neg);">EXPENSES</div><div style="font-size:22px; font-weight:800;" class="maskable" id="analysis-expense">—</div></div>
+        <div style="text-align:right;"><div style="font-size:11px; font-weight:700; color:var(--icon-pos);">INCOME</div><div style="font-size:22px; font-weight:800;" class="maskable" id="analysis-income">—</div></div>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; background:var(--paper-dim); border-radius:12px; padding:10px 14px; margin-top:12px;">
+        <div style="font-size:12px; color:var(--ink-soft);">Net Balance</div>
+        <div style="font-weight:800;" class="maskable" id="analysis-net">—</div>
+      </div>
+    </div>
+    <div class="divider-label">Categories</div>
+    <div class="card">
+      <div class="period-tabs" style="margin-bottom:16px;" id="analysis-catmode-tabs">
+        <button data-catmode="expense" class="on">Expenses</button>
+        <button data-catmode="income">Income</button>
+      </div>
+      <div style="display:flex; justify-content:center; margin-bottom:10px;"><svg id="analysis-donut" viewBox="0 0 170 170" width="190" height="190"></svg></div>
+      <div id="analysis-cat-list"></div>
+    </div>
+  </div>
+</div>
+
 <div id="story-overlay"><div class="story-wrap"><button class="btn-ghost" id="story-close-btn" style="margin:0 0 14px; width:auto; padding:8px 16px;">✕ Close</button><div id="story-body"></div></div></div>
 
 <div class="sheet-backdrop" id="acctstatement-backdrop">
@@ -883,6 +943,10 @@ const fmt = n => {
   return (neg? '-₹':'₹') + s;
 };
 const slugify = s => s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'') + '_' + Math.floor(Math.random()*10000);
+// Generic full-screen page open/close — the replacement for a bottom sheet when the screen
+// underneath should genuinely disappear rather than stay visible/dimmed behind it.
+function openFullscreen(id){ const el = document.getElementById(id); if(el) el.classList.add('open'); }
+function closeFullscreen(id){ const el = document.getElementById(id); if(el) el.classList.remove('open'); }
 const genId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
 
 // ---- Classic monochrome icon set (SVG, outline style, currentColor) ----
@@ -2145,18 +2209,7 @@ function render(){
   document.getElementById('hdr-gap').className = 'v' + (t.gap<0?' neg':' pos');
 
   document.getElementById('home-date').textContent = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
-  document.getElementById('ov-cash').textContent = fmt(t.cash);
-  document.getElementById('ov-cards').textContent = fmt(Math.abs(t.cardTotal));
-  document.getElementById('ov-sink').textContent = fmt(t.sink);
-  document.getElementById('ov-recv').textContent = fmt(Math.abs(t.recv));
-  document.getElementById('ov-pay').textContent = fmt(Math.abs(t.pay));
-  document.getElementById('ov-invest').textContent = fmt(t.invest);
-  document.getElementById('ov-otherassets').textContent = fmt(t.otherAssetsTotal);
-  document.getElementById('ov-networth').textContent = fmt(t.netWorthAccessible);
-  const lockedAway = t.netWorthTotal - t.netWorthAccessible;
-  document.getElementById('ov-networth-sub').textContent = lockedAway > 1
-    ? `${fmt(t.netWorthTotal)} total · ${fmt(lockedAway)} locked in NPS annuity`
-    : `${fmt(t.netWorthTotal)} total`;
+  renderHomeCashFlowCard();
 
   const m = monthTotals();
   document.getElementById('mo-income').textContent = fmt(m.income);
@@ -3656,6 +3709,170 @@ function renderStoryReport(){
     renderStoryReport();
   }));
 }
+// ---------------------------------------------------------------------------
+// Analysis — the full-screen Cash Flow / category breakdown page, opened from Home's compact
+// Cash Flow card. One period state (week/month/year/custom) drives both the summary numbers
+// and the category donut+list below it.
+// ---------------------------------------------------------------------------
+let analysisMode = 'month';
+let analysisAnchor = new Date();
+let analysisCatMode = 'expense';
+function periodBounds(mode, anchor){
+  const d = new Date(anchor);
+  if(mode==='week'){
+    const day = d.getDay();
+    const start = new Date(d); start.setDate(d.getDate()-day); start.setHours(0,0,0,0);
+    const end = new Date(start); end.setDate(start.getDate()+7);
+    const endIncl = new Date(end.getTime()-1);
+    return {start, end, main:`${start.toLocaleDateString('en-IN',{day:'numeric',month:'short'})} – ${endIncl.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}`, sub:start.getFullYear()};
+  }
+  if(mode==='year'){
+    const start = new Date(d.getFullYear(),0,1);
+    const end = new Date(d.getFullYear()+1,0,1);
+    return {start, end, main:String(d.getFullYear()), sub:'YEAR'};
+  }
+  if(mode==='custom'){
+    const fromVal = document.getElementById('analysis-custom-from').value;
+    const toVal = document.getElementById('analysis-custom-to').value;
+    const start = fromVal ? new Date(fromVal) : new Date(d.getFullYear(),d.getMonth(),1);
+    const end = toVal ? new Date(new Date(toVal).getTime()+24*60*60*1000) : new Date();
+    return {start, end, main:`${start.toLocaleDateString('en-IN',{day:'numeric',month:'short'})} – ${new Date(end.getTime()-1).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}`, sub:'CUSTOM'};
+  }
+  const start = new Date(d.getFullYear(), d.getMonth(), 1);
+  const end = new Date(d.getFullYear(), d.getMonth()+1, 1);
+  return {start, end, main:start.toLocaleDateString('en-IN',{month:'long',year:'numeric'}), sub:''};
+}
+function analysisData(start, end){
+  const tx = state.transactions.filter(t=> t.type!=='transfer' && new Date(t.ts)>=start && new Date(t.ts)<end);
+  const inc = tx.filter(t=>t.type==='income');
+  const exp = tx.filter(t=>t.type==='expense');
+  const income = inc.reduce((s,t)=>s+t.amount,0);
+  const spending = exp.reduce((s,t)=>s+t.amount,0);
+  const group = list => { const m={}; list.forEach(t=>{ const b=findBudgetRowForCategory(t.category); const k=b?b.cat:(t.category||OTHER_EXPENSE_CAT); m[k]=(m[k]||0)+t.amount; }); return m; };
+  return {count:tx.length, income, spending, net:income-spending, expCats:group(exp), incCats:group(inc)};
+}
+function analysisDonutSVG(entries, total){
+  if(!total) return '';
+  const r=64, cx=85, cy=85, c=2*Math.PI*r;
+  let off=0;
+  const palette = ['#8E9AAF','#C77F73','#E8A33D','#7EA88C','#9B7FD4','#4FA9C9','#D4537E','#B5A13E'];
+  const arcs = entries.map((e,i)=>{
+    const len=(e[1]/total)*c;
+    const color = palette[i%palette.length];
+    const a = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="26" stroke-dasharray="${len} ${c-len}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})"/>`;
+    off+=len; return {svg:a, color};
+  });
+  return {svg: arcs.map(a=>a.svg).join(''), colors: arcs.map(a=>a.color)};
+}
+function renderAnalysisPage(){
+  const p = periodBounds(analysisMode, analysisAnchor);
+  document.getElementById('analysis-period-main').textContent = p.main;
+  document.getElementById('analysis-period-sub').textContent = p.sub ? `${p.sub}` : '';
+  document.getElementById('analysis-custom-row').classList.toggle('hide', analysisMode!=='custom');
+  document.getElementById('analysis-period-nav').classList.toggle('hide', analysisMode==='custom');
+  const d = analysisData(p.start, p.end);
+  document.getElementById('analysis-expense').textContent = fmt(d.spending);
+  document.getElementById('analysis-income').textContent = fmt(d.income);
+  const netEl = document.getElementById('analysis-net');
+  netEl.textContent = (d.net<0?'-':'') + fmt(Math.abs(d.net));
+  netEl.className = d.net<0 ? 'neg' : 'pos';
+
+  const cats = analysisCatMode==='expense' ? d.expCats : d.incCats;
+  const entries = Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+  const total = entries.reduce((s,e)=>s+e[1],0);
+  const donut = analysisDonutSVG(entries, total);
+  document.getElementById('analysis-donut').innerHTML = donut ? donut.svg : '';
+  document.getElementById('analysis-cat-list').innerHTML = entries.length ? entries.map(([cat,val],i)=>{
+    const meta = catMeta(cat);
+    const pct = total>0 ? (val/total*100) : 0;
+    const color = donut.colors[i];
+    return `<div class="row" data-analysiscat="${storyEsc(cat)}" style="cursor:pointer;">
+      <div class="chip-icon" style="background:${color}22; color:${color};">${meta.em}</div>
+      <div style="flex:1; margin:0 10px;">${storyCatLabel(cat)}<div style="font-size:11px; color:var(--ink-soft);">${pct.toFixed(1)}%</div></div>
+      <div class="amt maskable">${fmt(val)}</div>
+    </div>`;
+  }).join('') : '<div class="empty" style="padding:14px 0;">Nothing logged in this period.</div>';
+
+  document.getElementById('analysis-download-btn').onclick = ()=> downloadTransactionsCSV(p.start, new Date(p.end.getTime()-1), p.main.replace(/\s+/g,'_'));
+}
+document.getElementById('home-cashflow-card').addEventListener('click', (e)=>{
+  if(e.target.id==='home-cf-month') return; // the dropdown handles its own click
+  analysisMode='month'; analysisAnchor = homeCfAnchor;
+  renderAnalysisPage();
+  openFullscreen('analysis-page');
+});
+document.getElementById('analysis-back-btn').addEventListener('click', ()=> closeFullscreen('analysis-page'));
+document.querySelectorAll('#analysis-period-tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#analysis-period-tabs button').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+    analysisMode = btn.dataset.period;
+    if(analysisMode==='custom'){
+      const f=document.getElementById('analysis-custom-from'), t=document.getElementById('analysis-custom-to');
+      if(!f.value){ const n=new Date(); f.value=new Date(n.getFullYear(),n.getMonth(),1).toISOString().slice(0,10); t.value=n.toISOString().slice(0,10); }
+    }
+    renderAnalysisPage();
+  });
+});
+document.getElementById('analysis-custom-from').addEventListener('change', renderAnalysisPage);
+document.getElementById('analysis-custom-to').addEventListener('change', renderAnalysisPage);
+document.getElementById('analysis-prev').addEventListener('click', ()=>{
+  const a = new Date(analysisAnchor);
+  if(analysisMode==='week') a.setDate(a.getDate()-7);
+  else if(analysisMode==='year') a.setFullYear(a.getFullYear()-1);
+  else a.setMonth(a.getMonth()-1);
+  analysisAnchor = a; renderAnalysisPage();
+});
+document.getElementById('analysis-next').addEventListener('click', ()=>{
+  const a = new Date(analysisAnchor);
+  if(analysisMode==='week') a.setDate(a.getDate()+7);
+  else if(analysisMode==='year') a.setFullYear(a.getFullYear()+1);
+  else a.setMonth(a.getMonth()+1);
+  analysisAnchor = a; renderAnalysisPage();
+});
+document.querySelectorAll('#analysis-catmode-tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#analysis-catmode-tabs button').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+    analysisCatMode = btn.dataset.catmode;
+    renderAnalysisPage();
+  });
+});
+
+// Home's compact Cash Flow card — its own simple month dropdown (last 12 months), independent
+// of the full Analysis page's week/year/custom options, since Home only ever needs "which
+// recent month" at a glance.
+let homeCfAnchor = new Date();
+function renderHomeCashFlowCard(){
+  const sel = document.getElementById('home-cf-month');
+  if(!sel.options.length){
+    const now = new Date();
+    for(let i=0;i<12;i++){
+      const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = d.toLocaleDateString('en-IN',{month:'short',year:'numeric'});
+      sel.appendChild(opt);
+    }
+  }
+  const now = new Date();
+  const monthsAgo = now.getMonth() - homeCfAnchor.getMonth() + (now.getFullYear()-homeCfAnchor.getFullYear())*12;
+  sel.value = monthsAgo;
+  const p = periodBounds('month', homeCfAnchor);
+  const d = analysisData(p.start, p.end);
+  document.getElementById('home-cf-expense').textContent = fmt(d.spending);
+  document.getElementById('home-cf-income').textContent = fmt(d.income);
+  const netEl = document.getElementById('home-cf-net');
+  netEl.textContent = (d.net<0?'-':'') + fmt(Math.abs(d.net));
+  netEl.className = 'maskable ' + (d.net<0 ? 'neg' : 'pos');
+}
+document.getElementById('home-cf-month').addEventListener('click', e=> e.stopPropagation());
+document.getElementById('home-cf-month').addEventListener('change', e=>{
+  const now = new Date();
+  homeCfAnchor = new Date(now.getFullYear(), now.getMonth()-parseInt(e.target.value), 1);
+  renderHomeCashFlowCard();
+});
+
 document.getElementById('open-story-btn').addEventListener('click', ()=>{
   renderStoryReport();
   document.getElementById('story-overlay').classList.add('open');
@@ -3709,28 +3926,19 @@ document.getElementById('bulk-recat-btn').addEventListener('click', async ()=>{
 const nowForExport = new Date();
 const monthStart = new Date(nowForExport.getFullYear(), nowForExport.getMonth(), 1);
 const monthEnd = new Date(nowForExport.getFullYear(), nowForExport.getMonth()+1, 0);
-document.getElementById('export-from').value = monthStart.toISOString().slice(0,10);
-document.getElementById('export-to').value = monthEnd.toISOString().slice(0,10);
 
 function csvEscape(val){
   const s = String(val==null ? '' : val);
   return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
 }
-document.getElementById('export-csv-btn').addEventListener('click', ()=>{
-  const fromVal = document.getElementById('export-from').value;
-  const toVal = document.getElementById('export-to').value;
-  if(!fromVal || !toVal){ alert('Please pick both dates.'); return; }
-  const from = new Date(fromVal);
-  const to = new Date(toVal); to.setHours(23,59,59,999);
+// Shared CSV builder — the Analysis screen's download button uses this for whatever period
+// is currently selected there; this used to be a separate standalone export control, now
+// folded into Analysis since every other period/date filter already lives there too.
+function downloadTransactionsCSV(from, to, labelForFilename){
   const rows = state.transactions
     .filter(t=> new Date(t.ts) >= from && new Date(t.ts) <= to)
     .sort((a,b)=> new Date(a.ts)-new Date(b.ts));
-  if(!rows.length){ alert('No transactions found in that date range.'); return; }
-  // Matches the sample import file exactly: Date (YYYY-MM-DD HH:MM:SS), Amount (plain,
-  // unsigned), Category, Payment Mode, Type (Expense/Income/Transfer), To Payment Mode (only
-  // for transfers), Note. Timestamps are stored as local time without a zone, so the date is
-  // built from local parts — going through toISOString() would shift it to UTC and can move
-  // a late-evening transaction onto the wrong day.
+  if(!rows.length){ alert('No transactions found in that period.'); return; }
   const pad = n => String(n).padStart(2,'0');
   const csvDate = ts => { const d = new Date(ts); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
   const header = ['Date','Amount','Category','Payment Mode','Type','To Payment Mode','Note'];
@@ -3749,13 +3957,13 @@ document.getElementById('export-csv-btn').addEventListener('click', ()=>{
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `transactions_${fromVal}_to_${toVal}.csv`;
+  a.download = `transactions_${labelForFilename}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   showToast(`✓ Downloaded ${rows.length} transaction(s).`);
-});
+}
 
 // ---- RECONCILIATION ----
 // ---- MANUAL BALANCE ADJUSTMENT (also used as reconciliation "suspense" fix) ----
