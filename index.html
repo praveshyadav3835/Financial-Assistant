@@ -328,6 +328,24 @@
   .email-fetch .btn-primary{width:auto; margin:0; padding:11px 18px; background:var(--peri); font-size:14px; white-space:nowrap;}
   .email-fetch .btn-primary:disabled{opacity:0.6;}
 
+  /* Account statement — balance card, underline tabs, one flat list of rows */
+  .stmt-hero{margin-bottom:12px; padding:18px;}
+  .stmt-incorrect{font-size:13px; color:var(--ink-soft); margin-top:8px;}
+  .stmt-incorrect button{background:none; border:none; padding:0; font-family:'Manrope',sans-serif; font-size:13px; font-weight:800; color:var(--ink); cursor:pointer;}
+  .stmt-tabs{display:flex; gap:4px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--paper); z-index:2; margin:4px -18px 0; padding:0 18px;}
+  .stmt-tabs button{background:none; border:none; border-bottom:3px solid transparent; margin-bottom:-1px; padding:13px 14px 11px; font-family:'Manrope',sans-serif; font-size:14px; font-weight:700; color:var(--ink-soft); cursor:pointer; white-space:nowrap;}
+  .stmt-tabs button.on{color:var(--ink); border-bottom-color:var(--ink);}
+  .stmt-row{display:flex; align-items:center; gap:12px; padding:14px 0; border-bottom:1px solid var(--line);}
+  .stmt-row:active{background:var(--paper-dim);}
+  .stmt-row .sr-date{width:54px; flex-shrink:0; font-size:12.5px; color:var(--ink-soft);}
+  .stmt-row .sr-body{flex:1; min-width:0;}
+  .stmt-row .sr-label{font-size:14.5px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .stmt-row .sr-sub{font-size:11.5px; color:var(--ink-soft); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .stmt-row .sr-amt{font-size:15px; font-weight:700; color:var(--ink); white-space:nowrap;}
+  .stmt-row .sr-amt.debit{color:var(--debt);}
+  .stmt-row .sr-amt.credit{color:var(--sage);}
+  .stmt-row.adj:active{background:none;}
+
   /* Budget on Home — one compact row per category */
   .hb-row{display:flex; align-items:center; gap:11px; padding:10px 0; border-top:1px solid var(--line); cursor:pointer;}
   .hb-row:first-child{border-top:none;}
@@ -345,6 +363,8 @@
   .bp-row:first-child{border-top:none; padding-top:2px;}
   .bp-row .bp-head{display:flex; align-items:center; gap:11px;}
   .bp-row .bp-name{flex:1; min-width:0; font-size:13.5px; font-weight:700; color:var(--ink);}
+  .bp-name-btn{background:none; border:none; padding:6px 0; text-align:left; font-family:'Manrope',sans-serif; cursor:pointer;}
+  .bp-pencil{font-size:12px; color:var(--peri); margin-left:3px; font-weight:400;}
   .bp-input{width:104px; padding:9px 10px; border-radius:10px; border:1.5px solid var(--line); background:var(--card); color:var(--ink); text-align:right; font-family:'Manrope',sans-serif; font-size:14px; font-weight:700; flex-shrink:0;}
   .bp-row .bp-last{font-size:12px; color:var(--ink-soft); margin:8px 0 0 49px;}
   .bp-row .bp-last b{color:var(--ink); font-weight:800;}
@@ -451,6 +471,8 @@
       <div id="pending-review-wrap"></div>
       <div id="learning-match-wrap"></div>
       <div id="last-fetch-summary-wrap"></div>
+      <div class="divider-label">This month's spending pace</div>
+      <div class="card" id="trend-chart-wrap"></div>
       <div class="divider-label" style="display:flex; justify-content:space-between; align-items:center;">
         <span>Recent activity</span>
         <button class="link-btn" id="see-all-month-btn" style="font-size:12px;">See all transactions →</button>
@@ -528,13 +550,12 @@
         <div style="display:flex; justify-content:center; margin-bottom:10px;"><svg id="analysis-donut" viewBox="0 0 170 170" width="210" height="210"></svg></div>
         <div id="analysis-cat-list"></div>
       </div>
-      <!-- Budget lives here now, not on Home. The element ids keep their "home-" prefix. -->
+      <!-- Budget categories live here, not on Home (only the spending-pace card is on Home). The element ids keep their "home-" prefix. -->
       <div class="divider-label" style="display:flex; justify-content:space-between; align-items:center;">
         <span id="home-budget-title">Budget</span>
         <button class="link-btn" id="home-budget-edit-btn" style="font-size:12px;">✏️ Edit budget →</button>
       </div>
       <div id="home-budget-nudge"></div>
-      <div class="card" id="trend-chart-wrap"></div>
       <div class="card" id="home-budget-list"></div>
       <div class="divider-label">Month-end</div>
       <button class="btn-primary" id="open-story-btn" style="margin-bottom:10px;">📖 Open the month-end story</button>
@@ -778,15 +799,27 @@
 <!-- EDIT TRANSACTION SHEET -->
 <div class="sheet-backdrop" id="edittx-backdrop">
   <div class="sheet">
-    <h3>Edit this entry</h3>
-    <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">Category</label>
-    <div class="pick-summary" id="edit-cat-summary"></div>
-    <div class="cat-grid hide" id="edit-cat-grid"></div>
-    <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">Account</label>
-    <div class="pick-summary" id="edit-acct-summary"></div>
-    <div class="pick-list hide" id="edit-acct-row"></div>
-    <div class="field"><label>Who / what was this?</label><input id="edit-payee" placeholder=""></div>
+    <h3 id="edittx-heading">Edit this entry</h3>
+    <div id="edit-regular-fields">
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">Category</label>
+      <div class="pick-summary" id="edit-cat-summary"></div>
+      <div class="cat-grid hide" id="edit-cat-grid"></div>
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">Account</label>
+      <div class="pick-summary" id="edit-acct-summary"></div>
+      <div class="pick-list hide" id="edit-acct-row"></div>
+      <div class="field"><label>Who / what was this?</label><input id="edit-payee" placeholder=""></div>
+    </div>
+    <div id="edit-transfer-fields" class="hide">
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">From</label>
+      <div class="pick-summary" id="edit-from-summary"></div>
+      <div class="pick-list hide" id="edit-from-row"></div>
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">To</label>
+      <div class="pick-summary" id="edit-to-summary"></div>
+      <div class="pick-list hide" id="edit-to-row"></div>
+      <div class="field"><label>Note <span style="font-weight:400;">(optional)</span></label><input id="edit-transfer-note" placeholder="e.g. clearing the SIB card bill"></div>
+    </div>
     <div class="field"><label>Amount (₹)</label><input id="edit-amount" type="number" inputmode="decimal"></div>
+    <div class="field"><label>Date</label><input id="edit-date" type="date"></div>
     <button class="btn-primary" id="edittx-save">Save changes</button>
     <button class="btn-ghost" id="edittx-delete" style="color:var(--debt); border-color:var(--debt);">Delete this entry</button>
     <button class="btn-ghost" id="edittx-cancel">Cancel</button>
@@ -858,6 +891,19 @@
   </div>
 </div>
 
+<!-- ADD / EDIT A BUDGET CATEGORY -->
+<div class="sheet-backdrop" id="catedit-backdrop">
+  <div class="sheet">
+    <h3 id="catedit-title">Edit category</h3>
+    <div class="field"><label>Category name</label><input id="catedit-name" maxlength="60" placeholder="e.g. Pravesh Commute"></div>
+    <div class="field"><label id="catedit-budget-label">Monthly budget (₹)</label><input id="catedit-budget" type="number" inputmode="numeric" min="0" placeholder="0"></div>
+    <p class="section-sub" id="catedit-note"></p>
+    <button class="btn-primary" id="catedit-save">Save</button>
+    <button class="btn-ghost" id="catedit-delete" style="color:var(--debt); border-color:var(--debt);">Delete this category</button>
+    <button class="btn-ghost" id="catedit-cancel">Cancel</button>
+  </div>
+</div>
+
 <div class="sheet-backdrop" id="breakdown-backdrop">
   <div class="sheet" style="max-height:80vh; overflow-y:auto;">
     <h3 id="breakdown-title">Breakdown</h3>
@@ -898,12 +944,14 @@
       <div id="bp-track"></div>
       <div class="divider-label" id="bp-this-label">This month — suggestion and your budget</div>
       <p class="section-sub" id="bp-suggest-note"></p>
+      <p class="section-sub" style="margin-top:-8px;">Tap a category's name (✎) to rename or delete it.</p>
       <button class="btn-ghost" id="bp-apply-all" style="margin:0 0 12px;">Use all suggestions</button>
       <div class="card" id="bp-rows"></div>
       <button class="link-btn" id="bp-add-cat" style="margin:4px 0 6px;">+ Add a category</button>
       <div id="bp-special-wrap"></div>
       <div class="divider-label">Expected income</div>
       <div class="card" id="bp-income-rows"></div>
+      <button class="link-btn" id="bp-add-income-cat" style="margin:4px 0 6px;">+ Add an income category</button>
       <div class="bp-footer">
         <div id="bp-totals"></div>
         <button class="btn-primary" id="bp-save">Save budget</button>
@@ -941,7 +989,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">🗑️ Clear transactions since a date</button>
     <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-04 · v58-budget-on-insights</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-05 · v60-category-edit-pace-on-home</p>
   </div>
 </div>
 
@@ -951,12 +999,20 @@
   <div class="fs-header">
     <button class="fs-back" id="acctstatement-close" aria-label="Back">←</button>
     <h2 id="acctstatement-title">Statement</h2>
+    <button class="fs-action" id="acctstatement-adjust-btn" title="Adjust balance" aria-label="Adjust balance"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-6"/><path d="M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+    <button class="fs-action" id="acctstatement-add-btn" title="Add a transaction" aria-label="Add a transaction" style="font-size:22px; line-height:1;">+</button>
   </div>
   <div class="fs-body">
     <div id="acctstatement-hero"></div>
-    <p class="section-sub" id="acctstatement-sub"></p>
-    <div class="card" id="acctstatement-list"></div>
-    <button class="btn-ghost" id="acctstatement-reset" style="margin-top:14px;">🔄 Reset statement — start fresh from today</button>
+    <div id="acctstatement-warning"></div>
+    <div class="stmt-tabs" id="acctstatement-tabs">
+      <button data-stmttab="all" class="on">All</button>
+      <button data-stmttab="credit">Credit</button>
+      <button data-stmttab="debit">Debit</button>
+      <button data-stmttab="adjust">Adjustments</button>
+    </div>
+    <div id="acctstatement-list"></div>
+    <button class="btn-ghost" id="acctstatement-reset" style="margin-top:18px;">🔄 Reset statement — start fresh from today</button>
   </div>
 </div>
 
@@ -1060,7 +1116,13 @@ const CAT_META = {
   "Other Investments": {em:ICON.chart, bg:CAT_ICON_BG, tint:'var(--icon-pos)'},
   "Other": {em:ICON.dots, bg:CAT_ICON_BG, tint:'var(--icon-neutral)'}
 };
-function catMeta(cat){ return CAT_META[cat] || CAT_META['Other']; }
+// A renamed built-in category keeps its icon: the budget row remembers which built-in it
+// started as (iconOf), since icons are looked up by the original name.
+function catMeta(cat){
+  if(CAT_META[cat]) return CAT_META[cat];
+  const row = (typeof state!=='undefined' && state && state.budget) ? state.budget.find(b=>b.cat===cat) : null;
+  return (row && row.iconOf && CAT_META[row.iconOf]) || CAT_META['Other'];
+}
 
 const OTHER_EXPENSE_CAT = "Other / Uncategorized";
 const SEED = {
@@ -1756,10 +1818,7 @@ function openBreakdown(kind){
     if(r.acctId){
       el.addEventListener('click', ()=>{
         breakdownBackdrop.classList.remove('open');
-        currentStatementCtx = null;
-        renderAcctStatement(r.acctId, !!r.isCard);
-        document.querySelector('#acctstatement-backdrop .fs-body').scrollTop = 0;
-        acctstatementBackdrop.classList.add('open');
+        openAcctStatement(r.acctId, !!r.isCard);
       });
     } else if(r.personId){
       el.addEventListener('click', ()=>{
@@ -1843,62 +1902,135 @@ function openBudgetDetail(cat){
 }
 document.getElementById('budgetdetail-close').addEventListener('click', ()=> budgetdetailBackdrop.classList.remove('open'));
 budgetdetailBackdrop.addEventListener('click', e=>{ if(e.target===budgetdetailBackdrop) budgetdetailBackdrop.classList.remove('open'); });
-document.getElementById('budgetdetail-edit').addEventListener('click', async ()=>{
-  const b = state.budget.find(x=>x.cat===budgetdetailCat);
-  if(!b) return;
-  if(b.cat===OTHER_EXPENSE_CAT){ alert('This is the built-in fallback category and can\'t be renamed.'); return; }
-  const newName = prompt('Category name:', b.cat);
-  if(newName===null) return;
-  const trimmedName = newName.trim();
-  if(!trimmedName) return;
-  if(trimmedName!==b.cat && state.budget.find(x=>x.cat===trimmedName)){ alert('A category with that name already exists.'); return; }
-  const newBudgetRaw = prompt('Monthly budget for this category (₹):', String(b.budget||0));
-  const newBudget = newBudgetRaw===null ? b.budget : (parseFloat(newBudgetRaw)||0);
-  const oldName = b.cat;
-  if(newBudget!==b.budget) freezePastBudgetMonths(); // write down finished months before the amount changes
-  b.cat = trimmedName;
-  b.budget = newBudget;
-  if(oldName!==trimmedName){
-    renameCategoryInBudgetRecord(oldName, trimmedName);
-    // Categories are matched by name, not id — every transaction and payee-memory entry
-    // pointing at the old name has to move with it, or they'd silently fall through to
-    // "Other / Uncategorized" the next time actuals are recomputed.
-    state.transactions.forEach(t=>{ if(t.category===oldName) t.category = trimmedName; });
-    Object.values(state.payeeMemory||{}).forEach(entry=>{
-      Object.keys(entry.counts||{}).forEach(comboKey=>{
-        if(comboKey.startsWith(oldName+'::')){
-          const rest = comboKey.slice(oldName.length+2);
-          const newKey = trimmedName+'::'+rest;
-          entry.counts[newKey] = (entry.counts[newKey]||0) + entry.counts[comboKey];
-          delete entry.counts[comboKey];
-        }
-      });
+// ---- Add / edit / delete a budget category (one sheet, used from the Budget page and
+// from a category's detail sheet) ----
+// Rule: a category with a budget allotted is a regular monthly expense. Only a category
+// with no budget is "tracked separately" (a trip or one-off event), outside the monthly total.
+function normalizeBudgetFlags(){
+  state.budget.forEach(b=>{ if(b.special && b.budget>0) b.special = false; });
+}
+// Categories are matched by name, not id — everything pointing at the old name has to move
+// with it, or it would silently fall through to "Other / Uncategorized".
+function renameCategoryEverywhere(oldName, newName){
+  state.transactions.forEach(t=>{ if(t.category===oldName) t.category = newName; });
+  state.personLedger.forEach(e=>{ if(e.category===oldName) e.category = newName; });
+  (state.pendingImports||[]).forEach(p=>{ if(p.category===oldName) p.category = newName; });
+  Object.values(state.payeeMemory||{}).forEach(entry=>{
+    Object.keys(entry.counts||{}).forEach(comboKey=>{
+      if(comboKey.startsWith(oldName+'::')){
+        const rest = comboKey.slice(oldName.length+2);
+        const newKey = newName+'::'+rest;
+        entry.counts[newKey] = (entry.counts[newKey]||0) + entry.counts[comboKey];
+        delete entry.counts[comboKey];
+      }
     });
-  }
-  recomputeBudgetActuals();
-  await saveState();
-  budgetdetailCat = trimmedName;
-  render();
-  openBudgetDetail(trimmedName);
-  showToast('✅ Category updated.');
-});
-document.getElementById('budgetdetail-delete').addEventListener('click', async ()=>{
-  const b = state.budget.find(x=>x.cat===budgetdetailCat);
-  if(!b) return;
-  if(b.cat===OTHER_EXPENSE_CAT){ alert('This is the built-in fallback category and can\'t be deleted.'); return; }
-  const affected = state.transactions.filter(t=>t.category===b.cat).length;
+  });
+  renameCategoryInBudgetRecord(oldName, newName);
+}
+async function deleteBudgetCategory(catName){
+  const b = state.budget.find(x=>x.cat===catName);
+  if(!b) return false;
+  if(b.cat===OTHER_EXPENSE_CAT){ alert('This is the built-in fallback category and can\'t be deleted.'); return false; }
+  const affected = state.transactions.filter(t=>t.category===b.cat).length + state.personLedger.filter(e=>e.category===b.cat).length;
   const msg = affected
     ? `Delete "${b.cat}"? ${affected} transaction(s) in it will be moved to "${OTHER_EXPENSE_CAT}" — they won't be deleted.`
     : `Delete "${b.cat}"?`;
-  if(!confirm(msg)) return;
+  if(!confirm(msg)) return false;
   freezePastBudgetMonths();
   state.transactions.forEach(t=>{ if(t.category===b.cat) t.category = OTHER_EXPENSE_CAT; });
+  state.personLedger.forEach(e=>{ if(e.category===b.cat) e.category = OTHER_EXPENSE_CAT; });
   state.budget = state.budget.filter(x=>x.cat!==b.cat);
   recomputeBudgetActuals();
   await saveState();
-  budgetdetailBackdrop.classList.remove('open');
   render();
   showToast('🗑️ Category deleted.');
+  return true;
+}
+const cateditBackdrop = document.getElementById('catedit-backdrop');
+let cateditCtx = null; // {cat: existing name or null for a new one, income, onDone}
+function openCategorySheet(catName, opts){
+  const b = catName ? state.budget.find(x=>x.cat===catName) : null;
+  if(catName && !b) return;
+  const income = b ? !!b.income : !!(opts && opts.income);
+  cateditCtx = {cat: b ? b.cat : null, income, onDone: opts && opts.onDone};
+  const locked = !!b && b.cat===OTHER_EXPENSE_CAT;
+  document.getElementById('catedit-title').textContent = b ? 'Edit category' : (income ? 'Add an income category' : 'Add a category');
+  const nameEl = document.getElementById('catedit-name');
+  nameEl.value = b ? b.cat : '';
+  nameEl.disabled = locked;
+  document.getElementById('catedit-budget-label').textContent = income ? 'Expected each month (₹)' : 'Monthly budget (₹)';
+  document.getElementById('catedit-budget').value = b ? (b.budget||0) : '';
+  document.getElementById('catedit-note').textContent = locked
+    ? 'This is the built-in fallback for anything uncategorized — its name can\'t be changed.'
+    : income ? ''
+    : 'With a budget, it counts as a regular monthly expense. Left at 0, it is only tracked separately (for a trip or one-time event) and stays outside the monthly budget.';
+  document.getElementById('catedit-delete').style.display = (b && !locked) ? 'block' : 'none';
+  cateditBackdrop.classList.add('open');
+  if(!b) setTimeout(()=> nameEl.focus(), 50);
+}
+document.getElementById('catedit-cancel').addEventListener('click', ()=> cateditBackdrop.classList.remove('open'));
+cateditBackdrop.addEventListener('click', e=>{ if(e.target===cateditBackdrop) cateditBackdrop.classList.remove('open'); });
+document.getElementById('catedit-save').addEventListener('click', async ()=>{
+  if(!cateditCtx) return;
+  const btn = document.getElementById('catedit-save');
+  const newName = document.getElementById('catedit-name').value.trim().replace(/\s+/g,' ');
+  const newBudget = Math.max(0, parseFloat(document.getElementById('catedit-budget').value) || 0);
+  if(!newName){ alert('Give the category a name.'); return; }
+  const oldName = cateditCtx.cat;
+  const clash = state.budget.find(x=> x.cat.toLowerCase()===newName.toLowerCase() && x.cat!==oldName);
+  if(clash){ alert(`A category called "${clash.cat}" already exists.`); return; }
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try{
+    if(!oldName){
+      // Finished months are written down first, so the new category doesn't appear in them.
+      freezePastBudgetMonths();
+      const row = {cat:newName, budget:newBudget, actual:0};
+      if(cateditCtx.income) row.income = true;
+      else row.special = !(newBudget>0);
+      state.budget.push(row);
+    } else {
+      const b = state.budget.find(x=>x.cat===oldName);
+      if(!b) return;
+      if(newBudget !== (b.budget||0)) freezePastBudgetMonths(); // before the amount changes
+      if(newName !== oldName){
+        if(!b.iconOf && CAT_META[oldName]) b.iconOf = oldName;
+        b.cat = newName;
+        renameCategoryEverywhere(oldName, newName);
+      }
+      b.budget = newBudget;
+    }
+    normalizeBudgetFlags();
+    recomputeBudgetActuals();
+    await saveState();
+    render();
+    cateditBackdrop.classList.remove('open');
+    showToast(oldName ? '✅ Category updated' : `✅ "${newName}" added`);
+    if(cateditCtx.onDone) cateditCtx.onDone({oldName, newName, deleted:false});
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save';
+  }
+});
+document.getElementById('catedit-delete').addEventListener('click', async ()=>{
+  if(!cateditCtx || !cateditCtx.cat) return;
+  const name = cateditCtx.cat;
+  if(await deleteBudgetCategory(name)){
+    cateditBackdrop.classList.remove('open');
+    if(cateditCtx.onDone) cateditCtx.onDone({oldName:name, newName:null, deleted:true});
+  }
+});
+document.getElementById('budgetdetail-edit').addEventListener('click', ()=>{
+  const cat = budgetdetailCat;
+  budgetdetailBackdrop.classList.remove('open');
+  openCategorySheet(cat, {onDone: (r)=>{
+    if(document.getElementById('budget-page').classList.contains('open')) renderBudgetPage(true, r);
+    else if(!r.deleted) openBudgetDetail(r.newName);
+  }});
+});
+document.getElementById('budgetdetail-delete').addEventListener('click', async ()=>{
+  if(await deleteBudgetCategory(budgetdetailCat)){
+    budgetdetailBackdrop.classList.remove('open');
+    if(document.getElementById('budget-page').classList.contains('open')) renderBudgetPage(true, {oldName:budgetdetailCat, deleted:true});
+  }
 });
 
 async function saveWhoami(name){
@@ -2360,25 +2492,8 @@ function renderHomeBudget(){
   if(toggle) toggle.addEventListener('click', ()=>{ homeBudgetExpanded = !homeBudgetExpanded; renderHomeBudget(); applyMaskUI(); });
 }
 
-function addNewBudgetCategory(){
-  const name = prompt('New category name (e.g. "Gym" or "Goa Trip"):');
-  if(!name || !name.trim()) return Promise.resolve(false);
-  const catName = name.trim();
-  if(state.budget.find(b=>b.cat===catName)){ showToast('That category already exists.'); return Promise.resolve(false); }
-  // Asked, not guessed: a trip-style category is tracked on its own and left out of the
-  // monthly budget total, a regular one counts toward it.
-  const isRegular = confirm(`Is "${catName}" a regular monthly expense?\n\nOK = yes, count it in the monthly budget (e.g. Gym)\nCancel = no, track it separately (e.g. a trip or one-time event)`);
-  const raw = prompt(`Monthly budget for "${catName}" (₹) — leave as 0 to just track spending with no limit:`, '0');
-  const budgetAmt = parseFloat(raw) || 0;
-  // Same defensive order used by the other category-creation paths in this app: push, then
-  // recompute + save immediately, so this survives a refresh and syncs to the other device.
-  freezePastBudgetMonths();
-  state.budget.push({cat:catName, budget:budgetAmt, actual:0, special: !isRegular});
-  recomputeBudgetActuals();
-  return saveState().then(()=>{ render(); showToast(`✅ "${catName}" added and saved.`); return true; });
-}
-
 function render(){
+  normalizeBudgetFlags(); // a category with a budget is a regular expense, never a "trip"
   // Budget "actual" is this calendar month only — recomputed on every render so a month
   // rollover, or a change arriving from the other phone, never leaves last month's numbers up.
   recomputeBudgetActuals();
@@ -2407,7 +2522,7 @@ function render(){
   recentTxRefs = recent;
   recentEl.innerHTML = recent.length? recent.map((tx,i)=>{
     if(tx.type==='transfer'){
-      return `<div class="tx-item"><div class="chip-icon" style="background:var(--peri-dim);">🔄</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${targetName(tx.from)} → ${targetName(tx.to)}</span><span class="tx-amt">${fmt(tx.amount)}</span></div><div class="tx-meta">${tx.remarks||'internal transfer'}</div></div></div>`;
+      return `<div class="tx-item" data-editrecent="${i}" style="cursor:pointer;"><div class="chip-icon" style="background:var(--peri-dim);">🔄</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${targetName(tx.from)} → ${targetName(tx.to)}</span><span class="tx-amt">${fmt(tx.amount)}</span></div><div class="tx-meta">${tx.remarks||'internal transfer'}</div></div></div>`;
     }
     const meta = catMeta(tx.category);
     return `<div class="tx-item" data-editrecent="${i}" style="cursor:pointer;"><div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${tx.payee}</span><span class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmt(tx.amount)}</span></div><div class="tx-meta">${targetName(tx.account)} · ${tx.category}</div></div></div>`;
@@ -2989,7 +3104,9 @@ function renderTxPersonChips(){
 }
 
 const txBackdrop = document.getElementById('tx-backdrop');
-document.getElementById('fab-add').addEventListener('click', ()=>{
+// presetAccountId: opened from an account's own page, so the entry starts on that account
+// (and, for a bank account, as the From side if it turns out to be a transfer).
+function openAddTxSheet(presetAccountId){
   txAmount=''; updateAmountDisplay();
   document.getElementById('tx-payee').value='';
   document.getElementById('tx-transfer-note').value='';
@@ -3000,9 +3117,16 @@ document.getElementById('fab-add').addEventListener('click', ()=>{
   catPickerOpen = false; acctPickerOpen = false;
   txSelectedPerson = null; txSelectedPersonAcct = null;
   txPersonSelectedCat = null; txPersonCatPickerOpen = false;
+  if(presetAccountId){
+    txSelectedAccount = presetAccountId;
+    userTouchedAccount = true; // a remembered payee must not switch it to another account
+    if(state.accounts.find(a=>a.id===presetAccountId)) txFrom = presetAccountId;
+    else if(state.cards.find(c=>c.id===presetAccountId)) txTo = presetAccountId;
+  }
   renderTxFormLists();
   txBackdrop.classList.add('open');
-});
+}
+document.getElementById('fab-add').addEventListener('click', ()=> openAddTxSheet());
 document.getElementById('tx-payee').addEventListener('blur', ()=>{
   const val = document.getElementById('tx-payee').value;
   if(!val.trim()) return;
@@ -3074,8 +3198,40 @@ let editingTx = null;
 let editSelectedCat = null;
 let editSelectedAccount = null;
 let editCatPickerOpen = false, editAcctPickerOpen = false;
+// A transfer has no category, payee or single account — it has a From, a To and a note.
+// Sending it through the expense fields below would save those as blanks and break the entry.
+let editFrom = null, editTo = null;
+let editFromPickerOpen = false, editToPickerOpen = false;
+function localDateStr(d){ const pad = n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function renderEditTransferPickers(){
+  const fromOptions = state.accounts;
+  const toOptions = [...state.accounts, ...state.cards].filter(a=>a.id!==editFrom);
+  const cardIds = new Set(state.cards.map(c=>c.id));
+  const picker = (rowId, summaryId, options, selected, open, onPick, onToggle)=>{
+    document.getElementById(rowId).innerHTML = options.map(a=>
+      `<div class="pli ${a.id===selected?'on':''}" data-pick="${a.id}"><div class="pli-icon">${cardIds.has(a.id)?'💳':(a.em||'🏦')}</div><div class="pli-name">${a.name}${cardIds.has(a.id)?' (pay card)':''}</div><div class="pli-check">✓</div></div>`
+    ).join('');
+    document.querySelectorAll('#'+rowId+' .pli').forEach(el=> el.addEventListener('click', ()=> onPick(el.dataset.pick)));
+    const sel = [...state.accounts, ...state.cards].find(a=>a.id===selected);
+    document.getElementById(summaryId).innerHTML =
+      `<div class="ps-icon" style="background:var(--paper-dim);">${sel ? (cardIds.has(sel.id)?'💳':(sel.em||'🏦')) : '🏦'}</div><div class="ps-name">${sel ? sel.name : 'Choose an account'}</div><div class="ps-change">${open?'Cancel':'Change'}</div>`;
+    document.getElementById(summaryId).onclick = onToggle;
+    document.getElementById(rowId).classList.toggle('hide', !open);
+  };
+  picker('edit-from-row', 'edit-from-summary', fromOptions, editFrom, editFromPickerOpen,
+    id=>{ if(id===editTo) editTo = editFrom; editFrom = id; editFromPickerOpen = false; renderEditTransferPickers(); },
+    ()=>{ editFromPickerOpen = !editFromPickerOpen; editToPickerOpen = false; renderEditTransferPickers(); });
+  picker('edit-to-row', 'edit-to-summary', toOptions, editTo, editToPickerOpen,
+    id=>{ editTo = id; editToPickerOpen = false; renderEditTransferPickers(); },
+    ()=>{ editToPickerOpen = !editToPickerOpen; editFromPickerOpen = false; renderEditTransferPickers(); });
+}
 function renderEditChips(){
   if(!editingTx) return;
+  const isTransfer = editingTx.type==='transfer';
+  document.getElementById('edittx-heading').textContent = isTransfer ? 'Edit this transfer' : 'Edit this entry';
+  document.getElementById('edit-regular-fields').classList.toggle('hide', isTransfer);
+  document.getElementById('edit-transfer-fields').classList.toggle('hide', !isTransfer);
+  if(isTransfer){ renderEditTransferPickers(); return; }
   const catOptions = editingTx.type==='income' ? state.budget.filter(b=>b.income).map(b=>b.cat) : state.budget.filter(b=>!b.income).map(b=>b.cat);
   const cats = [...catOptions, OTHER_EXPENSE_CAT];
   if(!cats.includes(editSelectedCat)) editSelectedCat = editingTx.category;
@@ -3117,8 +3273,12 @@ function openEditTx(tx){
   editSelectedCat = tx.category;
   editSelectedAccount = tx.account;
   editCatPickerOpen = false; editAcctPickerOpen = false;
+  editFrom = tx.from || null; editTo = tx.to || null;
+  editFromPickerOpen = false; editToPickerOpen = false;
   document.getElementById('edit-payee').value = tx.payee || '';
+  document.getElementById('edit-transfer-note').value = tx.remarks || '';
   document.getElementById('edit-amount').value = tx.amount;
+  document.getElementById('edit-date').value = localDateStr(new Date(tx.ts));
   renderEditChips();
   edittxBackdrop.classList.add('open');
 }
@@ -3127,10 +3287,38 @@ edittxBackdrop.addEventListener('click', e=>{ if(e.target===edittxBackdrop) edit
 document.getElementById('edittx-save').addEventListener('click', async ()=>{
   const amount = parseFloat(document.getElementById('edit-amount').value);
   if(!amount || amount<=0){ alert('Enter a valid amount.'); return; }
+  // Date: only the calendar day is editable; the time of day the entry already has is kept.
+  const dateVal = document.getElementById('edit-date').value;
+  const oldTs = new Date(editingTx.ts);
+  let newTs = null;
+  if(dateVal && dateVal !== localDateStr(oldTs)){
+    const [yy,mm,dd] = dateVal.split('-').map(Number);
+    const moved = new Date(yy, mm-1, dd, oldTs.getHours(), oldTs.getMinutes(), oldTs.getSeconds());
+    if(isNaN(moved.getTime())){ alert('That date could not be read.'); return; }
+    // Moved to today but the kept time of day hasn't come yet → use the current time.
+    const nowD = new Date();
+    if(moved > nowD && dateVal !== localDateStr(nowD)){ alert('The date cannot be in the future.'); return; }
+    newTs = (moved > nowD ? nowD : moved).toISOString();
+  }
+  if(editingTx.type==='transfer'){
+    if(!editFrom || !editTo){ alert('Choose both the From and the To account.'); return; }
+    if(editFrom===editTo){ alert('Pick two different accounts.'); return; }
+    editingTx.from = editFrom;
+    editingTx.to = editTo;
+    editingTx.amount = amount;
+    editingTx.remarks = document.getElementById('edit-transfer-note').value.trim();
+    if(newTs) editingTx.ts = newTs;
+    await saveState();
+    render();
+    edittxBackdrop.classList.remove('open');
+    showToast('✅ Transfer updated');
+    return;
+  }
   editingTx.category = editSelectedCat;
   editingTx.account = editSelectedAccount;
   editingTx.amount = amount;
   editingTx.payee = document.getElementById('edit-payee').value.trim() || editingTx.payee;
+  if(newTs) editingTx.ts = newTs;
   recomputeBudgetActuals();
   recordPayeeLearning(editingTx.payee, editingTx.category, editingTx.account, 3);
   await saveState();
@@ -4043,10 +4231,14 @@ function updateBpTotals(){
     `<span style="color:${left<0?'var(--debt)':'var(--sage)'}; font-weight:800;" class="maskable">${left<0 ? fmt(Math.abs(left))+' short' : fmt(left)+' to spare'}</span>`;
   applyMaskUI();
 }
-function renderBudgetPage(keepTypedValues){
-  // Amounts typed but not saved yet survive a redraw (e.g. after adding a category).
+function renderBudgetPage(keepTypedValues, change){
+  // Amounts typed but not saved yet survive a redraw (e.g. after adding a category). They are
+  // read back by the category name each box was drawn for — row positions shift when a
+  // category is deleted. The category that was just edited or deleted drops its typed
+  // amount, so it shows what was actually saved.
   const typed = {};
-  if(keepTypedValues) bpInputs().forEach(el=>{ const b = state.budget[parseInt(el.dataset.bpidx)]; if(b) typed[b.cat] = el.value; });
+  if(keepTypedValues) bpInputs().forEach(el=>{ if(el.dataset.bpcat) typed[el.dataset.bpcat] = el.value; });
+  if(change && change.oldName) delete typed[change.oldName];
 
   const now = new Date();
   const monthName = now.toLocaleDateString('en-IN',{month:'long'});
@@ -4143,18 +4335,19 @@ function renderBudgetPage(keepTypedValues){
     }
     return `<div class="bp-row">
       <div class="bp-head"><div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
-        <div class="bp-name">${storyEsc(storyCatLabel(b.cat))}</div>
-        <input class="bp-input" type="number" inputmode="numeric" min="0" data-bpidx="${i}" value="${valueFor(b)}" aria-label="${storyEsc(b.cat)} budget for ${monthName}"></div>
+        <button class="bp-name bp-name-btn" data-bpedit="${storyEsc(b.cat)}" aria-label="Edit ${storyEsc(b.cat)}">${storyEsc(storyCatLabel(b.cat))} <span class="bp-pencil">✎</span></button>
+        <input class="bp-input" type="number" inputmode="numeric" min="0" data-bpidx="${i}" data-bpcat="${storyEsc(b.cat)}" value="${valueFor(b)}" aria-label="${storyEsc(b.cat)} budget for ${monthName}"></div>
       ${lastHtml}${suggHtml}
     </div>`;
   }).join('') || '<div class="empty" style="padding:10px 0;">No expense categories yet.</div>';
 
   const specials = state.budget.filter(b=>b.special);
   document.getElementById('bp-special-wrap').innerHTML = specials.length
-    ? `<div class="divider-label">Trips &amp; special — tracked separately, no monthly budget</div><div class="card">${specials.map(b=>
-        `<div class="row" data-opencat="${storyEsc(b.cat)}" style="cursor:pointer;"><div class="name">${storyEsc(b.cat)}</div><div class="amt maskable">${fmt(b.actual)}<span style="font-size:11px; font-weight:500; color:var(--ink-soft);"> this month</span></div></div>`).join('')}</div>`
+    ? `<div class="divider-label">Tracked separately — no monthly budget (trips, one-time events)</div>
+       <p class="section-sub">Tap one to rename it or give it a budget. With a budget it moves up into the regular list.</p>
+       <div class="card">${specials.map(b=>
+        `<div class="row" data-bpedit="${storyEsc(b.cat)}" style="cursor:pointer;"><div class="name">${storyEsc(b.cat)} <span class="bp-pencil">✎</span></div><div class="amt maskable">${fmt(b.actual)}<span style="font-size:11px; font-weight:500; color:var(--ink-soft);"> this month</span></div></div>`).join('')}</div>`
     : '';
-  document.querySelectorAll('#bp-special-wrap [data-opencat]').forEach(el=> el.addEventListener('click', ()=> openBudgetDetail(el.getAttribute('data-opencat'))));
 
   const prevIncomeAmounts = hasPrev ? budgetAmountsForMonth(monthKeyOf(prevDate)) : {};
   const prevActualsAll = hasPrev ? budgetActualsForMonth(prevDate.getFullYear(), prevDate.getMonth()) : {};
@@ -4163,14 +4356,25 @@ function renderBudgetPage(keepTypedValues){
     const meta = catMeta(b.cat);
     return `<div class="bp-row">
       <div class="bp-head"><div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
-        <div class="bp-name">${storyEsc(storyCatLabel(b.cat))}</div>
-        <input class="bp-input" type="number" inputmode="numeric" min="0" data-bpidx="${i}" value="${valueFor(b)}" aria-label="${storyEsc(b.cat)} expected for ${monthName}"></div>
+        <button class="bp-name bp-name-btn" data-bpedit="${storyEsc(b.cat)}" aria-label="Edit ${storyEsc(b.cat)}">${storyEsc(storyCatLabel(b.cat))} <span class="bp-pencil">✎</span></button>
+        <input class="bp-input" type="number" inputmode="numeric" min="0" data-bpidx="${i}" data-bpcat="${storyEsc(b.cat)}" value="${valueFor(b)}" aria-label="${storyEsc(b.cat)} expected for ${monthName}"></div>
       ${hasPrev ? `<div class="bp-last">${prevShort}: <b class="maskable">${fmt(prevActualsAll[b.cat]||0)}</b> received of <span class="maskable">${fmt(prevIncomeAmounts[b.cat]||0)}</span> expected</div>` : ''}
     </div>`;
   }).join('') || '<div class="empty" style="padding:10px 0;">No income categories yet.</div>';
 
   document.getElementById('bp-save').textContent = `Save ${monthName} budget`;
   bpInputs().forEach(el=> el.addEventListener('input', updateBpTotals));
+  // Tapping a category's name opens the sheet to rename it, change its budget or delete it.
+  document.querySelectorAll('#budget-page [data-bpedit]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const cat = el.getAttribute('data-bpedit');
+      openCategorySheet(cat, {onDone: r=> renderBudgetPage(true, r)});
+      // An amount already typed into this category's box on the page carries into the sheet,
+      // so renaming a category doesn't throw away the number just entered for it.
+      const box = bpInputs().find(i=> i.dataset.bpcat===cat);
+      if(box && box.value!=='') document.getElementById('catedit-budget').value = box.value;
+    });
+  });
   document.querySelectorAll('#bp-rows [data-bpuse]').forEach(el=>{
     el.addEventListener('click', ()=>{
       const input = document.querySelector(`.bp-input[data-bpidx="${el.dataset.bpuse}"]`);
@@ -4206,7 +4410,10 @@ document.getElementById('bp-apply-all').addEventListener('click', ()=>{
   showToast(n ? `${n} amount${n===1?'':'s'} filled in — check them, then Save` : 'Already matching the suggestions');
 });
 document.getElementById('bp-add-cat').addEventListener('click', ()=>{
-  addNewBudgetCategory().then(added=>{ if(added) renderBudgetPage(true); });
+  openCategorySheet(null, {onDone: r=> renderBudgetPage(true, r)});
+});
+document.getElementById('bp-add-income-cat').addEventListener('click', ()=>{
+  openCategorySheet(null, {income:true, onDone: r=> renderBudgetPage(true, r)});
 });
 document.getElementById('bp-save').addEventListener('click', async ()=>{
   const btn = document.getElementById('bp-save');
@@ -4605,72 +4812,64 @@ document.getElementById('monthview-close').addEventListener('click', ()=> monthv
 
 const acctstatementBackdrop = document.getElementById('acctstatement-backdrop');
 let currentStatementCtx = null;
-let statementHistoryRefs = [];
-function renderAcctStatement(targetId, isCard){
-  // Remember which collapsible lists were open, so redrawing after an edit doesn't snap
-  // them shut — but only when it's still the same account being redrawn.
-  const sameTarget = currentStatementCtx && currentStatementCtx.targetId===targetId;
-  const wasOpen = {};
-  if(sameTarget) document.querySelectorAll('#acctstatement-list details[data-stmtdetails]').forEach(d=> wasOpen[d.dataset.stmtdetails] = d.open);
-  currentStatementCtx = {targetId, isCard};
-  const target = isCard ? state.cards.find(c=>c.id===targetId) : state.accounts.find(a=>a.id===targetId);
-  if(!target) return;
-  document.getElementById('acctstatement-title').textContent = target.name;
-  const heroTotal = isCard ? cardDue(target) : accountBalance(target);
-  document.getElementById('acctstatement-hero').innerHTML = `<div class="card" style="margin-bottom:12px;">
-      <div class="netsummary-label">${isCard?'Amount due':'Balance'}${target.tag?' · '+target.tag:''}</div>
-      <div class="netsummary-value maskable ${isCard ? (heroTotal>0?'neg':'') : (heroTotal<0?'neg':'pos')}">${fmt(heroTotal)}</div>
-      <div style="display:flex; gap:8px; margin-top:12px;">
-        <button class="pill-btn" data-adjust="${targetId}" data-adjiscard="${isCard?1:0}" style="flex:1;">Adjust</button>
-        <button class="pill-btn" data-recon="${targetId}" data-iscard="${isCard?1:0}" style="flex:1;">Reconcile</button>
-      </div>
-    </div>`;
-  document.querySelector('#acctstatement-hero [data-adjust]').addEventListener('click', ()=> openAdjustBalance(targetId, isCard));
-  document.querySelector('#acctstatement-hero [data-recon]').addEventListener('click', ()=> openReconSheet(targetId, isCard));
-
-  // Anchor on the most recent balance adjustment for this account/card, if any — that's the
-  // last point we know the number was definitely correct. Everything listed below it is what
-  // the app added on top to reach the current total.
-  const adj = (state.balanceAdjustments||[]).filter(a=>a.targetId===targetId).sort((a,b)=>new Date(b.ts)-new Date(a.ts))[0];
-  const anchorTs = adj ? new Date(adj.ts) : null;
-  const anchorVal = adj ? adj.newValue : (isCard ? target.openingDue : target.opening);
-
-  const entries = [];
+let stmtTab = 'all';
+// Every entry that moves this account's balance, with its effect as a signed delta —
+// one list, used both for what is shown and for the "does it add up" check below.
+// For a bank account a positive delta is money in; for a card a positive delta is a new
+// charge (the due goes up) — the same directions accountBalance() and cardDue() use.
+function statementEntries(target, isCard){
+  const id = target.id;
+  const out = [];
   state.transactions.forEach(t=>{
-    if(anchorTs && new Date(t.ts) < anchorTs) return;
     if(isCard){
-      if(t.type==='expense' && t.account===targetId) entries.push({ts:t.ts, label:t.payee+' · '+t.category, delta:t.amount});
-      if(t.type==='transfer' && t.to===targetId) entries.push({ts:t.ts, label:'Payment from '+targetName(t.from), delta:-t.amount});
+      if(t.type==='expense' && t.account===id) out.push({kind:'tx', id:t.id, ts:t.ts, label:t.payee||t.category||'Expense', sub:t.category||'', delta:t.amount});
+      else if(t.type==='transfer' && t.to===id) out.push({kind:'tx', id:t.id, ts:t.ts, label:'Payment from '+targetName(t.from), sub:t.remarks||'Card payment', delta:-t.amount});
       return;
     }
     if(t.type==='transfer'){
-      if(t.from===targetId) entries.push({ts:t.ts, label:'Transfer to '+targetName(t.to), delta:-t.amount});
-      if(t.to===targetId) entries.push({ts:t.ts, label:'Transfer from '+targetName(t.from), delta:t.amount});
-    } else if(t.account===targetId){
-      entries.push({ts:t.ts, label:t.payee+' · '+t.category, delta: t.type==='income'?t.amount:-t.amount});
+      if(t.from===id) out.push({kind:'tx', id:t.id, ts:t.ts, label:'Transfer to '+targetName(t.to), sub:t.remarks||'Transfer', delta:-t.amount});
+      if(t.to===id) out.push({kind:'tx', id:t.id, ts:t.ts, label:'Transfer from '+targetName(t.from), sub:t.remarks||'Transfer', delta:t.amount});
+    } else if(t.account===id){
+      out.push({kind:'tx', id:t.id, ts:t.ts, label:t.payee||t.category||(t.type==='income'?'Income':'Expense'), sub:t.category||'', delta: t.type==='income'?t.amount:-t.amount});
     }
   });
   state.personLedger.forEach(e=>{
-    if(e.account===targetId && (!anchorTs || new Date(e.ts)>=anchorTs)){
-      const person = state.people.find(p=>p.id===e.personId);
-      const who = person ? person.name : 'someone';
-      // Same sign flip as cardDue()/accountBalance(): a card's "balance" is a liability, so
-      // charging it on someone's behalf (type 'gave') increases the due — opposite direction
-      // from a bank account, where the same entry decreases cash on hand.
-      const delta = isCard ? e.delta : -e.delta;
-      entries.push({ts:e.ts, label: (e.type==='gave' ? 'Paid for ' : 'Repaid by ') + who, delta});
-    }
+    if(e.account!==id) return;
+    const person = state.people.find(p=>p.id===e.personId);
+    const who = person ? person.name : 'someone';
+    // Same sign flip as cardDue()/accountBalance(): a card's "balance" is a liability, so
+    // charging it on someone's behalf (type 'gave') increases the due — opposite direction
+    // from a bank account, where the same entry decreases cash on hand.
+    out.push({kind:'people', id:e.id, ts:e.ts, label:(e.type==='gave' ? 'Paid for ' : 'Repaid by ') + who, sub:'People Ledger' + (e.remarks ? ' · '+e.remarks : ''), delta: isCard ? e.delta : -e.delta});
   });
-  entries.sort((a,b)=> new Date(a.ts)-new Date(b.ts));
-
-  let running = anchorVal;
-  const rows = entries.map(e=>{ running += e.delta; return {...e, running}; });
+  return out;
+}
+function renderAcctStatement(targetId, isCard){
+  currentStatementCtx = {targetId, isCard};
+  const target = isCard ? state.cards.find(c=>c.id===targetId) : state.accounts.find(a=>a.id===targetId);
+  if(!target) return;
   const liveTotal = isCard ? cardDue(target) : accountBalance(target);
+  const dayStr = ts => { const d = new Date(ts); return d.toLocaleDateString('en-IN', d.getFullYear()===new Date().getFullYear() ? {day:'numeric',month:'short'} : {day:'numeric',month:'short',year:'2-digit'}); };
 
-  document.getElementById('acctstatement-sub').textContent = adj
-    ? `Anchored on your adjustment of ${fmt(anchorVal)} on ${anchorTs.toLocaleDateString('en-IN',{day:'numeric',month:'short'})} — ${entries.length} entr${entries.length===1?'y':'ies'} since`
-    : `No adjustment on record — showing everything ever logged (opening balance ${fmt(anchorVal)})`;
+  document.getElementById('acctstatement-title').textContent = target.name;
+  document.getElementById('acctstatement-hero').innerHTML = `<div class="card stmt-hero">
+      <div class="netsummary-label">${isCard?'Amount Due':'Available Balance'}${target.tag?' · '+storyEsc(target.tag):''}</div>
+      <div class="netsummary-value maskable ${isCard ? (liveTotal>0?'neg':'') : (liveTotal<0?'neg':'pos')}">${fmt(liveTotal)}</div>
+      <div class="stmt-incorrect">Incorrect ${isCard?'amount':'balance'}? <button id="acctstatement-edit-link">Edit</button></div>
+      <button class="pill-btn" id="acctstatement-recon-btn" style="margin-top:14px;">Reconcile with a statement</button>
+    </div>`;
+  document.getElementById('acctstatement-edit-link').addEventListener('click', ()=> openAdjustBalance(targetId, isCard));
+  document.getElementById('acctstatement-recon-btn').addEventListener('click', ()=> openReconSheet(targetId, isCard));
 
+  const entries = statementEntries(target, isCard);
+  const adjustments = (state.balanceAdjustments||[]).filter(a=>a.targetId===targetId).sort((a,b)=>new Date(b.ts)-new Date(a.ts));
+
+  // Does it add up? Anchor on the most recent balance adjustment (the last point the number
+  // was known to be right), add everything dated since, and compare with the live balance.
+  const adj = adjustments[0];
+  const anchorTs = adj ? new Date(adj.ts) : null;
+  const anchorVal = adj ? adj.newValue : (isCard ? target.openingDue : target.opening);
+  const running = entries.filter(e=> !anchorTs || new Date(e.ts)>=anchorTs).reduce((s,e)=> s+e.delta, anchorVal);
   // Diagnostic for when the numbers don't reconcile. Two kinds of gap, checked in order:
   //
   // 1. One-sided email evidence — a transaction the bank confirmed by email but that never
@@ -4678,9 +4877,11 @@ function renderAcctStatement(targetId, isCard){
   //    as "not real" when it may actually have been. This is the strongest kind of lead,
   //    since it's independent of your own bookkeeping and doesn't depend on there being an
   //    anchor at all.
-  // 2. Failing that, the older check: an entry dated BEFORE the anchor (normally assumed to
-  //    already be baked into the adjusted value) that was actually added or edited AFTER —
-  //    which would shift the live total without ever appearing in the "since" list above.
+  // 2. Failing that: an entry dated BEFORE the anchor (normally assumed to already be baked
+  //    into the adjusted value) that was actually added or edited AFTER — which shifts the
+  //    live total without being part of what happened since the adjustment. People Ledger
+  //    entries are scanned too, since an account used for "for someone" entries is exactly
+  //    where a backdated one is a likely cause.
   const discrepancy = Math.abs(running - liveTotal);
   let suspectHtml = '';
   if(discrepancy >= 1){
@@ -4691,147 +4892,109 @@ function renderAcctStatement(targetId, isCard){
     } else if(dismissedMatch){
       suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">🎯 Likely cause: ${dismissedMatch.payee||'a transaction'} — dismissed as not real</div><div class="sub">Dated ${new Date(dismissedMatch.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · the bank's email said this happened, but it was marked "not a real transaction." If that was a mistake, logging it manually will close this gap.</div></div><div class="amt">${fmt(dismissedMatch.amount)}</div></div>`;
     } else if(anchorTs){
-      let preAnchorEntries = [];
-      state.transactions.forEach(t=>{
-        if(new Date(t.ts) >= anchorTs) return;
-        if(isCard){
-          if(t.type==='expense' && t.account===targetId) preAnchorEntries.push({ts:t.ts, label:t.payee+' · '+t.category, amount:t.amount});
-          if(t.type==='transfer' && t.to===targetId) preAnchorEntries.push({ts:t.ts, label:'Payment from '+targetName(t.from), amount:t.amount});
-          return;
-        }
-        if(t.type==='transfer'){
-          if(t.from===targetId) preAnchorEntries.push({ts:t.ts, label:'Transfer to '+targetName(t.to), amount:t.amount});
-          if(t.to===targetId) preAnchorEntries.push({ts:t.ts, label:'Transfer from '+targetName(t.from), amount:t.amount});
-        } else if(t.account===targetId){
-          preAnchorEntries.push({ts:t.ts, label:t.payee+' · '+t.category, amount:t.amount});
-        }
-      });
-      // This diagnostic only ever scanned regular transactions — never the People Ledger, even
-      // though an account used heavily for "for someone" entries is exactly where a backdated
-      // or edited person-ledger entry is a likely cause. Scanning both is what actually gives
-      // this a real chance of finding the gap instead of leaving it to manual searching.
-      state.personLedger.forEach(e=>{
-        if(e.account!==targetId) return;
-        if(new Date(e.ts) >= anchorTs) return;
-        const person = state.people.find(p=>p.id===e.personId);
-        const who = person ? person.name : 'someone';
-        preAnchorEntries.push({ts:e.ts, label:(e.type==='gave' ? 'Paid for ' : 'Repaid by ') + who, amount:Math.abs(e.delta)});
-      });
-      const suspect = preAnchorEntries.find(e=> Math.abs(e.amount - discrepancy) < 1);
+      const suspect = entries.find(e=> new Date(e.ts) < anchorTs && Math.abs(Math.abs(e.delta) - discrepancy) < 1);
       if(suspect){
-        suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">🎯 Likely cause: ${suspect.label}</div><div class="sub">Dated ${new Date(suspect.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} — before your anchor, so it should already be baked in. If it was added or its account changed after ${anchorTs.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}, that's the gap.</div></div><div class="amt">${fmt(suspect.amount)}</div></div>`;
+        suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">🎯 Likely cause: ${suspect.label}${suspect.sub?' · '+suspect.sub:''}</div><div class="sub">Dated ${new Date(suspect.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} — before your last adjustment, so it should already be included in it. If it was added or its account changed after ${anchorTs.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}, that's the gap.</div></div><div class="amt">${fmt(Math.abs(suspect.delta))}</div></div>`;
       }
     }
     // No automatic match — say so plainly rather than silently offering nothing. Comparing
     // against a real bank statement is a separate, heavier step (needs the file uploaded);
     // it's offered here as an explicit choice, not something tapping the warning jumps into.
     if(!suspectHtml){
-      suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">No matching email transaction found</div><div class="sub">Nothing pending, dismissed, or backdated lines up with this amount. It may be a transaction that was never logged anywhere — check against a real statement to be sure.</div></div></div>
-      <p class="section-sub" id="acctstatement-reconcile-link" style="color:var(--peri); margin-top:8px; cursor:pointer; text-decoration:underline;">Compare against a bank statement instead →</p>`;
+      suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">No single entry explains it</div><div class="sub">${anchorTs ? `An entry dated before your last adjustment (${anchorTs.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}) may have been added, changed or deleted after it — that moves the balance away from the adjusted figure. Otherwise it` : 'It'} may be a transaction that was never logged anywhere. Check against a real statement to be sure.</div></div></div>
+      <p class="section-sub" id="acctstatement-reconcile-link" style="color:var(--peri); margin:8px 0 0; cursor:pointer; text-decoration:underline;">Compare against a bank statement instead →</p>`;
     }
   }
+  document.getElementById('acctstatement-warning').innerHTML = discrepancy>=1
+    ? `<div class="card" style="margin-bottom:12px;"><div style="font-size:13.5px; font-weight:700; color:var(--debt);">⚠️ <span class="maskable">${fmt(discrepancy)}</span> unaccounted for since ${adj ? 'your last adjustment' : 'the opening balance'}</div>${suspectHtml}</div>`
+    : '';
 
-  const rowsHtml = rows.map(r=>`<div class="row"><div><div class="name">${r.label}</div><div class="sub">${new Date(r.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div>
-      <div style="text-align:right;"><div class="amt ${r.delta<0?'neg':'pos'}">${r.delta<0?'':'+'}${fmt(r.delta)}</div><div class="sub">→ ${fmt(r.running)}</div></div>
-    </div>`).join('');
-  const rowsSection = rows.length > 5
-    ? `<details data-stmtdetails="since"><summary style="cursor:pointer; color:var(--ink-soft); font-size:12.5px; padding:8px 0;">${rows.length} entries since ${adj?'your adjustment':'opening'} — tap to expand</summary><div style="margin-top:4px;">${rowsHtml}</div></details>`
-    : rowsHtml;
-  document.getElementById('acctstatement-list').innerHTML = `
-    <div class="row"><div class="name">${adj?'Adjusted to':'Opening'}</div><div class="amt">${fmt(anchorVal)}</div></div>
-    ${rowsSection}
-    <div class="row" style="border-top:2px solid var(--peri); margin-top:8px; padding-top:12px;"><div class="name">Current (live)</div><div class="amt" style="font-weight:700;">${fmt(liveTotal)}</div></div>
-    ${discrepancy>=1 ? `<p class="section-sub" style="color:var(--debt); margin-top:8px;">⚠️ ${fmt(discrepancy)} unaccounted for</p>${suspectHtml}` : ''}
-  `;
-  // NOTE: click handlers for #acctstatement-discrepancy and [data-openpending] are wired
-  // further below, AFTER the "Full history" section is appended — appending via innerHTML +=
-  // re-parses and rebuilds this entire container from scratch, which would silently discard
-  // any listener attached here (this is exactly why tapping the discrepancy line did nothing).
-
-  // Full all-time history for this account, regardless of anchor — every transaction that ever
-  // touched it, newest first, each one tappable to verify or correct. This is separate from the
-  // reconciliation math above since it needs real transaction references, not derived deltas.
-  const fullHistory = [];
-  state.transactions.forEach(t=>{
-    if(isCard){
-      if(t.type==='expense' && t.account===targetId) fullHistory.push({...t, _kind:'tx'});
-      return;
-    }
-    if(t.type==='transfer'){
-      if(t.from===targetId || t.to===targetId) fullHistory.push({...t, _kind:'tx'});
-    } else if(t.account===targetId){
-      fullHistory.push({...t, _kind:'tx'});
-    }
+  // One list, newest first: every transaction, every adjustment ("Adjusted to ₹…") and, at
+  // the very bottom, the opening balance. The tabs only filter this same list.
+  // Opening balance as first entered = today's stored opening minus every correction since
+  // (each adjustment is applied by shifting the stored opening).
+  const originalOpening = Math.round(((isCard ? target.openingDue : target.opening) - adjustments.reduce((s,a)=> s+(a.diff||0), 0))*100)/100;
+  const isDebit = e => isCard ? e.delta>0 : e.delta<0;
+  const items = [
+    ...entries.map(e=>({...e, when:new Date(e.ts)})),
+    ...adjustments.map(a=>({kind:'adj', id:a.id, ts:a.ts, when:new Date(a.ts), adj:a}))
+  ].sort((a,b)=> b.when - a.when);
+  const shown = items.filter(it=>{
+    if(stmtTab==='all') return true;
+    if(stmtTab==='adjust') return it.kind==='adj';
+    if(it.kind==='adj') return false;
+    return stmtTab==='debit' ? isDebit(it) : !isDebit(it);
   });
-  state.personLedger.forEach(e=>{
-    if(e.account===targetId){
-      const person = state.people.find(p=>p.id===e.personId);
-      fullHistory.push({...e, _kind:'people', personName: person?person.name:'Unknown'});
+  const rowsHtml = shown.map(it=>{
+    if(it.kind==='adj'){
+      const a = it.adj;
+      const changed = Math.abs(a.diff||0) >= 0.5;
+      const sub = changed
+        ? `was ${fmt(a.oldValue)} · ${a.diff>0?'+':'−'}${fmt(Math.abs(a.diff)).replace('-','')}${a.remarks?' · '+storyEsc(a.remarks):''}`
+        : 'Statement reset — balance confirmed, no change';
+      return `<div class="stmt-row adj"><div class="sr-date">${dayStr(it.ts)}</div>
+        <div class="sr-body"><div class="sr-label">${changed?'Adjusted to':'Confirmed at'}</div><div class="sr-sub maskable">${sub}</div></div>
+        <div class="sr-amt maskable">${fmt(a.newValue)}</div></div>`;
     }
-  });
-  fullHistory.sort((a,b)=> new Date(b.ts)-new Date(a.ts));
-  statementHistoryRefs = fullHistory;
+    const debit = isDebit(it);
+    return `<div class="stmt-row" data-stmtkind="${it.kind}" data-stmtid="${it.id}" style="cursor:pointer;"><div class="sr-date">${dayStr(it.ts)}</div>
+      <div class="sr-body"><div class="sr-label">${storyEsc(it.label)}</div>${it.sub?`<div class="sr-sub">${storyEsc(it.sub)}</div>`:''}</div>
+      <div class="sr-amt ${debit?'debit':'credit'}">${fmt(Math.abs(it.delta))}</div></div>`;
+  }).join('');
+  const openingHtml = (stmtTab==='all' || stmtTab==='adjust')
+    ? `<div class="stmt-row adj"><div class="sr-date">Start</div>
+        <div class="sr-body"><div class="sr-label">${isCard?'Opening amount due':'Opening balance'}</div></div>
+        <div class="sr-amt maskable">${fmt(originalOpening)}</div></div>`
+    : '';
+  const emptyText = {credit: isCard ? 'No payments to this card yet.' : 'No money in yet.', debit: isCard ? 'No spends on this card yet.' : 'No money out yet.'}[stmtTab];
+  document.getElementById('acctstatement-list').innerHTML =
+    (rowsHtml || openingHtml ? rowsHtml + openingHtml : '') +
+    (!shown.length && emptyText ? `<div class="empty">${emptyText}</div>` : '');
+  document.querySelectorAll('#acctstatement-tabs button').forEach(b=> b.classList.toggle('on', b.dataset.stmttab===stmtTab));
 
-  const historyHtml = fullHistory.length ? fullHistory.map((tx,i)=>{
-    if(tx._kind==='people'){
-      const gave = tx.delta > 0;
-      return `<div class="tx-item" style="opacity:0.85;"><div class="chip-icon" style="background:var(--sage-dim);">🤝</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${gave?'You gave':'You received from'} ${tx.personName}</span><span class="tx-amt ${gave?'neg':'pos'}">${gave?'-':'+'}${fmt(Math.abs(tx.delta))}</span></div><div class="tx-meta">${new Date(tx.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · People Ledger — not counted as spending, shown here for reconciliation</div></div></div>`;
-    }
-    if(tx.type==='transfer'){
-      return `<div class="tx-item" data-stmthist="${i}" style="cursor:pointer;"><div class="chip-icon" style="background:var(--peri-dim);">🔄</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${targetName(tx.from)} → ${targetName(tx.to)}</span><span class="tx-amt">${fmt(tx.amount)}</span></div><div class="tx-meta">${new Date(tx.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${tx.remarks||'internal transfer'}</div></div></div>`;
-    }
-    const meta = catMeta(tx.category);
-    return `<div class="tx-item" data-stmthist="${i}" style="cursor:pointer;"><div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${tx.payee}</span><span class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmt(tx.amount)}</span></div><div class="tx-meta">${new Date(tx.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${tx.category}</div></div></div>`;
-  }).join('') : '<div class="empty" style="padding:14px 0;">Nothing recorded against this account yet.</div>';
-
-  document.getElementById('acctstatement-list').innerHTML += `
-    <details style="margin-top:18px;" data-stmtdetails="history">
-      <summary class="divider-label" style="cursor:pointer;">Full history — ${fullHistory.length} entr${fullHistory.length===1?'y':'ies'}, tap any to verify or correct</summary>
-      <div style="margin-top:8px;">${historyHtml}</div>
-    </details>
-  `;
-  document.getElementById('acctstatement-list').querySelectorAll('[data-stmthist]').forEach(el=>{
+  // Every transaction row opens its editor — transfers and People Ledger entries included.
+  // The real record is looked up by id each time, so an edit always lands on the live
+  // object in state, never on a copy made while building this list.
+  document.querySelectorAll('#acctstatement-list [data-stmtid]').forEach(el=>{
     el.addEventListener('click', ()=>{
-      // This list was built from fullHistory, which holds COPIES ({...t}), never the actual
-      // objects living in state.transactions/state.personLedger — so both edits and deletes
-      // made from here were silently operating on a copy that gets thrown away, never the
-      // real record. Looking the real object up by id here is the fix: openEditTx/
-      // openEditPersonEntry now always receive something that's actually part of state.
-      const item = statementHistoryRefs[parseInt(el.getAttribute('data-stmthist'))];
-      if(!item) return;
-      if(item._kind==='people'){
-        const real = state.personLedger.find(e=>e.id===item.id);
+      if(el.dataset.stmtkind==='people'){
+        const real = state.personLedger.find(e=>e.id===el.dataset.stmtid);
         if(real) openEditPersonEntry(real);
       } else {
-        const real = state.transactions.find(t=>t.id===item.id);
+        const real = state.transactions.find(t=>t.id===el.dataset.stmtid);
         if(real) openEditTx(real);
       }
     });
   });
-  document.querySelectorAll('#acctstatement-list details[data-stmtdetails]').forEach(d=>{ if(wasOpen[d.dataset.stmtdetails]) d.open = true; });
   applyMaskUI();
-  if(discrepancy>=1){
-    const pendingLink = document.querySelector('[data-openpending]');
-    if(pendingLink){
-      pendingLink.addEventListener('click', ()=>{
-        openReviewImport(pendingLink.getAttribute('data-openpending'));
-      });
-    }
-    const reconLink = document.getElementById('acctstatement-reconcile-link');
-    if(reconLink){
-      reconLink.addEventListener('click', ()=>{
-        openReconSheet(targetId, isCard);
-      });
-    }
-  }
+  const pendingLink = document.querySelector('#acctstatement-warning [data-openpending]');
+  if(pendingLink) pendingLink.addEventListener('click', ()=> openReviewImport(pendingLink.getAttribute('data-openpending')));
+  const reconLink = document.getElementById('acctstatement-reconcile-link');
+  if(reconLink) reconLink.addEventListener('click', ()=> openReconSheet(targetId, isCard));
+}
+function openAcctStatement(targetId, isCard){
+  stmtTab = 'all'; // a fresh open always starts on the full list
+  renderAcctStatement(targetId, isCard);
+  document.querySelector('#acctstatement-backdrop .fs-body').scrollTop = 0;
+  acctstatementBackdrop.classList.add('open');
 }
 document.addEventListener('click', (e)=>{
   const row = e.target.closest('[data-acctstatement]');
   if(!row || e.target.closest('button')) return;
-  currentStatementCtx = null; // a fresh open — don't carry over which lists were expanded
-  renderAcctStatement(row.dataset.acctstatement, row.dataset.iscard==='1');
-  document.querySelector('#acctstatement-backdrop .fs-body').scrollTop = 0;
-  acctstatementBackdrop.classList.add('open');
+  openAcctStatement(row.dataset.acctstatement, row.dataset.iscard==='1');
+});
+document.querySelectorAll('#acctstatement-tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    if(!currentStatementCtx) return;
+    stmtTab = btn.dataset.stmttab;
+    renderAcctStatement(currentStatementCtx.targetId, currentStatementCtx.isCard);
+  });
+});
+document.getElementById('acctstatement-adjust-btn').addEventListener('click', ()=>{
+  if(currentStatementCtx) openAdjustBalance(currentStatementCtx.targetId, currentStatementCtx.isCard);
+});
+document.getElementById('acctstatement-add-btn').addEventListener('click', ()=>{
+  if(currentStatementCtx) openAddTxSheet(currentStatementCtx.targetId);
 });
 document.getElementById('acctstatement-close').addEventListener('click', ()=> acctstatementBackdrop.classList.remove('open'));
 
