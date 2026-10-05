@@ -76,7 +76,7 @@
   body{font-family:var(--font); color:var(--ink); -webkit-font-smoothing:antialiased;}
   button,input,select,textarea{font-family:var(--font);}
   .num{font-variant-numeric:tabular-nums;}
-  #app{max-width:480px; margin:0 auto; min-height:100vh; background:var(--bg-grad); display:flex; flex-direction:column; position:relative; overflow:hidden; transition:background .25s ease;}
+  #app{max-width:480px; margin:0 auto; min-height:100vh; background:var(--bg-grad); display:flex; flex-direction:column; position:relative; overflow:hidden; overflow:clip; transition:background .25s ease;}
   /* Soft glow and two thin rings behind the top of every screen */
   #app::before{content:''; position:absolute; width:300px; height:300px; left:-150px; top:-170px; border-radius:50%; background:var(--glow); filter:blur(60px); pointer-events:none;}
   #app::after{content:''; position:absolute; width:540px; height:540px; right:-250px; top:-350px; border-radius:50%; border:1px solid var(--line); pointer-events:none;}
@@ -188,6 +188,17 @@
   .cat-entries .tx-item{padding:7px 0 7px 8px;}
   .cat-entries .chip-icon{width:34px; height:34px;}
   .cat-entries .chip-icon svg{width:15px; height:15px;}
+  .person-links{display:flex; align-items:center; gap:8px; margin-top:3px;}
+  .person-links i{font-style:normal; color:var(--ink-soft); font-size:11px;}
+  .pill-btn.sm{padding:6px 12px; font-size:12px;}
+  .settled-toggle{display:flex; width:100%; align-items:center; justify-content:space-between; background:none; border:none; border-top:1px solid var(--line); margin-top:14px; padding:14px 0 4px; font-family:var(--font); font-size:12.5px; font-weight:500; letter-spacing:.03em; color:var(--ink-soft); cursor:pointer;}
+  .bva{width:100%; border-collapse:collapse; margin-top:14px; font-size:12.5px;}
+  .bva th{font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); font-weight:500; text-align:right; padding:0 0 7px 8px;}
+  .bva td{padding:9px 0 9px 8px; text-align:right; border-top:1px solid var(--line); color:var(--ink); white-space:nowrap; vertical-align:top;}
+  .bva th:first-child, .bva td:first-child{text-align:left; padding-left:0; white-space:normal;}
+  .bva td.d{color:var(--ink-soft);}
+  .bva td.d.over{color:var(--debt);}
+  .bva tr.tot td{font-weight:600; border-top:1px solid var(--ink-soft);}
   .person-block + .person-block{margin-top:12px; padding-top:12px; border-top:1px solid var(--line);}
 
   /* ---- Bottom bar with the + in the middle ---- */
@@ -651,6 +662,20 @@
   </div>
 </div>
 
+<!-- EDIT PERSON SHEET (rename, note, settle, delete) -->
+<div class="sheet-backdrop" id="editperson-backdrop">
+  <div class="sheet">
+    <h3>Edit person</h3>
+    <div class="field"><label>Name</label><input id="ep-name" autocomplete="off"></div>
+    <div class="field"><label>Note</label><input id="ep-note" autocomplete="off" placeholder="e.g. lent for car repair"></div>
+    <p class="section-sub" id="ep-status"></p>
+    <button class="btn-primary" id="ep-save">Save changes</button>
+    <button class="btn-ghost" id="ep-settle">Mark as settled</button>
+    <button class="btn-ghost" id="ep-delete" style="color:var(--debt); border-color:var(--debt);">Delete person and their entries</button>
+    <button class="btn-ghost" id="ep-cancel">Cancel</button>
+  </div>
+</div>
+
 <!-- EDIT PERSON ENTRY SHEET -->
 <div class="sheet-backdrop" id="editpersonentry-backdrop">
   <div class="sheet">
@@ -942,7 +967,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Clear transactions since a date</button>
     <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-05 · v62-dark-redesign</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-05 · v63-budget-compare-people-settle</p>
   </div>
 </div>
 
@@ -1227,6 +1252,7 @@ let state = null;
 let recentTxRefs = [];
 let expandedCats = new Set();
 let expandedPeople = new Set();
+let showSettledPeople = false;
 const STORAGE_KEY = 'cfo-dashboard-v2';
 
 function migrateState(){
@@ -1664,6 +1690,10 @@ async function loadTheme(){
   }catch(e){ /* not set yet, default light */ }
   applyTheme(theme);
 }
+// The background ring hangs past the right edge. Where `overflow:clip` is not supported the
+// app container could still be scrolled sideways by the browser (e.g. when bringing a button
+// or input into view), so snap it straight back.
+(function(){ const app = document.getElementById('app'); if(app) app.addEventListener('scroll', ()=>{ if(app.scrollLeft) app.scrollLeft = 0; }); })();
 function applyTheme(theme){
   const root = document.documentElement;
   if(theme==='dark') root.setAttribute('data-theme','dark'); else root.removeAttribute('data-theme');
@@ -2073,6 +2103,56 @@ function personBalance(id){
   state.personLedger.filter(e=>e.personId===id).forEach(e=> bal += e.delta);
   return bal;
 }
+// ---- SETTLED PEOPLE ----
+// Settling takes a person off the People list once nothing is owed either way, but keeps the
+// person and every entry on record — those entries are also part of the bank accounts'
+// history, so removing them would change account balances. A settled person with a non-zero
+// balance (a new entry was logged for them) counts as active again.
+function isSettledPerson(p){ return !!(p && p.settled) && Math.abs(personBalance(p.id)) < 0.5; }
+function activePeople(){ return state.people.filter(p=>!isSettledPerson(p)); }
+function settledPeople(){ return state.people.filter(p=>isSettledPerson(p)); }
+function normalizePeopleFlags(){
+  // Once a settled person owes or is owed again, the settled mark is dropped for good, so they
+  // do not silently vanish from the list the next time the balance happens to touch zero.
+  state.people.forEach(p=>{ if(p.settled && Math.abs(personBalance(p.id)) >= 0.5) p.settled = false; });
+}
+function findPersonByName(name){
+  const k = (name||'').trim().toLowerCase();
+  return k ? state.people.find(p=> (p.name||'').trim().toLowerCase()===k) : null;
+}
+// Adds a person, or — when that name is already on record — returns the existing one
+// (bringing them back from Settled) instead of creating a second ledger for the same name.
+function addOrReopenPerson(rawName, note){
+  const name = (rawName||'').trim();
+  const existing = findPersonByName(name);
+  if(existing){
+    const wasSettled = isSettledPerson(existing);
+    if(existing.settled) existing.settled = false;
+    return {person: existing, status: wasSettled ? 'reopened' : 'exists'};
+  }
+  const person = {id: slugify(name), name, note: note||'', opening: 0};
+  state.people.push(person);
+  return {person, status: 'new'};
+}
+async function settlePerson(id){
+  const p = state.people.find(x=>x.id===id);
+  if(!p) return;
+  if(Math.abs(personBalance(id)) >= 0.5){ alert(`${p.name}'s balance is ${fmt(Math.abs(personBalance(id)))}, not zero — it can be settled once nothing is owed either way.`); return; }
+  p.settled = true;
+  p.settledAt = new Date().toISOString();
+  expandedPeople.delete(id);
+  await saveState();
+  render();
+  showToast(`${p.name} settled — history kept under Settled`);
+}
+async function reopenPerson(id){
+  const p = state.people.find(x=>x.id===id);
+  if(!p) return;
+  p.settled = false;
+  await saveState();
+  render();
+  showToast(`${p.name} is back on the list`);
+}
 function allBalanceTargets(){
   return [...state.accounts.map(a=>({id:a.id, name:a.name, em:a.em, isCard:false, balance:accountBalance(a)})),
           ...state.cards.map(c=>({id:c.id, name:c.name, em:c.em, isCard:true, balance:cardDue(c)}))];
@@ -2458,6 +2538,7 @@ function renderHomeBudget(){
 
 function render(){
   normalizeBudgetFlags(); // a category with a budget is a regular expense, never a "trip"
+  normalizePeopleFlags();
   // Budget "actual" is this calendar month only — recomputed on every render so a month
   // rollover, or a change arriving from the other phone, never leaves last month's numbers up.
   recomputeBudgetActuals();
@@ -2525,7 +2606,8 @@ function render(){
     el.addEventListener('click', ()=> openAdjustBalance(el.getAttribute('data-adjust'), el.getAttribute('data-adjiscard')==='1'));
   });
 
-  document.getElementById('people-list').innerHTML = state.people.length? state.people.map(p=>{
+  const personBlockHtml = (p)=>{
+    const settled = isSettledPerson(p);
     const bal = personBalance(p.id);
     const entries = state.personLedger.filter(e=>e.personId===p.id).sort((a,b)=> new Date(b.ts)-new Date(a.ts));
     const isOpen = expandedPeople.has(p.id);
@@ -2545,13 +2627,29 @@ function render(){
           <div data-toggleperson="${p.id}" style="cursor:pointer;">
             <div class="name">${p.name}${chevron}</div><div class="sub">${p.note||''}</div>
           </div>
-          <button class="link-btn" data-pdf="${p.id}" style="margin-top:3px;">Statement PDF</button>
+          <div class="person-links"><button class="link-btn" data-pdf="${p.id}">Statement PDF</button><i>·</i><button class="link-btn" data-editperson="${p.id}">Edit</button></div>
         </div>
-        <div class="row-actions"><div class="amt maskable ${bal<0?'neg':'pos'}" data-person="${p.id}" style="cursor:pointer;">${fmt(Math.abs(bal))}</div><button class="x-btn" data-delperson="${p.id}">✕</button></div>
+        <div class="row-actions">${settled
+          ? `<button class="pill-btn sm" data-reopenperson="${p.id}">Reopen</button>`
+          : `<div class="amt maskable ${bal<0?'neg':'pos'}" data-person="${p.id}" style="cursor:pointer;">${fmt(Math.abs(bal))}</div>${Math.abs(bal)<0.5 ? `<button class="pill-btn sm" data-settleperson="${p.id}">Settle</button>` : ''}`
+        }</div>
       </div>
       ${entriesHtml}
     </div>`;
-  }).join('') : '<div class="empty">No one on the ledger yet. Tap + to add someone.</div>';
+  };
+  const activeList = activePeople(), settledList = settledPeople();
+  document.getElementById('people-list').innerHTML =
+    (activeList.length ? activeList.map(personBlockHtml).join('')
+      : `<div class="empty">${settledList.length ? 'Everyone is settled. Tap + to add someone.' : 'No one on the ledger yet. Tap + to add someone.'}</div>`) +
+    (settledList.length
+      ? `<button class="settled-toggle" id="settled-toggle"><span>Settled · ${settledList.length}</span><span>${showSettledPeople?'Hide ▲':'Show ▼'}</span></button>` +
+        (showSettledPeople ? `<p class="section-sub" style="margin:6px 0 12px;">Nothing owed either way. Their entries stay on record, so your account balances are unchanged.</p>` + settledList.map(personBlockHtml).join('') : '')
+      : '');
+  const settledToggle = document.getElementById('settled-toggle');
+  if(settledToggle) settledToggle.addEventListener('click', ()=>{ showSettledPeople = !showSettledPeople; render(); });
+  document.querySelectorAll('[data-settleperson]').forEach(el=> el.addEventListener('click', (e)=>{ e.stopPropagation(); settlePerson(el.getAttribute('data-settleperson')); }));
+  document.querySelectorAll('[data-reopenperson]').forEach(el=> el.addEventListener('click', (e)=>{ e.stopPropagation(); reopenPerson(el.getAttribute('data-reopenperson')); }));
+  document.querySelectorAll('[data-editperson]').forEach(el=> el.addEventListener('click', (e)=>{ e.stopPropagation(); openEditPerson(el.getAttribute('data-editperson')); }));
   document.querySelectorAll('[data-toggleperson]').forEach(el=> el.addEventListener('click', ()=>{
     const id = el.getAttribute('data-toggleperson');
     if(expandedPeople.has(id)) expandedPeople.delete(id); else expandedPeople.add(id);
@@ -2566,17 +2664,6 @@ function render(){
   document.querySelectorAll('[data-pdf]').forEach(el=> el.addEventListener('click', (e)=>{
     e.stopPropagation();
     generatePersonPDF(el.getAttribute('data-pdf'));
-  }));
-  document.querySelectorAll('[data-delperson]').forEach(el=> el.addEventListener('click', (e)=>{
-    e.stopPropagation();
-    const id = el.getAttribute('data-delperson');
-    const p = state.people.find(x=>x.id===id);
-    const bal = personBalance(id);
-    if(confirm(`Remove ${p.name} from the People Ledger? Their balance of ${fmt(bal)} and transaction history won't be kept — this just removes the entry.`)){
-      state.people = state.people.filter(x=>x.id!==id);
-      state.personLedger = state.personLedger.filter(x=>x.personId!==id);
-      saveState().then(render);
-    }
   }));
 
   // Bills & goals (shown on the Budget page)
@@ -3008,9 +3095,10 @@ let txPersonSelectedCat = null;
 let txPersonCatPickerOpen = false;
 let lastPersonSaveCountedSpend = null;
 function renderTxPersonChips(){
-  if(!txSelectedPerson && state.people.length) txSelectedPerson = state.people[0].id;
+  const txPeople = activePeople();
+  if(!txPeople.some(p=>p.id===txSelectedPerson)) txSelectedPerson = txPeople[0] ? txPeople[0].id : null;
   document.getElementById('tx-person-row').innerHTML =
-    state.people.map(p=>`<div class="acct-chip ${p.id===txSelectedPerson?'on':''}" data-txperson="${p.id}">${p.name}</div>`).join('') +
+    txPeople.map(p=>`<div class="acct-chip ${p.id===txSelectedPerson?'on':''}" data-txperson="${p.id}">${p.name}</div>`).join('') +
     `<div class="acct-chip" id="tx-person-new-chip">+ New</div>`;
   document.querySelectorAll('#tx-person-row [data-txperson]').forEach(el=>{
     el.addEventListener('click', ()=>{ txSelectedPerson = el.dataset.txperson; renderTxPersonChips(); });
@@ -3018,11 +3106,12 @@ function renderTxPersonChips(){
   document.getElementById('tx-person-new-chip').addEventListener('click', async ()=>{
     const name = prompt('Name?');
     if(!name || !name.trim()) return;
-    const newPerson = {id: slugify(name), name: name.trim(), opening: 0};
-    state.people.push(newPerson);
-    txSelectedPerson = newPerson.id;
+    const added = addOrReopenPerson(name);
+    txSelectedPerson = added.person.id;
     await saveState();
     renderTxPersonChips();
+    if(added.status==='reopened') showToast(`${added.person.name} was settled earlier — back on the list, history kept`);
+    else if(added.status==='exists') showToast(`${added.person.name} is already on your list — selected`);
   });
   // A category here is optional — it's just for your own record of what money spent "for
   // someone" was actually for (e.g. "Parties"). It never counts toward budget actuals, same
@@ -3465,6 +3554,68 @@ document.getElementById('editpe-delete').addEventListener('click', async ()=>{
   showToast('Deleted.');
 });
 
+// ---- EDIT PERSON: rename, note, settle / reopen, delete ----
+const editPersonBackdrop = document.getElementById('editperson-backdrop');
+let editingPersonId = null;
+function openEditPerson(id){
+  const p = state.people.find(x=>x.id===id);
+  if(!p) return;
+  editingPersonId = id;
+  const bal = personBalance(id), zero = Math.abs(bal) < 0.5, settled = isSettledPerson(p);
+  document.getElementById('ep-name').value = p.name || '';
+  document.getElementById('ep-note').value = p.note || '';
+  document.getElementById('ep-status').innerHTML = settled
+    ? 'Settled — nothing owed either way. Their entries are kept.'
+    : zero ? 'Balance is zero. Mark as settled to take them off the list — their entries are kept.'
+    : `${bal>0 ? 'They owe you' : 'You owe them'} <b class="maskable">${fmt(Math.abs(bal))}</b>. Can be settled once this reaches zero.`;
+  const settleBtn = document.getElementById('ep-settle');
+  settleBtn.classList.toggle('hide', !zero);
+  settleBtn.textContent = settled ? 'Put back on the list' : 'Mark as settled';
+  editPersonBackdrop.classList.add('open');
+  applyMaskUI();
+}
+document.getElementById('ep-cancel').addEventListener('click', ()=> editPersonBackdrop.classList.remove('open'));
+editPersonBackdrop.addEventListener('click', e=>{ if(e.target===editPersonBackdrop) editPersonBackdrop.classList.remove('open'); });
+document.getElementById('ep-save').addEventListener('click', async ()=>{
+  const p = state.people.find(x=>x.id===editingPersonId);
+  if(!p) return;
+  const name = document.getElementById('ep-name').value.trim();
+  if(!name){ alert('Enter a name.'); return; }
+  const clash = findPersonByName(name);
+  if(clash && clash.id !== p.id){ alert(`Someone called "${clash.name}" is already on record${isSettledPerson(clash) ? ' (under Settled)' : ''}. Pick a different name.`); return; }
+  // Entries point at the person by id, so a new name shows on every past entry at once.
+  p.name = name;
+  p.note = document.getElementById('ep-note').value.trim();
+  await saveState();
+  render();
+  editPersonBackdrop.classList.remove('open');
+  showToast('Saved.');
+});
+document.getElementById('ep-settle').addEventListener('click', async ()=>{
+  const p = state.people.find(x=>x.id===editingPersonId);
+  if(!p) return;
+  editPersonBackdrop.classList.remove('open');
+  if(isSettledPerson(p)) await reopenPerson(p.id); else await settlePerson(p.id);
+});
+document.getElementById('ep-delete').addEventListener('click', async ()=>{
+  const id = editingPersonId;
+  const p = state.people.find(x=>x.id===id);
+  if(!p) return;
+  const entries = state.personLedger.filter(e=>e.personId===id);
+  const inAccounts = entries.filter(e=>e.account);
+  const msg = inAccounts.length
+    ? `Delete ${p.name}?\n\n${inAccounts.length} of their ${entries.length} entr${entries.length===1?'y':'ies'} moved money through your accounts. Deleting removes those entries from the accounts too, so those account balances WILL change.\n\nTo keep your accounts right, cancel and use "Mark as settled" instead (available once the balance is zero).`
+    : `Delete ${p.name}${entries.length ? ` and their ${entries.length} entr${entries.length===1?'y':'ies'}` : ''}? None of it touched your accounts, so no account balance changes.`;
+  if(!confirm(msg)) return;
+  state.people = state.people.filter(x=>x.id!==id);
+  state.personLedger = state.personLedger.filter(x=>x.personId!==id);
+  expandedPeople.delete(id);
+  await saveState();
+  render();
+  editPersonBackdrop.classList.remove('open');
+  showToast('Deleted.');
+});
+
 const addPersonBackdrop = document.getElementById('addperson-backdrop');
 document.getElementById('add-person-btn').addEventListener('click', ()=>{
   document.getElementById('ap-name').value='';
@@ -3479,8 +3630,12 @@ document.getElementById('ap-save').addEventListener('click', async ()=>{
   if(!name){ alert('Enter a name.'); return; }
   const amt = parseFloat(document.getElementById('ap-amount').value) || 0;
   const dir = segValue('ap-dir');
-  const newId = slugify(name);
-  state.people.push({id: newId, name, note: document.getElementById('ap-note').value.trim(), opening:0});
+  const existingPerson = findPersonByName(name);
+  if(existingPerson && !isSettledPerson(existingPerson)){ alert(`${existingPerson.name} is already on your list.`); return; }
+  const apNote = document.getElementById('ap-note').value.trim();
+  const added = addOrReopenPerson(name, apNote);
+  if(added.status==='reopened' && apNote) added.person.note = apNote;
+  const newId = added.person.id;
   if(amt>0){
     const delta = dir==='owe_you' ? amt : -amt;
     state.personLedger.push({id:'pl_'+Date.now(), personId:newId, ts:new Date().toISOString(), type:'opening', delta, remarks:'Starting balance'});
@@ -3488,7 +3643,7 @@ document.getElementById('ap-save').addEventListener('click', async ()=>{
   await saveState();
   render();
   addPersonBackdrop.classList.remove('open');
-  showToast('Added to the ledger!');
+  showToast(added.status==='reopened' ? `${added.person.name} was settled earlier — back on the list, history kept` : 'Added to the ledger!');
 });
 
 // ---- PERSON STATEMENT PDF ----
@@ -3611,7 +3766,7 @@ function generateMonthEndReport(){
   doc.autoTable({
     startY: y+4,
     head: [['Person','Note','Balance']],
-    body: state.people.map(p=>[p.name, p.note||'', fmtPdf(personBalance(p.id))]),
+    body: activePeople().map(p=>[p.name, p.note||'', fmtPdf(personBalance(p.id))]),
     styles:{ font:'helvetica', fontSize:8.5, cellPadding:2.8, textColor:[20,20,20] },
     headStyles:{ font:'helvetica', fontStyle:'bold', fillColor:[59,42,58], textColor:[251,243,236] },
     columnStyles:{ 2:{halign:'right'} }
@@ -4182,6 +4337,21 @@ function budgetMonthSummary(d){
   const special = state.budget.filter(b=>b.special).reduce((s,b)=> s+(actuals[b.cat]||0), 0);
   return {key, rows, special, budget:rows.reduce((s,r)=>s+r.budget,0), actual:rows.reduce((s,r)=>s+r.actual,0)};
 }
+// One finished month, category by category: budget, actual and the difference.
+function budgetMonthTableHtml(sm){
+  const rows = sm.rows.filter(r=> r.budget>0 || r.actual>0);
+  if(!rows.length) return '';
+  const diffCell = (budget, actual)=>{
+    if(!(budget>0)) return `<td class="d">no budget</td>`;
+    const d = budget - actual;
+    if(Math.abs(d) < 0.5) return `<td class="d">on budget</td>`;
+    return d<0 ? `<td class="d over"><span class="maskable">${fmt(-d)}</span> over</td>` : `<td class="d"><span class="maskable">${fmt(d)}</span> under</td>`;
+  };
+  return `<table class="bva"><thead><tr><th>Category</th><th>Budget</th><th>Actual</th><th>Difference</th></tr></thead><tbody>${
+    rows.map(r=>`<tr><td>${storyEsc(storyCatLabel(r.cat))}</td><td class="maskable">${r.budget>0 ? fmt(r.budget) : '—'}</td><td class="maskable">${fmt(r.actual)}</td>${diffCell(r.budget, r.actual)}</tr>`).join('')
+  }<tr class="tot"><td>Total</td><td class="maskable">${fmt(sm.budget)}</td><td class="maskable">${fmt(sm.actual)}</td>${diffCell(sm.budget, sm.actual)}</tr></tbody></table>`;
+}
+let bpOpenMonth = null; // an older month opened from the budget record list
 function bpInputs(){ return [...document.querySelectorAll('#budget-page .bp-input')]; }
 function bpHasUnsavedChanges(){
   return bpInputs().some(el=>{ const b = state.budget[parseInt(el.dataset.bpidx)]; return b && (parseFloat(el.value)||0) !== (b.budget||0); });
@@ -4234,6 +4404,7 @@ function renderBudgetPage(keepTypedValues, change){
             ? `Over budget in ${overRows.length} categor${overRows.length===1?'y':'ies'}: ` + overRows.slice(0,3).map(r=>`${storyEsc(storyCatLabel(r.cat))} <span style="color:var(--debt); font-weight:700; white-space:nowrap;" class="maskable">+${fmt(r.actual-r.budget)}</span>`).join(', ') + (overRows.length>3?` and ${overRows.length-3} more`:'') + '.'
             : 'Every category stayed within its budget.'
         }${prev.special>0 ? ` Trips &amp; special spending of <span class="maskable">${fmt(prev.special)}</span> is tracked separately, outside this budget.` : ''}</div>
+        ${budgetMonthTableHtml(prev)}
       </div>`;
   } else {
     lastEl.innerHTML = `<div class="divider-label" style="margin-top:6px;">Last month — budget vs actual</div>
@@ -4248,14 +4419,22 @@ function renderBudgetPage(keepTypedValues, change){
       <div class="card">${watched.map(d=>{
         const sm = budgetMonthSummary(d);
         const diff = sm.budget - sm.actual;
-        return `<div class="row"><div><div class="name">${d.toLocaleDateString('en-IN',{month:'short', year:'numeric'})}</div><div class="sub maskable">Budget ${fmt(sm.budget)} · Actual ${fmt(sm.actual)}</div></div>
-          <div class="amt maskable ${diff<0?'neg':'pos'}" style="font-size:13.5px;">${diff<0?'Over ':'Under '}${fmt(Math.abs(diff))}</div></div>`;
+        // Last month's categories are already listed in the card above; older months open here.
+        const canOpen = !(prev && sm.key===prev.key);
+        const isOpen = canOpen && bpOpenMonth===sm.key;
+        return `<div class="row" ${canOpen?`data-bpmonth="${sm.key}" style="cursor:pointer;"`:''}><div><div class="name">${d.toLocaleDateString('en-IN',{month:'short', year:'numeric'})}${canOpen?` <span style="font-size:11px; color:var(--ink-soft);">${isOpen?'▲':'▼'}</span>`:''}</div><div class="sub maskable">Budget ${fmt(sm.budget)} · Actual ${fmt(sm.actual)}</div></div>
+          <div class="amt maskable ${diff<0?'neg':'pos'}" style="font-size:13.5px;">${diff<0?'Over ':'Under '}${fmt(Math.abs(diff))}</div></div>${isOpen ? budgetMonthTableHtml(sm) : ''}`;
       }).join('')}
       <div style="font-size:12px; color:var(--ink-soft); margin-top:11px; padding-top:11px; border-top:1px dashed var(--line);">${
         done.length >= BUDGET_REVIEW_MONTHS
           ? `${BUDGET_REVIEW_MONTHS} months are on record — enough to settle the ideal budget.`
           : `Each finished month is saved here. After ${BUDGET_REVIEW_MONTHS} months (${BUDGET_REVIEW_MONTHS-done.length} more to go) there is enough to settle the ideal budget.`
       }</div></div>`;
+    trackEl.querySelectorAll('[data-bpmonth]').forEach(el=> el.addEventListener('click', ()=>{
+      const k = el.getAttribute('data-bpmonth');
+      bpOpenMonth = bpOpenMonth===k ? null : k;
+      renderBudgetPage(true);
+    }));
   } else {
     trackEl.innerHTML = '';
   }
@@ -4283,7 +4462,9 @@ function renderBudgetPage(keepTypedValues, change){
     if(pr && !quietRow){
       const over = pr.budget>0 && pr.actual>pr.budget;
       const pct = pr.budget>0 ? Math.min(100, pr.actual/pr.budget*100) : (pr.actual>0?100:0);
-      lastHtml = `<div class="bp-last">${prevShort}: <b class="maskable">${fmt(pr.actual)}</b> spent of <span class="maskable">${fmt(pr.budget)}</span>${over?` · <span class="over maskable">over by ${fmt(pr.actual-pr.budget)}</span>`:''}</div>
+      const gap = pr.budget - pr.actual;
+      const gapHtml = !(pr.budget>0) ? '' : Math.abs(gap)<0.5 ? ' · on budget' : over ? ` · <span class="over"><span class="maskable">${fmt(-gap)}</span> over</span>` : ` · <b><span class="maskable">${fmt(gap)}</span> under</b>`;
+      lastHtml = `<div class="bp-last">${prevShort}: budget ${pr.budget>0 ? `<span class="maskable">${fmt(pr.budget)}</span>` : 'not set'} · actual <b class="maskable">${fmt(pr.actual)}</b>${gapHtml}</div>
         <div class="bar-track"><div class="bar-fill ${over?'over':''}" style="width:${pct}%"></div></div>`;
     }
     let suggHtml = '';
@@ -4322,7 +4503,10 @@ function renderBudgetPage(keepTypedValues, change){
       <div class="bp-head"><div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
         <button class="bp-name bp-name-btn" data-bpedit="${storyEsc(b.cat)}" aria-label="Edit ${storyEsc(b.cat)}">${storyEsc(storyCatLabel(b.cat))}&nbsp;<span class="bp-pencil">✎</span></button>
         <input class="bp-input" type="number" inputmode="numeric" min="0" data-bpidx="${i}" data-bpcat="${storyEsc(b.cat)}" value="${valueFor(b)}" aria-label="${storyEsc(b.cat)} expected for ${monthName}"></div>
-      ${hasPrev ? `<div class="bp-last">${prevShort}: <b class="maskable">${fmt(prevActualsAll[b.cat]||0)}</b> received of <span class="maskable">${fmt(prevIncomeAmounts[b.cat]||0)}</span> expected</div>` : ''}
+      ${hasPrev ? (()=>{ const exp = prevIncomeAmounts[b.cat]||0, got = prevActualsAll[b.cat]||0, gap = got-exp;
+        if(!exp && !got) return '';
+        const gapHtml = !(exp>0) || Math.abs(gap)<0.5 ? '' : gap<0 ? ` · <span class="over"><span class="maskable">${fmt(-gap)}</span> short</span>` : ` · <b><span class="maskable">${fmt(gap)}</span> more</b>`;
+        return `<div class="bp-last">${prevShort}: expected <span class="maskable">${fmt(exp)}</span> · received <b class="maskable">${fmt(got)}</b>${gapHtml}</div>`; })() : ''}
     </div>`;
   }).join('') || '<div class="empty" style="padding:10px 0;">No income categories yet.</div>';
 
@@ -5992,19 +6176,21 @@ function renderReviewChips(imp){
   document.getElementById('ri-cat-summary').onclick = ()=>{ riCatPickerOpen = !riCatPickerOpen; renderReviewChips(imp); };
   document.getElementById('ri-cat-grid').classList.toggle('hide', !riCatPickerOpen);
 
-  if(!state.people.find(p=>p.id===riSelectedPerson)) riSelectedPerson = state.people[0] ? state.people[0].id : null;
+  const riPeople = activePeople();
+  if(!riPeople.find(p=>p.id===riSelectedPerson)) riSelectedPerson = riPeople[0] ? riPeople[0].id : null;
   document.getElementById('ri-person-row').innerHTML =
-    state.people.map(p=>`<div class="acct-chip ${p.id===riSelectedPerson?'on':''}" data-riperson="${p.id}">${p.name}</div>`).join('') +
+    riPeople.map(p=>`<div class="acct-chip ${p.id===riSelectedPerson?'on':''}" data-riperson="${p.id}">${p.name}</div>`).join('') +
     `<div class="acct-chip" data-riperson="__new">+ New</div>`;
   document.querySelectorAll('#ri-person-row [data-riperson]').forEach(el=>{
     el.addEventListener('click', async ()=>{
       if(el.dataset.riperson==='__new'){
         const name = prompt('Name?');
         if(!name || !name.trim()) return;
-        const newPerson = {id: slugify(name), name: name.trim(), opening: 0};
-        state.people.push(newPerson);
-        riSelectedPerson = newPerson.id;
+        const added = addOrReopenPerson(name);
+        riSelectedPerson = added.person.id;
         await saveState();
+        if(added.status==='reopened') showToast(`${added.person.name} was settled earlier — back on the list, history kept`);
+        else if(added.status==='exists') showToast(`${added.person.name} is already on your list — selected`);
       } else {
         riSelectedPerson = el.dataset.riperson;
       }
