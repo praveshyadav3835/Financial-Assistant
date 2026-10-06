@@ -188,6 +188,24 @@
   .cat-entries .tx-item{padding:7px 0 7px 8px;}
   .cat-entries .chip-icon{width:34px; height:34px;}
   .cat-entries .chip-icon svg{width:15px; height:15px;}
+  #engine-page{z-index:66;} /* opens on top of Settings & tools */
+  .eng-score{display:flex; align-items:baseline; gap:10px; margin-bottom:4px;}
+  .eng-score .big{font-size:34px; font-weight:600; color:var(--ink); line-height:1;}
+  .eng-score .of{font-size:12.5px; color:var(--ink-soft);}
+  .eng-sub{font-size:12px; color:var(--ink-soft); line-height:1.45;}
+  .eng-line{display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-top:1px solid var(--line); font-size:13px; color:var(--ink);}
+  .eng-line span:last-child{color:var(--ink-soft); text-align:right;}
+  .eng-line.bad span:last-child{color:var(--debt);}
+  .eng-inbox{font-size:13.5px; font-weight:500; color:var(--ink); word-break:break-all;}
+  .eng-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:10px;}
+  .eng-grid .cell{background:var(--line); border-radius:12px; padding:9px 8px;}
+  .eng-grid .cell .l{font-size:9.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:3px;}
+  .eng-grid .cell .v{font-size:16px; font-weight:500; color:var(--ink);}
+  .eng-grid .cell.bad .v{color:var(--debt);}
+  .ri-dir-row{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;}
+  .ri-dir-row .section-sub{margin:0;}
+  .ri-why{border:1px solid var(--line); border-radius:14px; padding:12px; margin-top:10px;}
+  .ri-why .btn-ghost{margin-top:8px;}
   .person-links{display:flex; align-items:center; gap:8px; margin-top:3px;}
   .person-links i{font-style:normal; color:var(--ink-soft); font-size:11px;}
   .pill-btn.sm{padding:6px 12px; font-size:12px;}
@@ -450,6 +468,7 @@
         <button class="btn-primary" id="gmail-custom-fetch-btn">Fetch</button>
         <span id="gmail-status-text" class="hide"></span>
       </div>
+      <div style="text-align:right; margin-top:6px;"><button class="link-btn" id="open-engine-report-btn">How well is it reading? Report →</button></div>
       <div class="panel">
         <div class="ph"><b>Accounts &amp; Cards</b></div>
         <div id="wallet-carousel"></div>
@@ -710,7 +729,10 @@
   <div class="sheet">
     <h3>Review this transaction</h3>
     <p class="section-sub" id="ri-source-note">Found in your email</p>
-    <p class="section-sub" id="ri-direction-note" style="font-weight:700; color:var(--ink);"></p>
+    <div class="ri-dir-row">
+      <p class="section-sub" id="ri-direction-note" style="font-weight:700; color:var(--ink);"></p>
+      <button class="link-btn" id="ri-flip-dir" type="button">Wrong way round?</button>
+    </div>
 
     <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">What was this?</label>
     <div class="seg" id="ri-mode" style="margin-bottom:14px;">
@@ -761,9 +783,16 @@
     </div>
     <div class="field"><label>Who / what was this?</label><input id="ri-payee"></div>
     <div class="field"><label>Amount (₹)</label><input id="ri-amount" type="number" inputmode="decimal"></div>
-    <button class="btn-primary" id="ri-approve-btn">✅ Approve &amp; add to ledger</button>
-    <button class="btn-ghost" id="ri-already-logged-btn">📋 Already logged this manually</button>
-    <button class="btn-ghost" id="ri-dismiss-btn" style="color:var(--debt); border-color:var(--debt);">✕ Not a real transaction — dismiss</button>
+    <button class="btn-primary" id="ri-approve-btn">Approve &amp; add to ledger</button>
+    <button class="btn-ghost" id="ri-already-logged-btn">Already logged this manually</button>
+    <button class="btn-ghost" id="ri-dismiss-btn" style="color:var(--debt); border-color:var(--debt);">Not a real transaction</button>
+    <div class="ri-why hide" id="ri-why">
+      <div class="eng-sub">What was it? Recorded with the rejection, so the reader can be taught to skip these.</div>
+      <button class="btn-ghost" data-why="promo">Promotion or offer</button>
+      <button class="btn-ghost" data-why="notice">Bill, reminder or statement — no money moved</button>
+      <button class="btn-ghost" data-why="failed">Failed, declined or reversed payment</button>
+      <button class="btn-ghost" data-why="other">Something else</button>
+    </div>
     <button class="btn-ghost" id="ri-cancel-btn">Cancel</button>
   </div>
 </div>
@@ -942,6 +971,23 @@
   </div>
 </div>
 
+<div class="fullscreen-page" id="engine-page">
+  <div class="fs-header">
+    <button class="fs-back" id="engine-back-btn" aria-label="Back">←</button>
+    <h2>Email reader report</h2>
+  </div>
+  <div class="fs-body">
+    <div class="seg" id="engine-period">
+      <button data-v="5" class="on">5 days</button>
+      <button data-v="30">30 days</button>
+      <button data-v="0">All</button>
+    </div>
+    <div id="engine-body"></div>
+    <button class="btn-ghost" id="engine-copy-btn">Copy full report as text</button>
+    <textarea id="engine-copy-box" class="hide" readonly style="width:100%; height:160px; margin-top:10px; font-size:11px;"></textarea>
+  </div>
+</div>
+
 <div class="fullscreen-page" id="tools-page">
   <div class="fs-header">
     <button class="fs-back" id="tools-back-btn" aria-label="Back">←</button>
@@ -953,6 +999,9 @@
       <button data-v="dark">Dark</button>
       <button data-v="light">Light</button>
     </div>
+
+    <div class="divider-label">Email reader</div>
+    <button class="btn-ghost" id="tools-engine-report-btn" style="margin-top:0;">Email reader report</button>
 
     <div class="divider-label">Bulk recategorize by date</div>
     <p class="section-sub">Move everything in a date range into one category at once — useful for a trip or event where every expense has a different payee but should be grouped together.</p>
@@ -967,7 +1016,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Clear transactions since a date</button>
     <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-05 · v63-budget-compare-people-settle</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-05 · v64-email-engine-report</p>
   </div>
 </div>
 
@@ -1236,6 +1285,7 @@ const SEED = {
   ],
   balanceAdjustments: [],
   budgetMonths: [],
+  importOutcomes: [],
   payeeMemory: {},
   pendingImports: [],
   dismissedImports: [],
@@ -1407,6 +1457,7 @@ async function loadState(){
 // local settings document over the cloud copy, which is far more than a new empty list needs.
 function normalizeState(){
   if(!Array.isArray(state.budgetMonths)) state.budgetMonths = [];
+  if(!Array.isArray(state.importOutcomes)) state.importOutcomes = [];
 }
 async function saveLocalOnly(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
@@ -1443,10 +1494,13 @@ const COLLECTION_FIELDS = {
   processedGmailIds: 'processedGmailId',
   // One document per closed month's budget (id "bm_2026-09"), kept apart from the shared
   // settings document so a device still running older code can never overwrite the record.
-  budgetMonths: 'budgetMonth'
+  budgetMonths: 'budgetMonth',
+  // One document per decision made on an email-found entry (added as read, added after a
+  // correction, rejected, already logged) — the score sheet for the email reader.
+  importOutcomes: 'importOutcome'
 };
 const META_FIELDS = ['budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','lastBudgetReviewMonth','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts'];
-let previousArrays = { transactions:[], personLedger:[], pendingImports:[], dismissedImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[], budgetMonths:[] };
+let previousArrays = { transactions:[], personLedger:[], pendingImports:[], dismissedImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[], budgetMonths:[], importOutcomes:[] };
 
 // ---- Outbox for cloud writes that haven't been confirmed yet ----
 // A write to Firestore takes a moment to complete. If the app is closed before it does
@@ -2723,6 +2777,7 @@ function refreshOpenPages(){
   if(isOpen('acctstatement-backdrop') && currentStatementCtx) renderAcctStatement(currentStatementCtx.targetId, currentStatementCtx.isCard);
   if(isOpen('monthview-backdrop')) renderMonthView();
   if(isOpen('cattx-page')) renderCatTxPage();
+  if(isOpen('engine-page')) renderEngineReport();
 }
 
 // ---------- ADD TRANSACTION SHEET ----------
@@ -6008,6 +6063,7 @@ function renderLearningMatches(){
     el.addEventListener('click', async ()=>{
       const p = pairs[parseInt(el.dataset.learnConfirm)];
       recordPayeeLearning(p.candidate.payee, p.tx.category, p.tx.account, 3);
+      recordImportOutcome(p.candidate, 'already_logged', null, null, null, p.tx.id);
       state.pendingImports = state.pendingImports.filter(x=>x.id!==p.candidate.id);
       await saveState();
       render();
@@ -6103,11 +6159,12 @@ function renderPendingReview(){
 
 const reviewImportBackdrop = document.getElementById('reviewimport-backdrop');
 let activeImportId = null;
+let riSelectedType = 'expense'; // what the review sheet will save — starts as what the email reader said
 let riSelectedCat = null, riSelectedAccount = null, riSelectedPerson = null, riPersonSelectedCat = null, riTransferTarget = null;
 let riCatPickerOpen = false, riAcctPickerOpen = false, riPersonCatPickerOpen = false, riTransferPickerOpen = false;
 function renderReviewChips(imp){
   const mode = segValue('ri-mode');
-  const isCredit = imp.type==='income';
+  const isCredit = riSelectedType==='income';
   // Say plainly what the bank itself reported — a credit isn't automatically "income"; it
   // could just as easily be someone paying you back. This used to be hidden entirely, then
   // briefly mislabeled as "Regular income" regardless of which one it actually was. Now the
@@ -6116,7 +6173,9 @@ function renderReviewChips(imp){
   // off a card — this is what fixed the IDFC-bank-debit-that's-really-a-card-payment case),
   // or Transfer-out to a person.
   const dirNoteEl = document.getElementById('ri-direction-note');
-  if(dirNoteEl) dirNoteEl.textContent = isCredit ? '↓ Money came IN (credit)' : '↑ Money went OUT (debit)';
+  if(dirNoteEl) dirNoteEl.textContent = (isCredit ? '↓ Money came IN (credit)' : '↑ Money went OUT (debit)') + (riSelectedType!==imp.type ? ' — corrected' : '');
+  const flipEl = document.getElementById('ri-flip-dir');
+  if(flipEl) flipEl.textContent = riSelectedType!==imp.type ? 'Undo' : 'Wrong way round?';
   const regularBtn = document.getElementById('ri-mode-regular-btn');
   if(regularBtn) regularBtn.textContent = isCredit ? 'Income' : 'Regular expense';
   const personBtn = document.getElementById('ri-mode-person-btn');
@@ -6130,7 +6189,7 @@ function renderReviewChips(imp){
   document.getElementById('ri-cat-field').classList.toggle('hide', effectiveMode==='person' || effectiveMode==='transfer');
   document.getElementById('ri-transfer-field').classList.toggle('hide', effectiveMode!=='transfer');
   document.getElementById('ri-person-field').classList.toggle('hide', effectiveMode!=='person');
-  document.getElementById('ri-household-row').classList.toggle('hide', imp.type!=='expense' || effectiveMode!=='regular');
+  document.getElementById('ri-household-row').classList.toggle('hide', riSelectedType!=='expense' || effectiveMode!=='regular');
 
   if(effectiveMode==='transfer'){
     // Always show every card and account here, regardless of what got auto-detected as the
@@ -6154,7 +6213,7 @@ function renderReviewChips(imp){
     document.getElementById('ri-transfer-row').classList.toggle('hide', !riTransferPickerOpen);
   }
 
-  const catOptions = imp.type==='income' ? state.budget.filter(b=>b.income).map(b=>b.cat) : state.budget.filter(b=>!b.income).map(b=>b.cat);
+  const catOptions = riSelectedType==='income' ? state.budget.filter(b=>b.income).map(b=>b.cat) : state.budget.filter(b=>!b.income).map(b=>b.cat);
   const cats = [...new Set([...catOptions, OTHER_EXPENSE_CAT])];
   if(!cats.includes(riSelectedCat)) riSelectedCat = cats.includes(imp.category) ? imp.category : cats[0];
   const baseLabels = cats.map(c => c.split(' (')[0].split(',')[0]);
@@ -6229,7 +6288,7 @@ function renderReviewChips(imp){
         : "Tag a category if you want this counted as spending (only applies when they paid for you).";
   }
 
-  const targets = imp.type==='expense' ? [...state.accounts, ...state.cards] : state.accounts;
+  const targets = riSelectedType==='expense' ? [...state.accounts, ...state.cards] : state.accounts;
   const validImpAccountId = validatedAccountId(imp.accountId, imp.sourceEmail);
   const detected = validImpAccountId && targets.find(a=>a.id===validImpAccountId);
   if(!targets.find(a=>a.id===riSelectedAccount)) riSelectedAccount = detected ? validImpAccountId : null;
@@ -6256,6 +6315,8 @@ function openReviewImport(id){
   const imp = state.pendingImports.find(p=>p.id===id);
   if(!imp) return;
   activeImportId = id;
+  riSelectedType = imp.type==='income' ? 'income' : 'expense';
+  document.getElementById('ri-why').classList.add('hide');
   riSelectedCat = imp.category;
   riSelectedAccount = validatedAccountId(imp.accountId, imp.sourceEmail);
   riSelectedPerson = null;
@@ -6290,7 +6351,9 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
     if(!riSelectedPerson){ alert('Pick who this was for.'); return; }
     const dir = segValue('ri-person-dir');
     const delta = dir==='gave' ? amount : -amount;
-    state.personLedger.push({id:genId('pl'), personId:riSelectedPerson, ts:imp.ts, type:dir, delta, account:riSelectedAccount, remarks: payee, category:riPersonSelectedCat||null});
+    const plId = genId('pl');
+    state.personLedger.push({id:plId, personId:riSelectedPerson, ts:imp.ts, type:dir, delta, account:riSelectedAccount, remarks: payee, category:riPersonSelectedCat||null});
+    recordImportOutcome(imp, 'added', {type: dir==='gave' ? 'expense' : 'income', amount, payee, accountId:riSelectedAccount, category:null}, 'person', null, plId);
     recomputeBudgetActuals();
     if(imp.sourceEmail) recordEmailAccountMatch(imp.sourceEmail, riSelectedAccount);
     state.pendingImports = state.pendingImports.filter(p=>p.id!==activeImportId);
@@ -6313,6 +6376,7 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
       from: riSelectedAccount, to: riTransferTarget, amount, remarks: payee || 'Imported from email'
     };
     state.transactions.push(tx);
+    recordImportOutcome(imp, 'added', {type:'expense', amount, payee, accountId:riSelectedAccount, category:null}, 'transfer', null, tx.id);
     if(imp.sourceEmail) recordEmailAccountMatch(imp.sourceEmail, riSelectedAccount);
     state.pendingImports = state.pendingImports.filter(p=>p.id!==activeImportId);
     await saveState();
@@ -6322,13 +6386,14 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
     return;
   }
 
-  const wasEdited = (riSelectedCat !== imp.category) || (riSelectedAccount !== imp.accountId) || (amount !== imp.amount) || (payee !== imp.payee);
+  const wasEdited = (riSelectedCat !== imp.category) || (riSelectedAccount !== imp.accountId) || (amount !== imp.amount) || (payee !== imp.payee) || (riSelectedType !== imp.type);
   const tx = {
-    id: genId('tx'), ts: imp.ts, type: imp.type,
+    id: genId('tx'), ts: imp.ts, type: riSelectedType,
     account: riSelectedAccount, payee, category: riSelectedCat, amount,
-    household: imp.type==='expense' ? segValue('ri-household')==='yes' : false, remarks: 'Imported from email'
+    household: riSelectedType==='expense' ? segValue('ri-household')==='yes' : false, remarks: 'Imported from email'
   };
   state.transactions.push(tx);
+  recordImportOutcome(imp, 'added', {type:riSelectedType, amount, payee, accountId:riSelectedAccount, category:riSelectedCat}, 'regular', null, tx.id);
   recomputeBudgetActuals();
   recordPayeeLearning(payee, riSelectedCat, riSelectedAccount, wasEdited ? 3 : 1);
   if(imp.sourceEmail) recordEmailAccountMatch(imp.sourceEmail, riSelectedAccount);
@@ -6345,11 +6410,13 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
 // auto-reject next time; "already logged" just means it was real but redundant, which should
 // never train the system to start rejecting genuinely new transactions that happen to look
 // similar.
-async function dismissImport(reason){
+async function dismissImport(reason, why){
   const imp = state.pendingImports.find(p=>p.id===activeImportId);
   if(imp){
     if(!state.dismissedImports) state.dismissedImports = [];
-    state.dismissedImports.push({id:genId('di'), ts:imp.ts, amount:imp.amount, type:imp.type, accountId:imp.accountId, payee:imp.payee, sourceEmail:imp.sourceEmail, gmailMessageId:imp.gmailMessageId, reason});
+    // No undefined values in anything that syncs — the cloud rejects the whole write.
+    state.dismissedImports.push({id:genId('di'), ts:imp.ts||null, amount:imp.amount||0, type:imp.type||null, accountId:imp.accountId||null, payee:imp.payee||'', sourceEmail:imp.sourceEmail||null, gmailMessageId:imp.gmailMessageId||null, reason, why:why||null, scored:true});
+    recordImportOutcome(imp, reason, null, null, why||null, null);
     if(state.dismissedImports.length > 200) state.dismissedImports = state.dismissedImports.slice(-200);
   }
   state.pendingImports = state.pendingImports.filter(p=>p.id!==activeImportId);
@@ -6361,9 +6428,184 @@ document.getElementById('ri-already-logged-btn').addEventListener('click', async
   await dismissImport('already_logged');
   showToast('📋 Marked as already logged — won\'t ask again about this one.');
 });
-document.getElementById('ri-dismiss-btn').addEventListener('click', async ()=>{
-  await dismissImport('not_real');
-  showToast('Dismissed.');
+// "Not a real transaction" asks one thing first: what was it? A rejection with a reason is
+// something the reader can be taught from; a bare rejection is only remembered for that one email.
+document.getElementById('ri-dismiss-btn').addEventListener('click', ()=>{
+  const box = document.getElementById('ri-why');
+  box.classList.toggle('hide');
+  if(!box.classList.contains('hide')) box.scrollIntoView({block:'nearest'});
+});
+document.querySelectorAll('#ri-why [data-why]').forEach(btn=> btn.addEventListener('click', async ()=>{
+  await dismissImport('not_real', btn.dataset.why);
+  showToast('Rejected — noted why.');
+}));
+document.getElementById('ri-flip-dir').addEventListener('click', ()=>{
+  const imp = state.pendingImports.find(p=>p.id===activeImportId);
+  if(!imp) return;
+  riSelectedType = riSelectedType==='income' ? 'expense' : 'income';
+  document.getElementById('ri-person-dir').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v === (riSelectedType==='income' ? 'received' : 'gave')));
+  // an account picked for a debit may be a credit card, which cannot receive income here
+  if(riSelectedType==='income' && state.cards.some(c=>c.id===riSelectedAccount)) riSelectedAccount = null;
+  renderReviewChips(imp);
+});
+// ---- EMAIL READER SCORE SHEET ----
+// Every decision on an email-found entry is written down with what the reader said and what
+// was finally saved, so "how often is it right without me checking" is a number, per inbox,
+// instead of an impression. Nothing here changes how emails are read.
+function recordImportOutcome(imp, outcome, final, mode, why, savedId){
+  if(!Array.isArray(state.importOutcomes)) state.importOutcomes = [];
+  const parsed = {type: imp.type||null, amount: imp.amount||0, payee: imp.payee||'', accountId: validatedAccountId(imp.accountId, imp.sourceEmail), category: imp.category||null};
+  const changed = [];
+  if(final){
+    if(final.type !== parsed.type) changed.push('direction');
+    if(Math.abs((final.amount||0) - parsed.amount) >= 1) changed.push('amount');
+    if(final.accountId !== parsed.accountId) changed.push('account');
+    if(mode==='regular' && final.category !== parsed.category) changed.push('category');
+    if((final.payee||'') !== parsed.payee) changed.push('payee');
+  }
+  state.importOutcomes.push({
+    id: genId('io'), at: new Date().toISOString(), emailTs: imp.ts||null, sourceEmail: imp.sourceEmail||null,
+    gmailMessageId: imp.gmailMessageId||null, outcome, mode: mode||null, why: why||null,
+    flaggedDuplicate: imp.status==='duplicate', parsed, final: final||null, changed, savedId: savedId||null
+  });
+  if(state.importOutcomes.length > 600) state.importOutcomes = state.importOutcomes.slice(-600);
+}
+function inboxForAccount(accountId){
+  const hit = Object.entries(EMAIL_ACCOUNT_MAP).find(([,ids])=> ids.includes(accountId));
+  return hit ? hit[0] : null;
+}
+const WHY_LABEL = {promo:'Promotion or offer', notice:'Bill, reminder or statement', failed:'Failed, declined or reversed', other:'Something else'};
+function engineReportData(days){
+  const since = days ? new Date(Date.now() - days*86400000) : null;
+  const inPeriod = ts => !since || (ts && new Date(ts) >= since);
+  const outcomes = state.importOutcomes||[];
+  const scoredSaved = new Set(outcomes.map(o=>o.savedId).filter(Boolean));
+  const events = [];
+  outcomes.forEach(o=> events.push({inbox:o.sourceEmail||'Unknown inbox', kind:o.outcome, ts:o.emailTs||o.at, payee:(o.final&&o.final.payee)||o.parsed.payee||'', amount:o.parsed.amount, type:o.parsed.type, scored:true, changed:o.changed||[], why:o.why||null}));
+  // Decisions made before this score sheet existed: rejections were kept (last 200); entries
+  // added from email are recognised by their note and placed under the inbox their account belongs to.
+  (state.dismissedImports||[]).forEach(d=>{ if(d.scored) return; events.push({inbox:d.sourceEmail||'Unknown inbox', kind:d.reason||'not_real', ts:d.ts, payee:d.payee||'', amount:d.amount, type:d.type, scored:false, changed:[], why:d.why||null}); });
+  state.transactions.forEach(t=>{ if(t.remarks!=='Imported from email' || scoredSaved.has(t.id)) return; events.push({inbox:inboxForAccount(t.account)||'Unknown inbox', kind:'added', ts:t.ts, payee:t.payee||'', amount:t.amount, type:t.type, scored:false, changed:[], why:null}); });
+  const ev = events.filter(e=>inPeriod(e.ts));
+  const waiting = (state.pendingImports||[]).filter(p=>inPeriod(p.ts));
+  const inboxes = {};
+  const box = k => (inboxes[k] = inboxes[k] || {inbox:k, added:0, notReal:0, alreadyLogged:0, auto:0, waiting:0});
+  Object.keys(EMAIL_ACCOUNT_MAP).forEach(box);
+  ev.forEach(e=>{ const b = box(e.inbox); if(e.kind==='added') b.added++; else if(e.kind==='not_real') b.notReal++; else if(e.kind==='already_logged') b.alreadyLogged++; else b.auto++; });
+  waiting.forEach(p=> box(p.sourceEmail||'Unknown inbox').waiting++);
+  const rows = Object.values(inboxes).map(b=>({...b, found:b.added+b.notReal+b.alreadyLogged+b.auto+b.waiting})).filter(b=> b.found>0 || EMAIL_ACCOUNT_MAP[b.inbox]);
+  const scored = ev.filter(e=>e.scored);
+  const exact = scored.filter(e=>e.kind==='added' && !e.changed.length).length;
+  const corrected = scored.filter(e=>e.kind==='added' && e.changed.length);
+  const fieldCounts = {};
+  corrected.forEach(e=> e.changed.forEach(f=> fieldCounts[f] = (fieldCounts[f]||0)+1));
+  const notReal = ev.filter(e=>e.kind==='not_real').sort((a,b)=> new Date(b.ts)-new Date(a.ts));
+  const whyCounts = {};
+  notReal.forEach(e=>{ const k = e.why || 'unlabelled'; whyCounts[k] = (whyCounts[k]||0)+1; });
+  // the same sender or payee rejected again and again — the clearest thing there is to learn
+  const repeat = {};
+  events.filter(e=>e.kind==='not_real').forEach(e=>{ const k = normalizePayee(e.payee)||'unknown'; (repeat[k] = repeat[k] || {payee:e.payee||'Unknown', n:0}).n++; });
+  const repeats = Object.values(repeat).filter(r=>r.n>=2).sort((a,b)=>b.n-a.n);
+  const mem = state.payeeMemory||{};
+  const memTop = Object.entries(mem).map(([k,v])=>{ const best = Object.entries(v.counts||{}).sort((a,b)=>b[1]-a[1])[0] || ['',0]; const [cat, acct] = best[0].split('::'); return {payee:k, n:Object.values(v.counts||{}).reduce((s2,x)=>s2+x,0), cat:cat||'', acct:acct||''}; }).sort((a,b)=>b.n-a.n);
+  const habits = Object.entries(state.emailAccountHistory||{}).map(([email,h])=>{ const top = Object.entries(h).sort((a,b)=>b[1]-a[1])[0]; return {email, acct: top ? targetName(top[0]) : '', n: top ? top[1] : 0, total:Object.values(h).reduce((s2,x)=>s2+x,0)}; });
+  return {days, rows, total: rows.reduce((s2,r)=>s2+r.found,0), scored: scored.length, exact, corrected: corrected.length, fieldCounts,
+    scoredNotReal: scored.filter(e=>e.kind==='not_real').length, scoredAlready: scored.filter(e=>e.kind==='already_logged').length,
+    notReal, whyCounts, repeats, memCount: Object.keys(mem).length, memTop, habits,
+    rejectedRemembered: (state.dismissedImports||[]).length, pendingFields: [...new Set((state.pendingImports||[]).flatMap(p=>Object.keys(p)))].sort()};
+}
+let enginePeriod = 5;
+function renderEngineReport(){
+  const d = engineReportData(enginePeriod);
+  const periodName = enginePeriod ? `last ${enginePeriod} days` : 'all time on record';
+  const pct = (a,b)=> b ? Math.round(a/b*100)+'%' : '—';
+  const shortDate = ts => ts ? new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : '';
+  const scoreCard = d.scored
+    ? `<div class="card"><div class="eng-score"><div class="big">${pct(d.exact, d.scored)}</div><div class="of">right first time — ${d.exact} of ${d.scored} needed no change</div></div>
+        <div class="eng-line ${d.corrected?'bad':''}"><span>Added after you corrected it</span><span>${d.corrected}${d.corrected ? ' — ' + Object.entries(d.fieldCounts).sort((a,b)=>b[1]-a[1]).map(([f,n])=>`${f} ${n}`).join(', ') : ''}</span></div>
+        <div class="eng-line ${d.scoredNotReal?'bad':''}"><span>Not a real transaction</span><span>${d.scoredNotReal}</span></div>
+        <div class="eng-line"><span>Real, but you had already logged it</span><span>${d.scoredAlready}</span></div></div>`
+    : `<div class="card"><div class="empty" style="padding:6px 0; text-align:left;">Scoring starts with this build. From now on every email entry you add, correct or reject is counted here, so the share that needed no checking becomes a number. Rejections made earlier are still shown below.</div></div>`;
+  const inboxCards = d.rows.map(r=>`<div class="card" style="margin-bottom:10px;">
+      <div class="eng-inbox">${storyEsc(r.inbox)}</div>
+      <div class="eng-sub" style="margin-top:2px;">${r.found} found${r.found ? ` · ${pct(r.notReal + r.auto, r.found)} not real` : ''}</div>
+      <div class="eng-grid">
+        <div class="cell"><div class="l">Added</div><div class="v">${r.added}</div></div>
+        <div class="cell ${r.notReal?'bad':''}"><div class="l">Not real</div><div class="v">${r.notReal}</div></div>
+        <div class="cell"><div class="l">Already in</div><div class="v">${r.alreadyLogged}</div></div>
+        <div class="cell"><div class="l">Waiting</div><div class="v">${r.waiting}</div></div>
+      </div>${r.auto ? `<div class="eng-sub" style="margin-top:8px;">${r.auto} more rejected automatically by the reader</div>` : ''}
+    </div>`).join('');
+  const SHOW = 40;
+  const notRealHtml = d.notReal.length
+    ? `<div class="card">${d.notReal.slice(0,SHOW).map(e=>`<div class="eng-line"><span>${storyEsc(e.payee||'Unknown')}<br><span class="eng-sub">${shortDate(e.ts)} · ${e.type==='income'?'credit':'debit'} · ${storyEsc(e.inbox)}${e.why ? ' · '+(WHY_LABEL[e.why]||e.why) : ''}</span></span><span class="maskable">${fmt(e.amount||0)}</span></div>`).join('')}
+        ${d.notReal.length>SHOW ? `<div class="eng-sub" style="padding-top:10px;">Showing ${SHOW} of ${d.notReal.length}. The copied report lists all of them.</div>` : ''}</div>`
+    : `<div class="card"><div class="empty" style="padding:6px 0;">Nothing rejected in this period.</div></div>`;
+  const learnedHtml = `<div class="card">
+      <div class="eng-line" style="border-top:none; padding-top:0;"><span>Payees it fills in for you (category and account)</span><span>${d.memCount}</span></div>
+      ${d.memTop.slice(0,5).map(m=>`<div class="eng-line"><span style="color:var(--ink-soft);">${storyEsc(m.payee)}</span><span>${storyEsc((m.cat||'').split(' (')[0])}${m.acct ? ' · '+storyEsc(targetName(m.acct)) : ''}</span></div>`).join('')}
+      ${d.habits.map(h=>`<div class="eng-line"><span>Usual account for ${storyEsc(h.email)}</span><span>${storyEsc(h.acct)} (${h.n} of ${h.total})</span></div>`).join('')}
+      <div class="eng-line"><span>Rejected emails it will never show again</span><span>${d.rejectedRemembered}</span></div>
+    </div>`;
+  const repeatsHtml = d.repeats.length
+    ? `<div class="divider-label">Rejected more than once — same name each time</div><div class="card">${d.repeats.slice(0,12).map(r=>`<div class="eng-line"><span>${storyEsc(r.payee)}</span><span>${r.n} times</span></div>`).join('')}</div>` : '';
+  document.getElementById('engine-body').innerHTML =
+    `<div class="divider-label" style="margin-top:14px;">Read right without checking — ${periodName}</div>${scoreCard}
+     <div class="divider-label">By inbox — ${periodName} (${d.total} found)</div>${inboxCards}
+     <div class="divider-label">Marked not a real transaction — ${d.notReal.length}</div>${notRealHtml}
+     ${repeatsHtml}
+     <div class="divider-label">What the reader has learned so far</div>${learnedHtml}`;
+  document.querySelectorAll('#engine-period button').forEach(b=> b.classList.toggle('on', String(enginePeriod)===b.dataset.v));
+  applyMaskUI();
+}
+function engineReportText(){
+  const lines = [];
+  const build = (document.body.innerHTML.match(/Build: [^<]+/)||[''])[0];
+  lines.push('EMAIL READER REPORT · ' + new Date().toLocaleString('en-IN') + ' · ' + build + ' · parser v' + PARSING_LOGIC_VERSION);
+  [5, 30, 0].forEach(days=>{
+    const d = engineReportData(days);
+    lines.push('', `== ${days ? 'Last '+days+' days' : 'All time on record'} ==`);
+    lines.push(`Scored decisions: ${d.scored} | right first time ${d.exact} | corrected ${d.corrected} (${Object.entries(d.fieldCounts).map(([f,n])=>f+' '+n).join(', ')||'-'}) | not real ${d.scoredNotReal} | already logged ${d.scoredAlready}`);
+    d.rows.forEach(r=> lines.push(`${r.inbox}: found ${r.found} | added ${r.added} | not real ${r.notReal} | already logged ${r.alreadyLogged} | auto-rejected ${r.auto} | waiting ${r.waiting}`));
+    lines.push('Not real, by reason: ' + (Object.entries(d.whyCounts).map(([k,n])=>k+' '+n).join(', ')||'-'));
+    if(days!==5) return;
+    lines.push('Not real, each one:');
+    d.notReal.forEach(e=> lines.push(`  ${e.ts ? new Date(e.ts).toISOString().slice(0,16) : '?'} | ${e.inbox} | ${e.type==='income'?'credit':'debit'} | ${e.amount} | ${e.payee||'Unknown'} | ${e.why||'-'}`));
+  });
+  const all = engineReportData(0);
+  lines.push('', '== Not real, all on record ==');
+  all.notReal.forEach(e=> lines.push(`  ${e.ts ? new Date(e.ts).toISOString().slice(0,16) : '?'} | ${e.inbox} | ${e.type==='income'?'credit':'debit'} | ${e.amount} | ${e.payee||'Unknown'} | ${e.why||'-'}`));
+  lines.push('', '== Corrections (what the reader said -> what was saved) ==');
+  (state.importOutcomes||[]).filter(o=>o.outcome==='added' && (o.changed||[]).length).slice(-80).forEach(o=> lines.push(`  ${o.sourceEmail||'?'} | ${o.changed.join('+')} | ${o.parsed.type} ${o.parsed.amount} "${o.parsed.payee}" ${o.parsed.accountId||'no-account'} ${o.parsed.category||''} -> ${o.final.type} ${o.final.amount} "${o.final.payee}" ${o.final.accountId||''} ${o.final.category||''}`));
+  lines.push('', '== Learned ==');
+  lines.push(`Payees remembered: ${all.memCount}`);
+  all.memTop.slice(0,25).forEach(m=> lines.push(`  ${m.payee} -> ${m.cat} / ${m.acct} (${m.n})`));
+  all.habits.forEach(h=> lines.push(`Usual account for ${h.email}: ${h.acct} (${h.n} of ${h.total})`));
+  lines.push(`Rejected emails remembered: ${all.rejectedRemembered}`);
+  lines.push('Repeat rejections: ' + (all.repeats.map(r=>`${r.payee} x${r.n}`).join('; ')||'-'));
+  lines.push('', '== Waiting now ==');
+  (state.pendingImports||[]).forEach(p=> lines.push(`  ${p.ts ? new Date(p.ts).toISOString().slice(0,16) : '?'} | ${p.sourceEmail||'?'} | ${p.status||''} | ${p.type} | ${p.amount} | ${p.payee||''} | ${p.accountId||'no-account'}`));
+  lines.push('Fields on a waiting entry: ' + (all.pendingFields.join(', ')||'-'));
+  return lines.join('\n');
+}
+function openEngineReport(){
+  renderEngineReport();
+  document.querySelector('#engine-page .fs-body').scrollTop = 0;
+  openFullscreen('engine-page');
+}
+document.querySelectorAll('#engine-period button').forEach(b=> b.addEventListener('click', ()=>{ enginePeriod = parseInt(b.dataset.v)||0; renderEngineReport(); }));
+document.getElementById('engine-back-btn').addEventListener('click', ()=> closeFullscreen('engine-page'));
+document.getElementById('open-engine-report-btn').addEventListener('click', openEngineReport);
+document.getElementById('tools-engine-report-btn').addEventListener('click', openEngineReport);
+document.getElementById('engine-copy-btn').addEventListener('click', async ()=>{
+  const text = engineReportText();
+  let ok = false;
+  try{ await navigator.clipboard.writeText(text); ok = true; }catch(e){ /* older browsers / no permission: fall through to the manual copy box */ }
+  const box = document.getElementById('engine-copy-box');
+  box.value = text;
+  box.classList.toggle('hide', ok);
+  if(!ok){ box.focus(); box.select(); }
+  showToast(ok ? 'Report copied — paste it into the chat' : 'Select all the text in the box and copy it', 3500);
 });
 // ================= END GMAIL AUTO-IMPORT =================
 
