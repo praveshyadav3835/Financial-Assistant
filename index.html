@@ -204,8 +204,6 @@
   .eng-grid .cell.bad .v{color:var(--debt);}
   .ri-dir-row{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;}
   .ri-dir-row .section-sub{margin:0;}
-  .ri-why{border:1px solid var(--line); border-radius:14px; padding:12px; margin-top:10px;}
-  .ri-why .btn-ghost{margin-top:8px;}
   .person-links{display:flex; align-items:center; gap:8px; margin-top:3px;}
   .person-links i{font-style:normal; color:var(--ink-soft); font-size:11px;}
   .pill-btn.sm{padding:6px 12px; font-size:12px;}
@@ -786,13 +784,6 @@
     <button class="btn-primary" id="ri-approve-btn">Approve &amp; add to ledger</button>
     <button class="btn-ghost" id="ri-already-logged-btn">Already logged this manually</button>
     <button class="btn-ghost" id="ri-dismiss-btn" style="color:var(--debt); border-color:var(--debt);">Not a real transaction</button>
-    <div class="ri-why hide" id="ri-why">
-      <div class="eng-sub">What was it? Recorded with the rejection, so the reader can be taught to skip these.</div>
-      <button class="btn-ghost" data-why="promo">Promotion or offer</button>
-      <button class="btn-ghost" data-why="notice">Bill, reminder or statement — no money moved</button>
-      <button class="btn-ghost" data-why="failed">Failed, declined or reversed payment</button>
-      <button class="btn-ghost" data-why="other">Something else</button>
-    </div>
     <button class="btn-ghost" id="ri-cancel-btn">Cancel</button>
   </div>
 </div>
@@ -1016,7 +1007,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Clear transactions since a date</button>
     <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-05 · v64-email-engine-report</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-06 · v65-sender-rule</p>
   </div>
 </div>
 
@@ -2934,7 +2925,7 @@ const PARSING_LOGIC_VERSION = 6;
 const EMAIL_ACCOUNT_MAP = {
   'divya9477@gmail.com': ['divya_indusind', 'divya_icici', 'divya_axis'],
   'praveshyadav3835@gmail.com': ['pravesh_axis', 'sib', 'sbi_card', 'pravesh_sbi'],
-  'pravesh35yadav@gmail.com': ['idfc_card', 'cousin', 'mil']
+  'pravesh35yadav@gmail.com': ['idfc_card', 'cousin', 'mil', 'pravesh_idfc']
 };
 function parseBankSMS(text, sourceEmail){
   const result = {amount:null, type:'expense', payee:'', accountId:null, category:null, preciseTs:null};
@@ -5796,9 +5787,9 @@ document.getElementById('gmail-custom-fetch-btn').addEventListener('click', asyn
     const res = await fetch(`https://us-central1-financial-assistant-141e8.cloudfunctions.net/manualFetch?after=${dateVal}`);
     const data = await res.json();
     if(!data.ok) throw new Error(data.error || 'Unknown error');
-    const dismissedNote = data.totalAutoDismissed ? ` · ${data.totalAutoDismissed} auto-dismissed as recognized junk` : '';
+    const dismissedNote = (data.totalAutoDismissed ? ` · ${data.totalAutoDismissed} auto-dismissed as recognized junk` : '') + (data.totalSkippedBySender ? ` · ${data.totalSkippedBySender} set aside (not from a bank alert address)` : '');
     statusEl.textContent = `Checked automatically every 12 hours · last manual check found ${data.totalFound} across ${data.inboxCount} inbox(es)${dismissedNote}`;
-    showToast(data.totalFound ? `📧 Found ${data.totalFound} transaction(s) — check Home` : '📧 Nothing new found from that date', 3500);
+    showToast((data.totalFound ? `Found ${data.totalFound} transaction(s) — check Home` : 'Nothing new found from that date') + (data.totalSkippedBySender ? ` · ${data.totalSkippedBySender} set aside by the sender rule` : ''), 4000);
   }catch(e){
     console.error('Manual fetch failed', e);
     statusEl.textContent = 'Checked automatically every 12 hours';
@@ -6316,7 +6307,6 @@ function openReviewImport(id){
   if(!imp) return;
   activeImportId = id;
   riSelectedType = imp.type==='income' ? 'income' : 'expense';
-  document.getElementById('ri-why').classList.add('hide');
   riSelectedCat = imp.category;
   riSelectedAccount = validatedAccountId(imp.accountId, imp.sourceEmail);
   riSelectedPerson = null;
@@ -6325,7 +6315,7 @@ function openReviewImport(id){
   riTransferTarget = null; riTransferPickerOpen = false;
   document.getElementById('ri-mode').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v==='regular'));
   document.getElementById('ri-person-dir').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v === (imp.type==='income' ? 'received' : 'gave')));
-  const sourceLine = 'Found in ' + (imp.sourceEmail||'your email') + ' · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  const sourceLine = 'Found in ' + (imp.sourceEmail||'your email') + ' · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + (imp.sender ? ' · sent by ' + imp.sender : '') + (imp.subject ? ' · “' + imp.subject + '”' : '');
   document.getElementById('ri-source-note').textContent = imp.status==='duplicate'
     ? '⚠️ Looks like this may already be in your ledger. Check before adding — if it\'s genuinely separate, just approve it. ' + sourceLine
     : sourceLine;
@@ -6415,7 +6405,7 @@ async function dismissImport(reason, why){
   if(imp){
     if(!state.dismissedImports) state.dismissedImports = [];
     // No undefined values in anything that syncs — the cloud rejects the whole write.
-    state.dismissedImports.push({id:genId('di'), ts:imp.ts||null, amount:imp.amount||0, type:imp.type||null, accountId:imp.accountId||null, payee:imp.payee||'', sourceEmail:imp.sourceEmail||null, gmailMessageId:imp.gmailMessageId||null, reason, why:why||null, scored:true});
+    state.dismissedImports.push({id:genId('di'), ts:imp.ts||null, amount:imp.amount||0, type:imp.type||null, accountId:imp.accountId||null, payee:imp.payee||'', sourceEmail:imp.sourceEmail||null, gmailMessageId:imp.gmailMessageId||null, sender:imp.sender||null, subject:imp.subject||null, reason, why:why||null, scored:true});
     recordImportOutcome(imp, reason, null, null, why||null, null);
     if(state.dismissedImports.length > 200) state.dismissedImports = state.dismissedImports.slice(-200);
   }
@@ -6428,17 +6418,10 @@ document.getElementById('ri-already-logged-btn').addEventListener('click', async
   await dismissImport('already_logged');
   showToast('📋 Marked as already logged — won\'t ask again about this one.');
 });
-// "Not a real transaction" asks one thing first: what was it? A rejection with a reason is
-// something the reader can be taught from; a bare rejection is only remembered for that one email.
-document.getElementById('ri-dismiss-btn').addEventListener('click', ()=>{
-  const box = document.getElementById('ri-why');
-  box.classList.toggle('hide');
-  if(!box.classList.contains('hide')) box.scrollIntoView({block:'nearest'});
+document.getElementById('ri-dismiss-btn').addEventListener('click', async ()=>{
+  await dismissImport('not_real');
+  showToast('Rejected.');
 });
-document.querySelectorAll('#ri-why [data-why]').forEach(btn=> btn.addEventListener('click', async ()=>{
-  await dismissImport('not_real', btn.dataset.why);
-  showToast('Rejected — noted why.');
-}));
 document.getElementById('ri-flip-dir').addEventListener('click', ()=>{
   const imp = state.pendingImports.find(p=>p.id===activeImportId);
   if(!imp) return;
@@ -6465,7 +6448,7 @@ function recordImportOutcome(imp, outcome, final, mode, why, savedId){
   }
   state.importOutcomes.push({
     id: genId('io'), at: new Date().toISOString(), emailTs: imp.ts||null, sourceEmail: imp.sourceEmail||null,
-    gmailMessageId: imp.gmailMessageId||null, outcome, mode: mode||null, why: why||null,
+    gmailMessageId: imp.gmailMessageId||null, sender: imp.sender||null, subject: imp.subject||null, outcome, mode: mode||null, why: why||null,
     flaggedDuplicate: imp.status==='duplicate', parsed, final: final||null, changed, savedId: savedId||null
   });
   if(state.importOutcomes.length > 600) state.importOutcomes = state.importOutcomes.slice(-600);
@@ -6481,18 +6464,27 @@ function engineReportData(days){
   const outcomes = state.importOutcomes||[];
   const scoredSaved = new Set(outcomes.map(o=>o.savedId).filter(Boolean));
   const events = [];
-  outcomes.forEach(o=> events.push({inbox:o.sourceEmail||'Unknown inbox', kind:o.outcome, ts:o.emailTs||o.at, payee:(o.final&&o.final.payee)||o.parsed.payee||'', amount:o.parsed.amount, type:o.parsed.type, scored:true, changed:o.changed||[], why:o.why||null}));
+  outcomes.forEach(o=> events.push({inbox:o.sourceEmail||'Unknown inbox', kind:o.outcome, ts:o.emailTs||o.at, payee:(o.final&&o.final.payee)||o.parsed.payee||'', amount:o.parsed.amount, type:o.parsed.type, scored:true, changed:o.changed||[], why:o.why||null, sender:o.sender||null, subject:o.subject||null}));
   // Decisions made before this score sheet existed: rejections were kept (last 200); entries
   // added from email are recognised by their note and placed under the inbox their account belongs to.
-  (state.dismissedImports||[]).forEach(d=>{ if(d.scored) return; events.push({inbox:d.sourceEmail||'Unknown inbox', kind:d.reason||'not_real', ts:d.ts, payee:d.payee||'', amount:d.amount, type:d.type, scored:false, changed:[], why:d.why||null}); });
+  // A rejection the reader made by itself (same amount and name rejected three times before)
+  // is stored like a manual one, marked autoLearned — counted apart from your own rejections.
+  (state.dismissedImports||[]).forEach(d=>{ if(d.scored) return; events.push({inbox:d.sourceEmail||'Unknown inbox', kind: d.autoLearned ? 'auto' : (d.reason||'not_real'), ts:d.ts, payee:d.payee||'', amount:d.amount, type:d.type, scored:false, changed:[], why:d.why||null, sender:d.sender||null, subject:d.subject||null}); });
   state.transactions.forEach(t=>{ if(t.remarks!=='Imported from email' || scoredSaved.has(t.id)) return; events.push({inbox:inboxForAccount(t.account)||'Unknown inbox', kind:'added', ts:t.ts, payee:t.payee||'', amount:t.amount, type:t.type, scored:false, changed:[], why:null}); });
   const ev = events.filter(e=>inPeriod(e.ts));
   const waiting = (state.pendingImports||[]).filter(p=>inPeriod(p.ts));
   const inboxes = {};
-  const box = k => (inboxes[k] = inboxes[k] || {inbox:k, added:0, notReal:0, alreadyLogged:0, auto:0, waiting:0});
+  const box = k => (inboxes[k] = inboxes[k] || {inbox:k, added:0, notReal:0, alreadyLogged:0, auto:0, waiting:0, setAside:0});
   Object.keys(EMAIL_ACCOUNT_MAP).forEach(box);
   ev.forEach(e=>{ const b = box(e.inbox); if(e.kind==='added') b.added++; else if(e.kind==='not_real') b.notReal++; else if(e.kind==='already_logged') b.alreadyLogged++; else b.auto++; });
   waiting.forEach(p=> box(p.sourceEmail||'Unknown inbox').waiting++);
+  // Mails the sender rule set aside (loaded from the cloud when the report opens). Not part of
+  // "found": they never reached the review queue.
+  const skipped = (engineSkipped||[]).filter(k=>inPeriod(k.ts)).sort((a,b)=> new Date(b.ts)-new Date(a.ts));
+  skipped.forEach(k=> box(k.sourceEmail||'Unknown inbox').setAside++);
+  const bySender = {};
+  skipped.forEach(k=>{ const key = (k.sender||'unknown sender'); const g = (bySender[key] = bySender[key] || {sender:key, n:0, example:k}); g.n++; });
+  const skippedSenders = Object.values(bySender).sort((a,b)=>b.n-a.n);
   const rows = Object.values(inboxes).map(b=>({...b, found:b.added+b.notReal+b.alreadyLogged+b.auto+b.waiting})).filter(b=> b.found>0 || EMAIL_ACCOUNT_MAP[b.inbox]);
   const scored = ev.filter(e=>e.scored);
   const exact = scored.filter(e=>e.kind==='added' && !e.changed.length).length;
@@ -6511,10 +6503,40 @@ function engineReportData(days){
   const habits = Object.entries(state.emailAccountHistory||{}).map(([email,h])=>{ const top = Object.entries(h).sort((a,b)=>b[1]-a[1])[0]; return {email, acct: top ? targetName(top[0]) : '', n: top ? top[1] : 0, total:Object.values(h).reduce((s2,x)=>s2+x,0)}; });
   return {days, rows, total: rows.reduce((s2,r)=>s2+r.found,0), scored: scored.length, exact, corrected: corrected.length, fieldCounts,
     scoredNotReal: scored.filter(e=>e.kind==='not_real').length, scoredAlready: scored.filter(e=>e.kind==='already_logged').length,
-    notReal, whyCounts, repeats, memCount: Object.keys(mem).length, memTop, habits,
+    notReal, whyCounts, repeats, memCount: Object.keys(mem).length, memTop, habits, skipped, skippedSenders,
+    autoRejected: ev.filter(e=>e.kind==='auto').length,
     rejectedRemembered: (state.dismissedImports||[]).length, pendingFields: [...new Set((state.pendingImports||[]).flatMap(p=>Object.keys(p)))].sort()};
 }
 let enginePeriod = 5;
+// The sender rule's own records live in the cloud only (written by the email reader, not by
+// this app's sync): the list of mails it set aside, and its On/Off switch.
+let engineSkipped = null, engineRuleOn = null, engineCloudError = false;
+async function loadEngineCloudExtras(){
+  if(!cloudReady || !db){ engineCloudError = true; return; }
+  try{
+    const [snap, settingsDoc] = await Promise.all([
+      db.collection('household').where('_type','==','skippedEmail').get(),
+      hh('readerSettings').get()
+    ]);
+    engineSkipped = snap.docs.map(d=>d.data());
+    engineRuleOn = !(settingsDoc.exists && settingsDoc.data().senderRule === false);
+    engineCloudError = false;
+  }catch(e){ console.error('Could not load the sender rule records', e); engineCloudError = true; }
+}
+async function setSenderRule(on){
+  if(!cloudReady || !db){ showToast('Not connected — try again when the app shows Synced', 3500); return; }
+  const btns = document.querySelectorAll('#engine-rule-seg button');
+  btns.forEach(b=> b.disabled = true);
+  try{
+    await hh('readerSettings').set({_type:'readerSettings', senderRule: !!on, updatedAt: new Date().toISOString(), updatedBy: whoami||null});
+    engineRuleOn = !!on;
+    showToast(on ? 'Sender rule on — only bank alert addresses are read' : 'Sender rule off — the next fetch reads every mail again', 4000);
+  }catch(e){
+    console.error('Could not save the sender rule switch', e);
+    showToast('Could not save — try again', 3000);
+  }
+  renderEngineReport();
+}
 function renderEngineReport(){
   const d = engineReportData(enginePeriod);
   const periodName = enginePeriod ? `last ${enginePeriod} days` : 'all time on record';
@@ -6534,11 +6556,26 @@ function renderEngineReport(){
         <div class="cell ${r.notReal?'bad':''}"><div class="l">Not real</div><div class="v">${r.notReal}</div></div>
         <div class="cell"><div class="l">Already in</div><div class="v">${r.alreadyLogged}</div></div>
         <div class="cell"><div class="l">Waiting</div><div class="v">${r.waiting}</div></div>
-      </div>${r.auto ? `<div class="eng-sub" style="margin-top:8px;">${r.auto} more rejected automatically by the reader</div>` : ''}
+      </div>${r.auto ? `<div class="eng-sub" style="margin-top:8px;">${r.auto} more rejected automatically by the reader</div>` : ''}${r.setAside ? `<div class="eng-sub" style="margin-top:8px;">${r.setAside} set aside by the sender rule</div>` : ''}
     </div>`).join('');
+  const ruleHtml = `<div class="card">
+      <div class="eng-sub" style="margin-bottom:10px;">On: only mail from your banks' own alert addresses is read, and the address decides the account. Off: every mail is read, as before.</div>
+      <div class="seg" id="engine-rule-seg">
+        <button data-v="on" class="${engineRuleOn===true?'on':''}" ${engineRuleOn===null?'disabled':''}>On</button>
+        <button data-v="off" class="${engineRuleOn===false?'on':''}" ${engineRuleOn===null?'disabled':''}>Off</button>
+      </div>
+      ${engineRuleOn===null ? `<div class="eng-sub" style="margin-top:8px;">${engineCloudError ? 'Could not reach the cloud just now, so the switch and the set-aside list are not shown.' : 'Loading…'}</div>` : ''}
+    </div>`;
+  const SHOW_SENDERS = 20;
+  const skippedHtml = engineSkipped===null ? ''
+    : `<div class="divider-label">Set aside by the sender rule — ${d.skipped.length}</div>` + (d.skipped.length
+      ? `<div class="card"><div class="eng-sub" style="margin-bottom:4px;">These looked like transactions but did not come from a bank alert address. If a real one is here, its address needs adding to the list.</div>
+          ${d.skippedSenders.slice(0,SHOW_SENDERS).map(g=>`<div class="eng-line"><span>${storyEsc(g.sender)}<br><span class="eng-sub">e.g. ${storyEsc(g.example.subject||'no subject')} · <span class="maskable">${fmt(g.example.amount||0)}</span> · ${shortDate(g.example.ts)}</span></span><span>${g.n}</span></div>`).join('')}
+          ${d.skippedSenders.length>SHOW_SENDERS ? `<div class="eng-sub" style="padding-top:10px;">Showing ${SHOW_SENDERS} of ${d.skippedSenders.length} senders. The copied report lists every mail.</div>` : ''}</div>`
+      : `<div class="card"><div class="empty" style="padding:6px 0;">Nothing set aside in this period.</div></div>`);
   const SHOW = 40;
   const notRealHtml = d.notReal.length
-    ? `<div class="card">${d.notReal.slice(0,SHOW).map(e=>`<div class="eng-line"><span>${storyEsc(e.payee||'Unknown')}<br><span class="eng-sub">${shortDate(e.ts)} · ${e.type==='income'?'credit':'debit'} · ${storyEsc(e.inbox)}${e.why ? ' · '+(WHY_LABEL[e.why]||e.why) : ''}</span></span><span class="maskable">${fmt(e.amount||0)}</span></div>`).join('')}
+    ? `<div class="card">${d.notReal.slice(0,SHOW).map(e=>`<div class="eng-line"><span>${storyEsc(e.payee||'Unknown')}<br><span class="eng-sub">${shortDate(e.ts)} · ${e.type==='income'?'credit':'debit'} · ${storyEsc(e.inbox)}${e.sender ? ' · from '+storyEsc(e.sender) : ''}${e.subject ? ' · “'+storyEsc(e.subject)+'”' : ''}${e.why ? ' · '+(WHY_LABEL[e.why]||e.why) : ''}</span></span><span class="maskable">${fmt(e.amount||0)}</span></div>`).join('')}
         ${d.notReal.length>SHOW ? `<div class="eng-sub" style="padding-top:10px;">Showing ${SHOW} of ${d.notReal.length}. The copied report lists all of them.</div>` : ''}</div>`
     : `<div class="card"><div class="empty" style="padding:6px 0;">Nothing rejected in this period.</div></div>`;
   const learnedHtml = `<div class="card">
@@ -6550,31 +6587,48 @@ function renderEngineReport(){
   const repeatsHtml = d.repeats.length
     ? `<div class="divider-label">Rejected more than once — same name each time</div><div class="card">${d.repeats.slice(0,12).map(r=>`<div class="eng-line"><span>${storyEsc(r.payee)}</span><span>${r.n} times</span></div>`).join('')}</div>` : '';
   document.getElementById('engine-body').innerHTML =
-    `<div class="divider-label" style="margin-top:14px;">Read right without checking — ${periodName}</div>${scoreCard}
+    `<div class="divider-label" style="margin-top:14px;">Sender rule</div>${ruleHtml}
+     <div class="divider-label">Read right without checking — ${periodName}</div>${scoreCard}
      <div class="divider-label">By inbox — ${periodName} (${d.total} found)</div>${inboxCards}
-     <div class="divider-label">Marked not a real transaction — ${d.notReal.length}</div>${notRealHtml}
+     ${skippedHtml}
+     <div class="divider-label">Marked not a real transaction by you — ${d.notReal.length}</div>${notRealHtml}
      ${repeatsHtml}
      <div class="divider-label">What the reader has learned so far</div>${learnedHtml}`;
   document.querySelectorAll('#engine-period button').forEach(b=> b.classList.toggle('on', String(enginePeriod)===b.dataset.v));
+  document.querySelectorAll('#engine-rule-seg button').forEach(b=> b.addEventListener('click', ()=>{
+    const on = b.dataset.v==='on';
+    if(on === engineRuleOn) return;
+    if(!on && !confirm('Switch the sender rule off? From the next fetch every mail is read again, including the ones set aside so far, so the old junk comes back into the review queue.')) return;
+    setSenderRule(on);
+  }));
   applyMaskUI();
+}
+// Date and time as read on a clock in India, whatever the phone's own setting.
+function istStamp(ts){
+  if(!ts) return '?';
+  const d = new Date(new Date(ts).getTime() + 330*60000);
+  return isNaN(d) ? '?' : d.toISOString().slice(0,16).replace('T',' ');
 }
 function engineReportText(){
   const lines = [];
   const build = (document.body.innerHTML.match(/Build: [^<]+/)||[''])[0];
-  lines.push('EMAIL READER REPORT · ' + new Date().toLocaleString('en-IN') + ' · ' + build + ' · parser v' + PARSING_LOGIC_VERSION);
+  lines.push('EMAIL READER REPORT · ' + new Date().toLocaleString('en-IN') + ' · ' + build + ' · parser v' + PARSING_LOGIC_VERSION + ' · all times India time');
   [5, 30, 0].forEach(days=>{
     const d = engineReportData(days);
     lines.push('', `== ${days ? 'Last '+days+' days' : 'All time on record'} ==`);
     lines.push(`Scored decisions: ${d.scored} | right first time ${d.exact} | corrected ${d.corrected} (${Object.entries(d.fieldCounts).map(([f,n])=>f+' '+n).join(', ')||'-'}) | not real ${d.scoredNotReal} | already logged ${d.scoredAlready}`);
-    d.rows.forEach(r=> lines.push(`${r.inbox}: found ${r.found} | added ${r.added} | not real ${r.notReal} | already logged ${r.alreadyLogged} | auto-rejected ${r.auto} | waiting ${r.waiting}`));
+    d.rows.forEach(r=> lines.push(`${r.inbox}: found ${r.found} | added ${r.added} | not real (by you) ${r.notReal} | already logged ${r.alreadyLogged} | auto-rejected ${r.auto} | waiting ${r.waiting} | set aside by sender rule ${r.setAside}`));
     lines.push('Not real, by reason: ' + (Object.entries(d.whyCounts).map(([k,n])=>k+' '+n).join(', ')||'-'));
     if(days!==5) return;
     lines.push('Not real, each one:');
-    d.notReal.forEach(e=> lines.push(`  ${e.ts ? new Date(e.ts).toISOString().slice(0,16) : '?'} | ${e.inbox} | ${e.type==='income'?'credit':'debit'} | ${e.amount} | ${e.payee||'Unknown'} | ${e.why||'-'}`));
+    d.notReal.forEach(e=> lines.push(`  ${e.ts ? istStamp(e.ts) : '?'} | ${e.inbox} | ${e.type==='income'?'credit':'debit'} | ${e.amount} | ${e.payee||'Unknown'} | ${e.sender||'-'} | ${e.subject||'-'}`));
   });
   const all = engineReportData(0);
   lines.push('', '== Not real, all on record ==');
-  all.notReal.forEach(e=> lines.push(`  ${e.ts ? new Date(e.ts).toISOString().slice(0,16) : '?'} | ${e.inbox} | ${e.type==='income'?'credit':'debit'} | ${e.amount} | ${e.payee||'Unknown'} | ${e.why||'-'}`));
+  all.notReal.forEach(e=> lines.push(`  ${e.ts ? istStamp(e.ts) : '?'} | ${e.inbox} | ${e.type==='income'?'credit':'debit'} | ${e.amount} | ${e.payee||'Unknown'} | ${e.sender||'-'} | ${e.subject||'-'}`));
+  lines.push('', `== Sender rule: ${engineRuleOn===null ? 'state not loaded' : engineRuleOn ? 'ON' : 'OFF'} — set aside, all on record (${engineSkipped===null ? 'list not loaded' : all.skipped.length}) ==`);
+  all.skippedSenders.forEach(g=> lines.push(`  ${g.n} x ${g.sender}`));
+  all.skipped.forEach(k=> lines.push(`  ${istStamp(k.ts)} | ${k.sourceEmail||'?'} | ${k.sender||'?'} | ${k.type==='income'?'credit':'debit'} | ${k.amount} | ${k.payee||''} | ${k.subject||''}`));
   lines.push('', '== Corrections (what the reader said -> what was saved) ==');
   (state.importOutcomes||[]).filter(o=>o.outcome==='added' && (o.changed||[]).length).slice(-80).forEach(o=> lines.push(`  ${o.sourceEmail||'?'} | ${o.changed.join('+')} | ${o.parsed.type} ${o.parsed.amount} "${o.parsed.payee}" ${o.parsed.accountId||'no-account'} ${o.parsed.category||''} -> ${o.final.type} ${o.final.amount} "${o.final.payee}" ${o.final.accountId||''} ${o.final.category||''}`));
   lines.push('', '== Learned ==');
@@ -6584,14 +6638,16 @@ function engineReportText(){
   lines.push(`Rejected emails remembered: ${all.rejectedRemembered}`);
   lines.push('Repeat rejections: ' + (all.repeats.map(r=>`${r.payee} x${r.n}`).join('; ')||'-'));
   lines.push('', '== Waiting now ==');
-  (state.pendingImports||[]).forEach(p=> lines.push(`  ${p.ts ? new Date(p.ts).toISOString().slice(0,16) : '?'} | ${p.sourceEmail||'?'} | ${p.status||''} | ${p.type} | ${p.amount} | ${p.payee||''} | ${p.accountId||'no-account'}`));
+  (state.pendingImports||[]).forEach(p=> lines.push(`  ${p.ts ? istStamp(p.ts) : '?'} | ${p.sourceEmail||'?'} | ${p.status||''} | ${p.type} | ${p.amount} | ${p.payee||''} | ${p.accountId||'no-account'} | ${p.sender||'-'} | ${p.subject||'-'}`));
   lines.push('Fields on a waiting entry: ' + (all.pendingFields.join(', ')||'-'));
   return lines.join('\n');
 }
-function openEngineReport(){
+async function openEngineReport(){
   renderEngineReport();
   document.querySelector('#engine-page .fs-body').scrollTop = 0;
   openFullscreen('engine-page');
+  await loadEngineCloudExtras();
+  if(document.getElementById('engine-page').classList.contains('open')) renderEngineReport();
 }
 document.querySelectorAll('#engine-period button').forEach(b=> b.addEventListener('click', ()=>{ enginePeriod = parseInt(b.dataset.v)||0; renderEngineReport(); }));
 document.getElementById('engine-back-btn').addEventListener('click', ()=> closeFullscreen('engine-page'));
