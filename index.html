@@ -96,6 +96,8 @@
   #mask-toggle-btn .eye-off{display:block;} #mask-toggle-btn .eye-on{display:none;}
   #mask-toggle-btn.on .eye-off{display:none;} #mask-toggle-btn.on .eye-on{display:block;}
   .whoami-pick{display:flex; gap:8px; margin:6px 0 2px;}
+  .whoami-pick input{flex:2; min-width:0; padding:9px 10px; border-radius:12px; border:1px solid var(--line); background:var(--chip); color:var(--ink); font-size:14px;}
+  .whoami-pick input:focus{outline:none; border-color:var(--peri);}
   .whoami-pick button{flex:1; padding:9px 10px; border-radius:12px; border:1px solid var(--line); background:var(--chip); font-weight:600; font-size:13px; color:var(--ink); cursor:pointer; text-transform:none; letter-spacing:0;}
 
   main{flex:1; position:relative; z-index:1; padding:0;}
@@ -249,23 +251,7 @@
   .period-nav .period-label{text-align:center; flex:1;}
   .period-nav .period-label .main{font-weight:600; font-size:17px;}
   .period-nav .period-label .sub{font-size:11px; color:var(--ink-soft); letter-spacing:.08em;}
-  #story-overlay{position:fixed; inset:0; background:var(--bg-grad); color:var(--ink); z-index:60; overflow-y:auto; display:none; -webkit-overflow-scrolling:touch;}
-  #story-overlay.open{display:block;}
-  .story-wrap{max-width:640px; margin:0 auto; padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 70px;}
-  .story-sec{font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--peri); margin:34px 0 10px;}
-  .story-p{font-size:15px; line-height:1.65; margin:0 0 14px;}
-  .story-card{background:var(--glass); border:1px solid var(--line); border-radius:20px; padding:16px; margin-bottom:12px;}
-  .story-note{font-size:12px; color:var(--ink-soft); border:1px dashed var(--line); border-radius:12px; padding:9px 11px; margin:8px 0 12px; line-height:1.5;}
-  .story-hero{font-size:34px; font-weight:400;}
-  .story-row{display:flex; align-items:center; gap:10px; margin:9px 0; font-size:13px;}
-  .story-track{flex:1; height:8px; background:var(--line); border-radius:5px; overflow:hidden;}
-  .story-fill{height:100%; border-radius:5px; background:var(--peri);}
-  .story-tbl{width:100%; border-collapse:collapse; font-size:13px;}
-  .story-tbl td{padding:7px 3px; border-bottom:1px solid var(--line);}
-  .story-tbl td:not(:first-child){text-align:right; font-weight:600;}
-  .story-card .neg{color:var(--debt);}
 
-  /* ---- Forms ---- */
   .field{margin-bottom:13px;}
   .field label{display:block; font-size:12px; font-weight:500; color:var(--ink-soft); margin-bottom:6px;}
   .field select, .field input, .field textarea, input[type=date]{width:100%; padding:12px 13px; border:1px solid var(--line); border-radius:14px; font-size:15px; background:var(--paper-dim); color:var(--ink); color-scheme:light;}
@@ -407,14 +393,24 @@
   .netsummary-value.neg{color:var(--debt);}
   .netsummary-value.pos{color:var(--ink);}
 
+  /* The screen shown before a household is open: welcome, set-up, or a short notice. */
+  #gate{position:fixed; inset:0; z-index:90; background:var(--bg-grad); color:var(--ink); overflow-y:auto; -webkit-overflow-scrolling:touch;}
+  #gate .gate-inner{max-width:480px; margin:0 auto; padding:calc(env(safe-area-inset-top,0px) + 44px) 22px calc(env(safe-area-inset-bottom,0px) + 40px);}
+  #gate .gate-mark{width:58px; height:58px; border-radius:50%; background:var(--accent-grad); color:#fff; font-family:'Figtree',sans-serif; font-size:30px; display:flex; align-items:center; justify-content:center; margin:0 auto 14px; box-shadow:var(--accent-glow);}
+  #gate h1{font-size:24px; font-weight:600; text-align:center; margin:0 0 10px;}
+  #gate .gate-sub{font-size:15px; line-height:1.5; color:var(--ink-soft); text-align:center; margin:0 0 22px;}
+  #gate .gate-note{font-size:12.5px; line-height:1.5; color:var(--ink-soft); text-align:center; margin:14px 0 0;}
+  #gate .divider-label{margin-top:24px;}
+
   #toast{position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom,0px) + 104px); transform:translate(-50%,20px); background:var(--card); color:var(--ink); border:1px solid var(--line); padding:12px 20px; border-radius:30px; font-weight:500; font-size:13.5px; opacity:0; pointer-events:none; transition:all .25s ease; z-index:100; max-width:calc(100vw - 32px); text-align:center; box-shadow:var(--shadow-md);}
   #toast.show{opacity:1; transform:translate(-50%,0);}
 </style>
 </head>
 <body>
+<div id="gate" class="hide"></div>
 <div id="app">
   <header class="cover">
-    <div class="avatar" id="hdr-avatar" title="Switch person" style="cursor:pointer;">?</div>
+    <div class="avatar" id="hdr-avatar" title="Change name" style="cursor:pointer;">?</div>
     <div class="who">
       <div class="hello" id="hdr-hello">Good day</div>
       <div class="greet" id="hdr-greet">Hi there</div>
@@ -456,7 +452,11 @@
     </section>
 
     <section class="tab" id="tab-money">
-      <h1 class="page-title">Accounts</h1>
+      <div class="page-top">
+        <div class="side"></div>
+        <h1 class="page-title">Accounts</h1>
+        <div class="side right"><button class="icon-btn" id="add-account-btn" aria-label="Add account">+</button></div>
+      </div>
       <div class="hero">
         <div class="lbl">Available money</div>
         <div class="hero-num maskable" id="hdr-net" data-breakdown="net">—</div>
@@ -466,13 +466,13 @@
           <span data-breakdown="gap">With people: <b class="v maskable" id="hdr-gap">—</b></span>
         </div>
       </div>
-      <div class="card email-fetch">
+      <div class="card email-fetch legacy-only">
         <div class="ef-label">Check email</div>
         <input type="date" id="gmail-custom-date" required aria-label="Choose date to check from">
         <button class="btn-primary" id="gmail-custom-fetch-btn">Check</button>
         <span id="gmail-status-text" class="hide"></span>
       </div>
-      <div style="text-align:right; margin-top:6px;"><button class="link-btn" id="open-engine-report-btn">Email accuracy</button></div>
+      <div class="legacy-only" style="text-align:right; margin-top:6px;"><button class="link-btn" id="open-engine-report-btn">Email accuracy</button></div>
       <div class="panel">
         <div class="ph"><b>Accounts &amp; Cards</b></div>
         <div id="wallet-carousel"></div>
@@ -538,9 +538,8 @@
         <div id="home-budget-list"></div>
 
         <div class="ph" style="margin-top:30px;"><b>Month-end</b></div>
-        <button class="btn-primary" id="open-story-btn">Open the month-end story</button>
-        <button class="btn-ghost" id="gen-report-btn">Month-end report (PDF)</button>
-        <p class="section-sub" style="margin-top:10px;">A snapshot PDF of accounts, budget, people, and investments — good for record-keeping or sharing with family.</p>
+        <button class="btn-primary" id="gen-report-btn">Month-end report (PDF)</button>
+        <p class="section-sub" style="margin-top:10px;">A snapshot PDF of accounts, budget and people — good for record-keeping or sharing with family.</p>
       </div>
     </section>
   </main>
@@ -810,6 +809,18 @@
   </div>
 </div>
 
+<!-- ADD / EDIT ACCOUNT SHEET -->
+<div class="sheet-backdrop" id="acct-backdrop">
+  <div class="sheet">
+    <h3 id="acct-title">Add account</h3>
+    <div id="acct-fields"></div>
+    <p class="section-sub" id="acct-note"></p>
+    <button class="btn-primary" id="acct-save">Add account</button>
+    <button class="btn-ghost hide" id="acct-delete" style="color:var(--debt); border-color:var(--debt);">Delete account</button>
+    <button class="btn-ghost" id="acct-cancel">Cancel</button>
+  </div>
+</div>
+
 <!-- ADJUST BALANCE SHEET -->
 <div class="sheet-backdrop" id="adjustbal-backdrop">
   <div class="sheet">
@@ -879,7 +890,7 @@
 <div class="sheet-backdrop" id="catedit-backdrop">
   <div class="sheet">
     <h3 id="catedit-title">Edit category</h3>
-    <div class="field"><label>Category name</label><input id="catedit-name" maxlength="60" placeholder="e.g. Pravesh Commute"></div>
+    <div class="field"><label>Category name</label><input id="catedit-name" maxlength="60" placeholder="e.g. Office commute"></div>
     <div class="field"><label id="catedit-budget-label">Monthly budget (₹)</label><input id="catedit-budget" type="number" inputmode="numeric" min="0" placeholder="0"></div>
     <p class="section-sub" id="catedit-note"></p>
     <button class="btn-primary" id="catedit-save">Save</button>
@@ -987,8 +998,18 @@
       <button data-v="light">Light</button>
     </div>
 
-    <div class="divider-label">Bank emails</div>
-    <button class="btn-ghost" id="tools-engine-report-btn" style="margin-top:0;">Email accuracy</button>
+    <div id="household-section" class="hide">
+      <div class="divider-label">Household</div>
+      <div class="card" id="household-box" style="margin-bottom:6px;"></div>
+    </div>
+
+    <div class="legacy-only">
+      <div class="divider-label">Bank emails</div>
+      <button class="btn-ghost" id="tools-engine-report-btn" style="margin-top:0;">Email accuracy</button>
+    </div>
+
+    <div class="divider-label">PDF reports</div>
+    <div class="field" style="margin-bottom:6px;"><label>Name printed under the title (optional)</label><input id="pdf-name-input" maxlength="90" autocomplete="off" placeholder="e.g. Sharma family, Pune"></div>
 
     <div class="divider-label">Move to a category</div>
     <p class="section-sub">Move everything in a date range into one category at once — useful for a trip or event where every expense has a different payee but should be grouped together.</p>
@@ -1003,11 +1024,9 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-07 · v68-sign-in</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-07 · v70-story-removed</p>
   </div>
 </div>
-
-<div id="story-overlay"><div class="story-wrap"><button class="btn-ghost" id="story-close-btn" style="margin:0 0 14px; width:auto; padding:8px 16px;">✕ Close</button><div id="story-body"></div></div></div>
 
 <div class="fullscreen-page" id="acctstatement-backdrop">
   <div class="fs-header">
@@ -1124,153 +1143,77 @@ function acctGlyph(a){
   return ICON.bank;
 }
 
-const CAT_META = {
-  "Divya Salary": {em:ICON.wallet, bg:CAT_ICON_BG, tint:'var(--icon-pos)'},
-  "Pravesh Salary": {em:ICON.wallet, bg:CAT_ICON_BG, tint:'var(--icon-pos)'},
-  "Other Income (dividends, IPO etc.)": {em:ICON.sparkle, bg:CAT_ICON_BG, tint:'var(--icon-pos)'},
-  "Mother's Monthly Transfer": {em:ICON.heart, bg:CAT_ICON_BG, tint:'var(--icon-pos)'},
-  "Groceries (Blinkit)": {em:ICON.cart, bg:CAT_ICON_BG, tint:'var(--icon-neutral)'},
-  "Food & Dining (Swiggy / Dining Out)": {em:ICON.utensils, bg:CAT_ICON_BG, tint:'var(--icon-neutral)'},
-  "Core Utilities (Power, Gas, Wi-Fi, Water)": {em:ICON.bolt, bg:CAT_ICON_BG, tint:'var(--icon-neutral)'},
-  "Baleno Car EMI": {em:ICON.car, bg:CAT_ICON_BG, tint:'var(--icon-neutral)'},
-  "Vehicle Fuel": {em:ICON.fuel, bg:CAT_ICON_BG, tint:'var(--icon-neutral)'},
-  "Essential Shopping (Home & Apparel)": {em:ICON.bag, bg:CAT_ICON_BG, tint:'var(--icon-neutral)'},
-  "Subscriptions & Entertainment": {em:ICON.film, bg:CAT_ICON_BG, tint:'var(--icon-neutral)'},
-  "Daily Commute & Parking": {em:ICON.car, bg:CAT_ICON_BG, tint:'var(--icon-neutral)'},
-  "Personal (Divya)": {em:ICON.user, bg:CAT_ICON_BG, tint:'var(--icon-neutral)'},
-  "Personal (Pravesh)": {em:ICON.user, bg:CAT_ICON_BG, tint:'var(--icon-neutral)'},
-  "Wealth SIPs (Pravesh ₹5k + Divya ₹8k)": {em:ICON.trendUp, bg:CAT_ICON_BG, tint:'var(--icon-pos)'},
-  "Sinking Fund (Maintenance, LIC, Term)": {em:ICON.bank, bg:CAT_ICON_BG, tint:'var(--icon-neutral)'},
-  "House Help": {em:ICON.broom, bg:CAT_ICON_BG, tint:'var(--icon-neutral)'},
-  "Medical": {em:ICON.medkit, bg:CAT_ICON_BG, tint:'var(--icon-neutral)'},
-  "Parties": {em:ICON.gift, bg:CAT_ICON_BG, tint:'var(--icon-neutral)'},
-  "Other Investments": {em:ICON.chart, bg:CAT_ICON_BG, tint:'var(--icon-pos)'},
-  "Other": {em:ICON.dots, bg:CAT_ICON_BG, tint:'var(--icon-neutral)'}
-};
-// A renamed built-in category keeps its icon: the budget row remembers which built-in it
-// started as (iconOf), since icons are looked up by the original name.
+// Icons are picked from words in the category's name, so any household's own categories get
+// a sensible one. The first rule that matches wins; anything else gets the plain dots.
+const CAT_ICON_RULES = [
+  [/other invest/i, 'chart', 'pos'],
+  [/\bsips?\b|invest|mutual fund|wealth|saving/i, 'trendUp', 'pos'],
+  [/other income|dividend|interest|refund|cashback/i, 'sparkle', 'pos'],
+  [/salary|income|wages|pension/i, 'wallet', 'pos'],
+  [/monthly transfer/i, 'heart', 'pos'],
+  [/family|parent/i, 'heart', 'neutral'],
+  [/grocer|kirana|vegetable/i, 'cart', 'neutral'],
+  [/food|dining|restaurant|eating out/i, 'utensils', 'neutral'],
+  [/fuel|petrol|diesel/i, 'fuel', 'neutral'],
+  [/house help|home help|maid|domestic/i, 'broom', 'neutral'],
+  [/utilit|electric|\bbills?\b|recharge|internet|wi-?fi/i, 'bolt', 'neutral'],
+  [/\brent\b|housing|home loan/i, 'home', 'neutral'],
+  [/shopping|apparel|cloth/i, 'bag', 'neutral'],
+  [/subscription|entertain|movie/i, 'film', 'neutral'],
+  [/\bcar\b|\bemi\b|loan|commute|parking|transport|travel|\bcab\b|metro/i, 'car', 'neutral'],
+  [/personal/i, 'user', 'neutral'],
+  [/sinking|insurance|lumpy|annual/i, 'bank', 'neutral'],
+  [/medical|health|doctor|pharmac|medicine/i, 'medkit', 'neutral'],
+  [/part(y|ies)|gift|celebrat/i, 'gift', 'neutral']
+];
+function catMetaByName(name){
+  for(const [re, icon, tone] of CAT_ICON_RULES){
+    if(re.test(name||'')) return {em:ICON[icon], bg:CAT_ICON_BG, tint:'var(--icon-'+tone+')', key:icon};
+  }
+  return {em:ICON.dots, bg:CAT_ICON_BG, tint:'var(--icon-neutral)', key:'dots'};
+}
+// A renamed category keeps its icon: the budget row remembers the name it started as (iconOf).
 function catMeta(cat){
-  if(CAT_META[cat]) return CAT_META[cat];
   const row = (typeof state!=='undefined' && state && state.budget) ? state.budget.find(b=>b.cat===cat) : null;
-  return (row && row.iconOf && CAT_META[row.iconOf]) || CAT_META['Other'];
+  if(row && row.iconOf){ const m = catMetaByName(row.iconOf); if(m.key!=='dots') return m; }
+  return catMetaByName(cat);
 }
 
 const OTHER_EXPENSE_CAT = "Other / Uncategorized";
-const SEED = {
-  schemaVersion: 17,
-  accounts: [
-    {id:'pravesh_axis', name:'Pravesh Axis Spending', tag:'...12687', opening:219671, em:'🏦'},
-    {id:'mil', name:'Mother-in-Law Account', tag:'operated by Pravesh', opening:209000, em:'🏦'},
-    {id:'cousin', name:'Cousin Brother Account', tag:'operated by Pravesh', opening:204000, em:'🏦'},
-    {id:'pravesh_sbi', name:'Pravesh SBI Salary', tag:'...27502', opening:16000, em:'💼'},
-    {id:'divya_indusind', name:'Divya IndusInd', tag:'...71668', opening:14243, em:'👛'},
-    {id:'pravesh_idfc', name:'Pravesh IDFC FIRST', tag:'...79854', opening:840, em:'🏦'},
-    {id:'divya_icici', name:'Divya ICICI', tag:'...05998', opening:703, em:'🏦'},
-    {id:'divya_axis', name:'Divya Axis', tag:'...18331', opening:241, em:'💼'},
-    {id:'cash_wallet', name:'Cash Wallet', tag:'petty cash', opening:0, em:'💵'},
-    {id:'sinking_fund', name:'Sinking Fund Reserve', tag:'set aside for lumpy bills', opening:0, em:'🏦'}
-  ],
-  cards: [
-    {id:'sib', name:'SIB OneCard', tag:'...0677', openingDue:77152, em:'💳'},
-    {id:'idfc_card', name:'IDFC Rupay / Millennia', tag:'...7865', openingDue:37546, em:'💳'},
-    {id:'sbi_card', name:'SBI Club Vistara Prime', tag:'...XX53', openingDue:5419, em:'💳'}
-  ],
-  people: [
-    {id:'daddy', name:'Daddy Sheet 1', note:'father — closing balance', opening:0},
-    {id:'ankita', name:'Ankita', note:'personal loan receivable', opening:0},
-    {id:'tiwari', name:'Tiwari', note:'nominal', opening:0},
-    {id:'joshi', name:'Joshi', note:'settle from capital, not salary', opening:0},
-    {id:'aman', name:'Aman', note:'family loan payable', opening:0},
-    {id:'dudi', name:'Dudi', note:'property-linked payable', opening:0},
-    {id:'disha', name:'Disha', note:'hold until Godrej salary stabilizes', opening:0},
-    {id:'gokul', name:'Gokul', note:'coordinate settlement', opening:0},
-    {id:'bhupesh', name:'Bhupesh', note:'personal payable', opening:0},
-    {id:'deepak', name:'Deepak Gupta', note:'personal payable', opening:0}
-  ],
-  personLedger: [
-    {id:'pl1', personId:'daddy', ts:'2026-01-01T00:00:00', type:'opening', delta:503618, remarks:'Opening balance carried over from records'},
-    {id:'pl2', personId:'ankita', ts:'2026-01-01T00:00:00', type:'opening', delta:46900, remarks:'Opening balance carried over from records'},
-    {id:'pl3', personId:'tiwari', ts:'2026-01-01T00:00:00', type:'opening', delta:200, remarks:'Opening balance carried over from records'},
-    {id:'pl4', personId:'joshi', ts:'2026-01-01T00:00:00', type:'opening', delta:-300000, remarks:'Opening balance carried over from records'},
-    {id:'pl5', personId:'aman', ts:'2026-01-01T00:00:00', type:'opening', delta:-230000, remarks:'Opening balance carried over from records'},
-    {id:'pl6', personId:'dudi', ts:'2026-01-01T00:00:00', type:'opening', delta:-171451, remarks:'Opening balance carried over from records'},
-    {id:'pl7', personId:'disha', ts:'2026-01-01T00:00:00', type:'opening', delta:-100000, remarks:'Opening balance carried over from records'},
-    {id:'pl8', personId:'gokul', ts:'2026-01-01T00:00:00', type:'opening', delta:-100000, remarks:'Opening balance carried over from records'},
-    {id:'pl9', personId:'bhupesh', ts:'2026-01-01T00:00:00', type:'opening', delta:-55000, remarks:'Opening balance carried over from records'},
-    {id:'pl10', personId:'deepak', ts:'2026-01-01T00:00:00', type:'opening', delta:-25000, remarks:'Opening balance carried over from records'}
-  ],
-  mutualFunds: [
-    {name:'HDFC Defence Fund Direct Growth', holder:'Pravesh (Groww)', invested:164992, current:242439, xirr:29.44},
-    {name:'ICICI Pru Multi Asset Allocation-G + HDFC Defence Reg-G', holder:'Divya (My Funds)', invested:306985, current:399815, xirr:17.11}
-  ],
-  equities: [
-    {name:'Divya Misra (Zerodha)', holder:'25 stocks · live pull 03 Sep 2026', invested:630717, current:550568}
-  ],
-  // Assets outside the app's own transaction tracking — updated by hand occasionally, not
-  // pulled live (gold rates and property values move too slowly, and too informally, to
-  // justify the complexity of fetching them automatically).
-  // liquidPct is what actually distinguishes "Total" net worth from "Realistically
-  // Accessible" net worth: gold, property and EPF can genuinely become cash (even if selling
-  // a house takes a while), but a portion of an NPS corpus is locked into a MANDATORY annuity
-  // by law — it converts to a lifetime pension, never a lump sum, no matter how long you
-  // wait. 60% is the long-standing default lump-sum share; recent PFRDA reform allows more
-  // for some non-government subscribers above a corpus threshold — adjust the % if that
-  // applies to your specific account type.
-  otherAssets: [
-    {id:'asset_gold', name:'Gold (jewellery, 175g)', current:2450000, liquidPct:100, note:'Estimated at ~₹14,000/g (22K) — update when you actually check/sell; grams matter more than the rupee figure since gold price moves daily.'},
-    {id:'asset_property', name:'Property', current:0, liquidPct:100, note:'Not yet filled in — add current market value here.'},
-    {id:'asset_nps', name:'Pravesh — NPS Fund', current:1321564, liquidPct:60, note:'60% assumed lump-sum eligible; the remaining 40% is a mandatory annuity — real money, but it becomes a monthly pension, never a lump sum.'},
-    {id:'asset_epf', name:"Divya — EPF Balance", current:650000, liquidPct:100, note:'EPF has no mandatory annuity carve-out like NPS — fully accessible on resignation/retirement.'}
-  ],
-  // Distinct from `commitments` (recurring bills — quarterly/yearly, repeats forever) — a
-  // savings goal is a one-time target by a specific date, where the monthly rate needed
-  // depends on exactly how many months remain, not a fixed recurrence pattern. Forcing this
-  // into the commitments list would have quietly computed the wrong monthly figure.
-  savingsGoals: [
-    {id:'goal_baby', name:'Baby — first year', target:250000, byDate:'2027-12-31', saved:0, note:'Reference range for a Gurgaon/NCR household: ₹1.5–3 lakh for the newborn stage, plus ~₹40k–60k/year in ongoing essentials. Adjust this target once your own plans (hospital choice especially) are clearer.'}
-  ],
-  planning: {divyaMonthly:0, years:3},
-  storyNotes: {},
-  commitments: [
-    {name:'C113 Society Maintenance', freq:'Quarterly (Jan, Apr, Jul, Oct)', due:'Oct 2026', amount:40000},
-    {name:'Pravesh LIC Policy', freq:'Half-Yearly (Sep & Mar)', due:'Sep 2026', amount:17500},
-    {name:'Pravesh Term Plan', freq:'Yearly (May)', due:'May 2027', amount:45000},
-    {name:'Divya Term Plan', freq:'Yearly (June)', due:'June 2027', amount:36000},
-    {name:'Baleno Car Insurance', freq:'Yearly (June)', due:'June 2027', amount:17000},
-    {name:'Home Appliance Service (5 ACs + 1 RO)', freq:'Yearly', due:'Pre-summer', amount:6000},
-    {name:'Salon Subscription', freq:'Half-Yearly', due:'Mar 2027', amount:10000}
-  ],
+// What a new household starts with: a cash wallet and a plain set of categories, all at zero.
+// Real accounts are added at set-up. Nothing here belongs to any particular household.
+const STARTER = {
+  schemaVersion: 20,
+  accounts: [{id:'cash_wallet', name:'Cash', tag:'', opening:0, em:''}],
+  cards: [],
+  people: [],
+  personLedger: [],
+  mutualFunds: [],
+  equities: [],
+  otherAssets: [],
+  savingsGoals: [],
+  planning: {years:3},   // these two belonged to a screen that has been removed; the fields stay
+  storyNotes: {},        // so that whatever a household had typed there is not wiped from its settings
+  commitments: [],
   budget: [
-    {cat:"Divya Salary", budget:160000, actual:0, income:true},
-    {cat:"Pravesh Salary", budget:76800, actual:0, income:true},
-    {cat:"Other Income (dividends, IPO etc.)", budget:0, actual:16300, income:true},
-    {cat:"Mother's Monthly Transfer", budget:40000, actual:40000},
-    {cat:"Groceries (Blinkit)", budget:40000, actual:0},
-    {cat:"Food & Dining (Swiggy / Dining Out)", budget:18000, actual:535},
-    {cat:"Core Utilities (Power, Gas, Wi-Fi, Water)", budget:12000, actual:0},
-    {cat:"Baleno Car EMI", budget:11000, actual:0},
-    {cat:"Vehicle Fuel", budget:6000, actual:0},
-    {cat:"Essential Shopping (Home & Apparel)", budget:15000, actual:0},
-    {cat:"Subscriptions & Entertainment", budget:4000, actual:0},
-    {cat:"Daily Commute & Parking", budget:2000, actual:0},
-    {cat:"Personal (Divya)", budget:17500, actual:7047},
-    {cat:"Personal (Pravesh)", budget:17500, actual:10},
-    {cat:"Wealth SIPs (Pravesh ₹5k + Divya ₹8k)", budget:13000, actual:0},
-    {cat:"Sinking Fund (Maintenance, LIC, Term)", budget:20000, actual:0},
-    {cat:OTHER_EXPENSE_CAT, budget:0, actual:0},
-    {cat:"House Help", budget:0, actual:0},
-    {cat:"Medical", budget:0, actual:0},
-    {cat:"Parties", budget:0, actual:0},
-    {cat:"Other Investments", budget:0, actual:0}
+    {cat:'Salary', budget:0, actual:0, income:true},
+    {cat:'Other income', budget:0, actual:0, income:true},
+    {cat:'Groceries', budget:0, actual:0},
+    {cat:'Food & dining', budget:0, actual:0},
+    {cat:'Bills & utilities', budget:0, actual:0},
+    {cat:'Rent or EMI', budget:0, actual:0},
+    {cat:'Fuel', budget:0, actual:0},
+    {cat:'Transport', budget:0, actual:0},
+    {cat:'Shopping', budget:0, actual:0},
+    {cat:'Entertainment', budget:0, actual:0},
+    {cat:'Health', budget:0, actual:0},
+    {cat:'Home help', budget:0, actual:0},
+    {cat:'Family support', budget:0, actual:0},
+    {cat:'Investments', budget:0, actual:0},
+    {cat:'Personal', budget:0, actual:0},
+    {cat:OTHER_EXPENSE_CAT, budget:0, actual:0}
   ],
-  transactions: [
-    {id:'seed1', ts:'2026-09-02T14:18:30', type:'expense', account:'divya_indusind', payee:'Vijeta Mummy', category:"Mother's Monthly Transfer", amount:40000, household:true, remarks:''},
-    {id:'seed2', ts:'2026-09-02T14:41:09', type:'expense', account:'cash_wallet', payee:'Nyaka Person', category:'Personal (Divya)', amount:7047, household:false, remarks:'Rs 47 google pay'},
-    {id:'seed3', ts:'2026-09-02T14:57:18', type:'expense', account:'pravesh_axis', payee:'Mukul Rider', category:'Food & Dining (Swiggy / Dining Out)', amount:105, household:true, remarks:''},
-    {id:'seed4', ts:'2026-09-02T14:58:23', type:'expense', account:'divya_indusind', payee:'Super Champaran handi', category:'Food & Dining (Swiggy / Dining Out)', amount:430, household:true, remarks:''},
-    {id:'seed5', ts:'2026-09-02T15:36:20', type:'expense', account:'cash_wallet', payee:'Testing', category:'Personal (Pravesh)', amount:10, household:false, remarks:''},
-    {id:'seed6', ts:'2026-09-02T17:13:36', type:'income', account:'divya_axis', payee:'IPO', category:'Other Income (dividends, IPO etc.)', amount:16300, household:false, remarks:''}
-  ],
+  transactions: [],
   balanceAdjustments: [],
   budgetMonths: [],
   importOutcomes: [],
@@ -1282,162 +1225,62 @@ const SEED = {
   emailAccountHistory: {},
   profilePhoto: null,
   dismissedPatternPrompts: [],
+  lastBudgetReviewMonth: null,
   lastFetchSummary: null,
   lastGmailFetch: null
 };
+
+// ---- WHICH HOUSEHOLD THIS DEVICE OPENS ----
+// Every household's data is kept apart, in the cloud and on the device. The first household
+// (the one this app was built for) keeps its original places so nothing of it has to move:
+// the "household" collection in the cloud, and the original keys on the device. Every other
+// household lives under households/<id>/items, with its own keys on the device.
+const LEGACY_HID = 'legacy';
+const LEGACY_STORAGE_KEY = 'cfo-dashboard-v2';
+const LEGACY_OUTBOX_KEY = 'cfo-pending-writes';
+const HOUSEHOLD_PREF_KEY = 'fa-household';
+const SCHEMA_VERSION = 20;
+let currentHid = null;         // null until a household is chosen: nothing is saved while null
+let stateFromStorage = false;  // false when this device had no saved copy and started from STARTER
+function readHouseholdPref(){
+  try{ const p = JSON.parse(localStorage.getItem(HOUSEHOLD_PREF_KEY)); return (p && p.hid) ? p : null; }catch(e){ return null; }
+}
+function resolveLocalHousehold(){
+  const pref = readHouseholdPref();
+  if(pref) return pref.hid;
+  try{ if(localStorage.getItem(LEGACY_STORAGE_KEY)) return LEGACY_HID; }catch(e){}
+  return null;
+}
+function isLegacy(){ return currentHid === LEGACY_HID; }
+function storageKey(){ return isLegacy() ? LEGACY_STORAGE_KEY : 'fa-state-'+currentHid; }
+function outboxKey(){ return isLegacy() ? LEGACY_OUTBOX_KEY : 'fa-outbox-'+currentHid; }
+function whoamiKey(){ return isLegacy() ? 'cfo-whoami' : 'fa-whoami-'+currentHid; }
+function pdfNameKey(){ return 'fa-pdf-name-'+currentHid; }
 
 let state = null;
 let recentTxRefs = [];
 let expandedCats = new Set();
 let expandedPeople = new Set();
 let showSettledPeople = false;
-const STORAGE_KEY = 'cfo-dashboard-v2';
 
-function migrateState(){
-  if(!state.schemaVersion) state.schemaVersion = 1;
-  if(state.schemaVersion < 2){
-    const renameMap = {"Divya BPTP Salary":"Divya Salary", "Pravesh SBI Salary":"Pravesh Salary"};
-    state.budget.forEach(b=>{ if(renameMap[b.cat]) b.cat = renameMap[b.cat]; });
-    state.transactions.forEach(t=>{ if(t.category && renameMap[t.category]) t.category = renameMap[t.category]; });
-    const oldIdx = state.budget.findIndex(b=>b.cat==="Personal Discretionary (Both)");
-    if(oldIdx>-1){
-      const old = state.budget[oldIdx];
-      const half = Math.round(old.budget/2);
-      state.budget.splice(oldIdx,1,
-        {cat:"Personal (Divya)", budget:half, actual:0},
-        {cat:"Personal (Pravesh)", budget:old.budget-half, actual:0}
-      );
-    }
-    state.schemaVersion = 2;
-  }
-  if(state.schemaVersion < 3){
-    if(!state.personLedger) state.personLedger = [];
-    let counter = 1;
-    state.people.forEach(p=>{
-      if(typeof p.balance === 'number'){
-        if(p.balance !== 0){
-          state.personLedger.push({id:'mig'+(counter++), personId:p.id, ts:'2026-01-01T00:00:00', type:'opening', delta:p.balance, remarks:'Opening balance carried over from records'});
-        }
-        delete p.balance;
-      }
-      if(typeof p.opening !== 'number') p.opening = 0;
-    });
-    if(state.equities) state.equities = state.equities.filter(e => !e.name.includes('Parveen'));
-    state.schemaVersion = 3;
-  }
-  if(state.schemaVersion < 4){
-    if(!state.equities) state.equities = [];
-    const idx = state.equities.findIndex(e => e.name === 'Pravesh Yadav (Zerodha)');
-    const zerodhaEntry = {name:'Pravesh Yadav (Zerodha)', holder:'25 stocks · live pull 03 Sep 2026', invested:630717, current:550568};
-    if(idx>-1) state.equities[idx] = zerodhaEntry;
-    else state.equities.push(zerodhaEntry);
-    state.schemaVersion = 4;
-  }
-  if(state.schemaVersion < 5){
-    if(state.equities) state.equities = state.equities.filter(e => e.name !== 'Divya Misra');
-    state.schemaVersion = 5;
-  }
-  if(state.schemaVersion < 6){
-    recomputeBudgetActuals();
-    state.schemaVersion = 6;
-  }
-  if(state.schemaVersion < 7){
-    state.transactions.forEach(t=>{ if(!t.id) t.id = genId('tx'); });
-    state.schemaVersion = 7;
-  }
-  if(state.schemaVersion < 8){
-    if(!state.balanceAdjustments) state.balanceAdjustments = [];
-    state.schemaVersion = 8;
-  }
-  if(state.schemaVersion < 9){
-    const idx = state.equities.findIndex(e => e.name === 'Pravesh Yadav (Zerodha)');
-    if(idx>-1) state.equities[idx].name = 'Divya Misra (Zerodha)';
-    state.schemaVersion = 9;
-  }
-  if(state.schemaVersion < 10){
-    rebuildPayeeMemoryFromHistory();
-    state.schemaVersion = 10;
-  }
-  if(state.schemaVersion < 11){
-    if(!state.pendingImports) state.pendingImports = [];
-    if(!state.gmailConnectedEmails) state.gmailConnectedEmails = [];
-    if(state.lastFetchSummary === undefined) state.lastFetchSummary = null;
-    if(state.lastGmailFetch === undefined) state.lastGmailFetch = null;
-    state.schemaVersion = 11;
-  }
-  if(state.schemaVersion < 12){
-    if(!state.budget.find(b=>b.cat===OTHER_EXPENSE_CAT)){
-      state.budget.push({cat:OTHER_EXPENSE_CAT, budget:0, actual:0});
-    }
-    recomputeBudgetActuals();
-    state.schemaVersion = 12;
-  }
-  if(state.schemaVersion < 13){
-    if(!state.processedGmailIds) state.processedGmailIds = [];
-    const existingIds = new Set(state.processedGmailIds.map(p=>p.id));
-    (state.pendingImports||[]).forEach(p=>{
-      if(p.gmailMessageId && !existingIds.has(p.gmailMessageId)){
-        state.processedGmailIds.push({id:p.gmailMessageId});
-        existingIds.add(p.gmailMessageId);
-      }
-    });
-    state.schemaVersion = 13;
-  }
-  if(state.schemaVersion < 14){
-    ["House Help", "Medical", "Parties", "Other Investments"].forEach(catName=>{
-      if(!state.budget.find(b=>b.cat===catName)){
-        state.budget.push({cat:catName, budget:0, actual:0});
-      }
-    });
-    recomputeBudgetActuals();
-    state.schemaVersion = 14;
-  }
-  if(state.schemaVersion < 15){
-    if(!state.commitments.find(c=>c.name==='Salon Subscription')){
-      state.commitments.push({name:'Salon Subscription', freq:'Half-Yearly', due:'Mar 2027', amount:10000});
-    }
-    state.schemaVersion = 15;
-  }
-  if(state.schemaVersion < 16){
-    const idfc = state.cards.find(c=>c.id==='idfc_card');
-    if(idfc && idfc.tag==='...7231') idfc.tag = '...7865';
-    state.schemaVersion = 16;
-  }
-  if(state.schemaVersion < 17){
-    if(!state.emailAccountHistory) state.emailAccountHistory = {};
-    state.schemaVersion = 17;
-  }
-  if(state.schemaVersion < 18){
-    if(!state.dismissedImports) state.dismissedImports = [];
-    state.schemaVersion = 18;
-  }
-  if(state.schemaVersion < 19){
-    if(!state.otherAssets) state.otherAssets = [
-      {id:'asset_gold', name:'Gold (jewellery, 175g)', current:2450000, liquidPct:100, note:'Estimated at ~₹14,000/g (22K) — update when you actually check/sell; grams matter more than the rupee figure since gold price moves daily.'},
-      {id:'asset_property', name:'Property', current:0, liquidPct:100, note:'Not yet filled in — add current market value here.'},
-      {id:'asset_nps', name:'Pravesh — NPS Fund', current:1321564, liquidPct:60, note:'60% assumed lump-sum eligible; the remaining 40% is a mandatory annuity — real money, but it becomes a monthly pension, never a lump sum.'},
-      {id:'asset_epf', name:"Divya — EPF Balance", current:650000, liquidPct:100, note:'EPF has no mandatory annuity carve-out like NPS — fully accessible on resignation/retirement.'}
-    ];
-    if(!state.savingsGoals) state.savingsGoals = [
-      {id:'goal_baby', name:'Baby — first year', target:250000, byDate:'2027-12-31', saved:0, note:'Reference range for a Gurgaon/NCR household: ₹1.5–3 lakh for the newborn stage, plus ~₹40k–60k/year in ongoing essentials. Adjust this target once your own plans (hospital choice especially) are clearer.'}
-    ];
-    state.schemaVersion = 19;
-  }
-  if(state.schemaVersion < 20){
-    if(!state.planning) state.planning = {divyaMonthly:0, years:3};
-    if(!state.storyNotes) state.storyNotes = {};
-    state.schemaVersion = 20;
-  }
-}
-
+// A saved copy from before the current shape (September builds) is not carried forward: the
+// cloud copy is read instead, and any unsent changes are still re-sent from the outbox.
 async function loadState(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw){ state = JSON.parse(raw); migrateState(); }
-  }catch(e){ console.error('Local read failed', e); }
-  if(!state){
-    state = JSON.parse(JSON.stringify(SEED));
+  currentHid = resolveLocalHousehold();
+  readStateForCurrentHousehold();
+}
+function readStateForCurrentHousehold(){
+  state = null; stateFromStorage = false;
+  if(currentHid){
+    try{
+      const raw = localStorage.getItem(storageKey());
+      if(raw){
+        const saved = JSON.parse(raw);
+        if(saved && (saved.schemaVersion||0) >= SCHEMA_VERSION){ state = saved; stateFromStorage = true; }
+      }
+    }catch(e){ console.error('Local read failed', e); }
   }
+  if(!state) state = JSON.parse(JSON.stringify(STARTER));
   normalizeState();
 }
 // Fields added after a device's data was first saved. Filled in on every load rather than
@@ -1446,9 +1289,15 @@ async function loadState(){
 function normalizeState(){
   if(!Array.isArray(state.budgetMonths)) state.budgetMonths = [];
   if(!Array.isArray(state.importOutcomes)) state.importOutcomes = [];
+  // A device that starts from the empty starting set must not treat that set as its own new
+  // work: only what is added from here on is sent to the cloud.
+  if(!stateFromStorage && typeof previousArrays !== 'undefined'){
+    Object.keys(COLLECTION_FIELDS).forEach(f=>{ previousArrays[f] = JSON.parse(JSON.stringify(state[f]||[])); });
+  }
 }
 async function saveLocalOnly(){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  if(!currentHid) return; // no household chosen yet: nothing to save
+  try{ localStorage.setItem(storageKey(), JSON.stringify(state)); }
   catch(e){ console.error('Local save failed', e); }
 }
 
@@ -1487,7 +1336,7 @@ function waitForAuthReady(){
     const finish = ()=>{ if(settled) return; settled = true; authReady = true; resolve(authUser); };
     const timer = setTimeout(finish, 5000); // never hold the app up if the saved sign-in can't be read
     try{
-      firebase.auth().onAuthStateChanged(u=>{ authUser = u || null; clearTimeout(timer); finish(); renderAccountUI(); },
+      firebase.auth().onAuthStateChanged(u=>{ authUser = u || null; clearTimeout(timer); finish(); renderAccountUI(); if(!whoami && myFirstName()){ whoami = myFirstName(); renderGreeting(); } },
         e=>{ console.error('Sign-in state unavailable', e); clearTimeout(timer); finish(); });
     }catch(e){ console.error('Sign-in unavailable', e); clearTimeout(timer); finish(); }
   });
@@ -1548,6 +1397,298 @@ function renderAccountUI(){
     document.getElementById('account-signin-btn').addEventListener('click', signInWithGoogle);
   }
 }
+
+// ---- HOUSEHOLDS: FINDING, CREATING AND JOINING ONE ----
+// In the cloud: users/<uid> says which household a person belongs to; households/<id> lists
+// its members; households/<id>/items holds its data. The database rules let a person read
+// and write only the household they are a member of.
+let householdDoc = null;   // name, members and invitations of the open household (not the first one)
+let setupHid = null;       // the id reserved for a set-up in progress, reused if it is retried
+let setupBusy = false;
+function myEmail(){ return ((authUser && authUser.email) || '').toLowerCase(); }
+function myFirstName(){ return ((authUser && authUser.displayName) || '').trim().split(/\s+/)[0] || ''; }
+
+function showGate(view, opts){
+  opts = opts || {};
+  const g = document.getElementById('gate');
+  if(!g) return;
+  const email = storyEsc(myEmail());
+  const who = authUser ? `<p class="gate-note">Signed in as ${email} · <button class="link-btn" id="gate-signout">Use another account</button></p>` : '';
+  let body = '';
+  if(view==='checking'){
+    body = '<p class="gate-sub">Checking…</p>';
+  } else if(view==='welcome'){
+    body = `<p class="gate-sub">Your household's money in one place: accounts, budget, and who owes whom.</p>
+      <button class="btn-primary" id="gate-signin">Sign in with Google</button>
+      <p class="gate-note">Each household's data can be opened only by its own members.</p>`;
+  } else if(view==='offline'){
+    body = `<p class="gate-sub">Could not reach the server. Check your connection and try again.</p>
+      <button class="btn-primary" id="gate-retry">Try again</button>${who}`;
+  } else if(view==='closed'){
+    body = `<p class="gate-sub">New sign-ups are not open yet.</p>${who}`;
+  } else if(view==='setup'){
+    const first = storyEsc(myFirstName());
+    const inv = opts.invite;
+    const invite = inv ? `<div class="card" style="margin-bottom:18px;">
+        <div style="font-size:15px; font-weight:600; color:var(--ink);">Join ${storyEsc(inv.householdName || 'a household')}</div>
+        <div class="eng-sub" style="margin:4px 0 12px;">${storyEsc(inv.invitedBy || 'A member')} invited you. You will see and edit the same accounts, budget and People Ledger.</div>
+        <button class="btn-primary" id="gate-join" style="margin-top:0;">Join this household</button>
+      </div>
+      <div class="divider-label" style="text-align:center;">or start your own</div>` : '';
+    body = `${who}${invite}
+      <div class="divider-label">About you</div>
+      <div class="field"><label>Your name</label><input id="su-name" maxlength="24" autocomplete="off" value="${first}"></div>
+      <div class="field"><label>Household name</label><input id="su-household" maxlength="40" autocomplete="off" placeholder="e.g. Sharma family" value="${first ? first+"'s household" : ''}"></div>
+      <div class="divider-label">Your first account</div>
+      <p class="section-sub">Start with the account you use most. Add the others afterwards from the Accounts tab.</p>
+      ${acctFieldsHtml('su')}
+      <button class="btn-primary" id="su-start">Start</button>`;
+  }
+  g.innerHTML = `<div class="gate-inner"><div class="gate-mark">₹</div><h1>Financial Assistant</h1>${body}</div>`;
+  g.classList.remove('hide');
+  g.scrollTop = 0;
+  const on = (id, fn)=>{ const el = document.getElementById(id); if(el) el.addEventListener('click', fn); };
+  on('gate-signin', signInWithGoogle);
+  on('gate-retry', ()=> location.reload());
+  on('gate-signout', async ()=>{ try{ await firebase.auth().signOut(); }catch(e){ console.error('Sign-out failed', e); } location.reload(); });
+  on('gate-join', ()=> joinInvitedHousehold(opts.invite));
+  on('su-start', finishSetup);
+  if(view==='setup') wireAcctFields('su');
+}
+function hideGate(){ const g = document.getElementById('gate'); if(g){ g.classList.add('hide'); g.innerHTML = ''; } }
+
+// The fields that describe one account: used at set-up and by "Add account".
+function acctFieldsHtml(p){
+  return `<div class="field"><label>Type</label><div class="seg" id="${p}-kind"><button type="button" data-v="bank" class="on">Bank account</button><button type="button" data-v="card">Credit card</button></div></div>
+    <div class="field"><label>Bank name</label><input id="${p}-bank" maxlength="40" autocomplete="off" placeholder="e.g. HDFC Bank"></div>
+    <div class="field"><label>Whose account</label><div class="seg" id="${p}-owner"><button type="button" data-v="self" class="on">Mine</button><button type="button" data-v="family">Family member's</button></div></div>
+    <div class="field hide" id="${p}-ownername-field"><label>Their name</label><input id="${p}-ownername" maxlength="24" autocomplete="off" placeholder="e.g. Asha"></div>
+    <div class="field"><label>Last 4 digits (optional)</label><input id="${p}-last4" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="1234"></div>
+    <div class="field"><label id="${p}-opening-label">Balance today (₹)</label><input id="${p}-opening" type="number" inputmode="decimal" placeholder="0"></div>`;
+}
+function wireAcctFields(p){
+  const seg = (id, fn)=>{
+    const btns = document.querySelectorAll(`#${id} button`);
+    btns.forEach(b=> b.addEventListener('click', ()=>{ btns.forEach(x=>x.classList.remove('on')); b.classList.add('on'); fn(b.dataset.v); }));
+  };
+  seg(p+'-kind', v=>{ document.getElementById(p+'-opening-label').textContent = v==='card' ? 'Amount due today (₹)' : 'Balance today (₹)'; });
+  seg(p+'-owner', v=>{ document.getElementById(p+'-ownername-field').classList.toggle('hide', v!=='family'); });
+}
+// Reads those fields into a new account or card, or says what is missing.
+function readAcctFields(p, existing){
+  const val = id => document.getElementById(p+'-'+id).value.trim();
+  const on = id => document.querySelector(`#${p}-${id} button.on`).dataset.v;
+  const kind = on('kind'), owner = on('owner');
+  const bank = val('bank'), ownerName = owner==='family' ? val('ownername') : '';
+  const last4 = val('last4').replace(/\D/g,'');
+  const openingRaw = val('opening');
+  if(!bank) return {error:'Enter the bank name.'};
+  if(owner==='family' && !ownerName) return {error:"Enter the family member's name."};
+  if(val('last4') && last4.length!==4) return {error:'Enter the last 4 digits, or leave that empty.'};
+  if(openingRaw==='' || isNaN(parseFloat(openingRaw))){
+    return {error: kind==='card' ? 'Enter the amount due today. Enter 0 if nothing is due.' : 'Enter the balance today. Enter 0 if it is empty.'};
+  }
+  const amount = parseFloat(openingRaw);
+  let name = (ownerName ? ownerName+"'s " : '') + bank;
+  if(kind==='card' && !/card/i.test(name)) name += ' Card';
+  const taken = n => (existing||[]).some(x=> (x.name||'').trim().toLowerCase() === n.toLowerCase());
+  if(taken(name) && last4) name += ' ' + last4;
+  if(taken(name)) return {error:'An account with this name already exists. Add the last 4 digits to tell them apart.'};
+  const base = {id: genId(kind==='card' ? 'card' : 'acct'), name, tag: last4 ? '...'+last4 : '', em:'', bank, owner, ownerName};
+  return kind==='card' ? {isCard:true, item:{...base, openingDue:amount}} : {isCard:false, item:{...base, opening:amount}};
+}
+
+// Which household does the signed-in person belong to?
+// -> {hid} when there is one, {invite} when someone has invited them, {closed:true} when the
+// database is not yet open to new households, or {} for a person who is new. Throws when the
+// server cannot be reached.
+async function lookUpHousehold(){
+  let closed = false;
+  try{
+    const u = await db.collection('users').doc(authUser.uid).get();
+    if(u.exists && u.data().householdId) return {hid: u.data().householdId};
+  }catch(e){ if(!isDeniedError(e)) throw e; closed = true; }
+  // The first household is opened to the people named in the database rules, not through users/.
+  try{
+    const m = await db.collection('household').doc('meta').get();
+    if(m.exists) return {hid: LEGACY_HID};
+  }catch(e){ if(!isDeniedError(e)) throw e; }
+  if(closed) return {closed:true};
+  try{
+    const inv = await db.collection('invites').doc(myEmail()).get();
+    if(inv.exists && inv.data().householdId) return {invite: inv.data()};
+  }catch(e){ if(!isDeniedError(e)) throw e; }
+  return {};
+}
+
+// Decides what this device opens. true = carry on and connect the household already loaded.
+async function settleHousehold(){
+  const pref = readHouseholdPref();
+  // A device that already holds the first household's data: nothing to decide here, the
+  // database rules say whether the signed-in account may open it.
+  if(currentHid && !pref) return true;
+  if(!authUser){
+    if(currentHid){ noteCloudDenied(); return false; } // signed out: keep showing this device's copy
+    showGate('welcome');
+    return false;
+  }
+  if(currentHid && pref.uid === authUser.uid) return true;
+  showGate('checking');
+  let found;
+  try{ found = await lookUpHousehold(); }
+  catch(e){ console.error('Could not look up the household', e); showGate('offline'); return false; }
+  if(found.hid){ await openHousehold(found.hid); return false; }
+  showGate(found.closed ? 'closed' : 'setup', {invite: found.invite});
+  return false;
+}
+
+// Points this device at a household, loads whatever it has saved for it, and connects.
+async function openHousehold(hid, extra){
+  extra = extra || {};
+  currentHid = hid;
+  try{
+    if(extra.state) localStorage.setItem(storageKey(), JSON.stringify(extra.state));
+    if(extra.name) localStorage.setItem(whoamiKey(), extra.name);
+    localStorage.setItem(HOUSEHOLD_PREF_KEY, JSON.stringify({hid, uid:authUser.uid, email:myEmail(), name:extra.householdName || ''}));
+  }catch(e){ console.error('Could not remember the household on this device', e); }
+  readStateForCurrentHousehold();
+  if(extra.state && !stateFromStorage){ state = extra.state; normalizeState(); stateFromStorage = true; } // storage refused: carry on from memory
+  txSelectedAccount = null; txFrom = null; txTo = null; // choices made on the empty starting set do not carry over
+  await loadWhoami();
+  if(extra.name && !whoami) whoami = extra.name;
+  renderGreeting();
+  hideGate();
+  render();
+  await connectHousehold();
+}
+
+async function finishSetup(){
+  if(setupBusy || !authUser) return;
+  const myName = document.getElementById('su-name').value.trim();
+  if(!myName){ showToast('Enter your name.', 3000); return; }
+  const hhName = document.getElementById('su-household').value.trim() || (myName + "'s household");
+  const r = readAcctFields('su', []);
+  if(r.error){ showToast(r.error, 3500); return; }
+  const btn = document.getElementById('su-start');
+  setupBusy = true; btn.disabled = true; btn.textContent = 'Setting up…';
+  const s = JSON.parse(JSON.stringify(STARTER));
+  (r.isCard ? s.cards : s.accounts).push(r.item);
+  try{
+    if(!setupHid) setupHid = db.collection('households').doc().id;
+    const now = new Date().toISOString();
+    await db.collection('households').doc(setupHid).set({name:hhName, owner:authUser.uid, members:[authUser.uid], memberEmails:[myEmail()], invites:[], createdAt:now});
+    currentHid = setupHid; // so the starting data is written under the new household
+    await writeFullStateToCloud(pluckFullState(s));
+    await db.collection('users').doc(authUser.uid).set({householdId:setupHid, email:myEmail(), name:myName, joinedAt:now});
+  }catch(e){
+    console.error('Set-up failed', e);
+    currentHid = null; setupBusy = false;
+    if(isDeniedError(e)){ showGate('closed'); return; }
+    btn.disabled = false; btn.textContent = 'Start';
+    showToast('Could not finish set-up. Check your connection and try again.', 4000);
+    return;
+  }
+  setupBusy = false;
+  const hid = setupHid; setupHid = null;
+  await openHousehold(hid, {state:s, name:myName, householdName:hhName});
+  showToast('All set. Tap + to add your first transaction.', 3500);
+}
+
+async function joinInvitedHousehold(inv){
+  if(setupBusy || !authUser || !inv || !inv.householdId) return;
+  const btn = document.getElementById('gate-join');
+  setupBusy = true; if(btn){ btn.disabled = true; btn.textContent = 'Joining…'; }
+  const nameEl = document.getElementById('su-name');
+  const myName = ((nameEl && nameEl.value) || myFirstName()).trim();
+  try{
+    const FV = firebase.firestore.FieldValue;
+    await db.collection('households').doc(inv.householdId).update({members:FV.arrayUnion(authUser.uid), memberEmails:FV.arrayUnion(myEmail()), invites:FV.arrayRemove(myEmail())});
+    await db.collection('users').doc(authUser.uid).set({householdId:inv.householdId, email:myEmail(), name:myName, joinedAt:new Date().toISOString()});
+    try{ await db.collection('invites').doc(myEmail()).delete(); }catch(e){ console.error('Could not clear the invitation', e); }
+  }catch(e){
+    console.error('Joining failed', e);
+    setupBusy = false; if(btn){ btn.disabled = false; btn.textContent = 'Join this household'; }
+    showToast(isDeniedError(e) ? 'This invitation is no longer valid. Ask them to invite you again.' : 'Could not join. Check your connection and try again.', 4000);
+    return;
+  }
+  setupBusy = false;
+  await openHousehold(inv.householdId, {name:myName, householdName:inv.householdName || ''});
+  showToast('You have joined ' + (inv.householdName || 'the household'), 3000);
+}
+
+// ---- Household section in Settings: members and invitations ----
+async function loadHouseholdDoc(){
+  if(isLegacy() || !currentHid || !db || !authUser){ renderHouseholdUI(); return; }
+  try{
+    const snap = await db.collection('households').doc(currentHid).get();
+    householdDoc = snap.exists ? snap.data() : null;
+  }catch(e){ console.error('Household details unavailable', e); }
+  renderHouseholdUI();
+}
+function renderHouseholdUI(){
+  const sec = document.getElementById('household-section');
+  if(!sec) return;
+  const show = !!currentHid && !isLegacy();
+  sec.classList.toggle('hide', !show);
+  if(!show) return;
+  const box = document.getElementById('household-box');
+  const pref = readHouseholdPref() || {};
+  const d = householdDoc;
+  const title = `<div style="font-size:15px; font-weight:600; color:var(--ink);">${storyEsc((d && d.name) || pref.name || 'Your household')}</div>`;
+  if(!d){ box.innerHTML = title + `<div class="eng-sub" style="margin-top:4px;">${authUser ? 'Members appear here once this device is online.' : 'Sign in to see the members.'}</div>`; return; }
+  const me = myEmail();
+  const members = (d.memberEmails||[]).map(e=> `<div class="eng-line"><span style="overflow-wrap:anywhere;">${storyEsc(e)}</span><span>${e===me ? 'You' : 'Member'}</span></div>`).join('');
+  const invites = (d.invites||[]).map(e=> `<div class="eng-line"><span style="overflow-wrap:anywhere;">${storyEsc(e)}</span><button class="link-btn" data-cancelinvite="${storyEsc(e)}">Cancel invite</button></div>`).join('');
+  box.innerHTML = title +
+    `<div class="eng-sub" style="margin:4px 0 8px;">Everyone listed here sees and edits the same accounts, budget and People Ledger.</div>${members}` +
+    (invites ? `<div class="eng-sub" style="margin:12px 0 2px;">Invited, not joined yet</div>${invites}` : '') +
+    `<div class="field" style="margin:14px 0 8px;"><label>Invite someone by their Google email</label><input id="invite-email" type="email" autocomplete="off" placeholder="name@gmail.com"></div>
+     <button class="btn-ghost" id="invite-btn" style="margin-top:0;">Invite</button>
+     <div class="eng-sub" style="margin-top:8px;">No email is sent. They open the app and sign in with that address, and the app offers to join.</div>`;
+  document.getElementById('invite-btn').addEventListener('click', inviteMember);
+  box.querySelectorAll('[data-cancelinvite]').forEach(b=> b.addEventListener('click', ()=> cancelInvite(b.getAttribute('data-cancelinvite'))));
+}
+async function inviteMember(){
+  const email = document.getElementById('invite-email').value.trim().toLowerCase();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ showToast('Enter a full email address.', 3000); return; }
+  if(!householdDoc || !cloudReady){ showToast('Go online and try again.', 3000); return; }
+  if((householdDoc.memberEmails||[]).includes(email)){ showToast('Already a member.', 3000); return; }
+  const btn = document.getElementById('invite-btn');
+  btn.disabled = true; btn.textContent = 'Inviting…';
+  try{
+    await db.collection('households').doc(currentHid).update({invites: firebase.firestore.FieldValue.arrayUnion(email)});
+    await db.collection('invites').doc(email).set({householdId:currentHid, householdName:householdDoc.name || '', invitedBy:myEmail(), createdAt:new Date().toISOString()});
+    showToast('Invited. Ask them to sign in with ' + email, 4000);
+  }catch(e){
+    console.error('Invite failed', e);
+    showToast('Could not save the invitation. Try again.', 3500);
+  }
+  await loadHouseholdDoc();
+}
+async function cancelInvite(email){
+  if(!cloudReady){ showToast('Go online and try again.', 3000); return; }
+  try{
+    try{ await db.collection('invites').doc(email).delete(); }catch(e){ if(!isDeniedError(e)) throw e; }
+    await db.collection('households').doc(currentHid).update({invites: firebase.firestore.FieldValue.arrayRemove(email)});
+    showToast('Invitation cancelled');
+  }catch(e){ console.error('Cancel failed', e); showToast('Could not cancel. Try again.', 3000); }
+  await loadHouseholdDoc();
+}
+// Parts of the screen that only the first household uses for now (the email reader), and
+// the Household section that only the others use.
+function applyHouseholdUI(){
+  document.querySelectorAll('.legacy-only').forEach(el=> el.classList.toggle('hide', !isLegacy()));
+  renderHouseholdUI();
+  const inp = document.getElementById('pdf-name-input');
+  if(inp && document.activeElement !== inp) inp.value = pdfNameStored();
+}
+// The line under the title of a PDF: whatever this device was told to print, else the
+// household's name. Kept on the device, never in the code.
+function pdfNameStored(){ try{ return (currentHid && localStorage.getItem(pdfNameKey())) || ''; }catch(e){ return ''; } }
+function pdfNameLine(){
+  const pref = readHouseholdPref() || {};
+  return pdfNameStored() || (householdDoc && householdDoc.name) || pref.name || '';
+}
 const SYNC_LABEL_ID = 'sync-status';
 const COLLECTION_FIELDS = {
   transactions: 'transaction',
@@ -1574,19 +1715,22 @@ let previousArrays = { transactions:[], personLedger:[], pendingImports:[], dism
 // (e.g. right after editing a transaction's category), the next load's "trust the server"
 // step below would otherwise silently throw the edit away. Persisting the pending write to
 // localStorage means it survives a restart, so it can be reapplied and retried.
-const OUTBOX_KEY = 'cfo-pending-writes';
 function loadOutbox(){
-  try{ return JSON.parse(localStorage.getItem(OUTBOX_KEY)) || {}; }catch(e){ return {}; }
+  if(!currentHid) return {};
+  try{ return JSON.parse(localStorage.getItem(outboxKey())) || {}; }catch(e){ return {}; }
 }
 function saveOutbox(ob){
-  try{ localStorage.setItem(OUTBOX_KEY, JSON.stringify(ob)); }catch(e){}
+  if(!currentHid) return;
+  try{ localStorage.setItem(outboxKey(), JSON.stringify(ob)); }catch(e){}
 }
 
 function setSyncStatus(text, ok){
   const el = document.getElementById(SYNC_LABEL_ID);
   if(el){ el.textContent = text; el.style.color = ok ? 'var(--sage)' : 'var(--debt)'; }
 }
-function hh(id){ return db.collection('household').doc(id); }
+// Where the open household's data lives in the cloud.
+function hcol(){ return isLegacy() ? db.collection('household') : db.collection('households').doc(currentHid).collection('items'); }
+function hh(id){ return hcol().doc(id); }
 
 function pluckFullState(s){
   const out = {};
@@ -1609,26 +1753,6 @@ async function writeFullStateToCloud(fullState){
   }
 }
 
-async function migrateOldSingleDocIfPresent(){
-  // One-time upgrade path: older versions of this app stored everything in one document
-  // at household/dashboard. If that's all that exists, absorb it into the new per-document
-  // scheme so no real history gets lost, then never touch that old document again.
-  try{
-    const oldSnap = await hh('dashboard').get();
-    if(!oldSnap.exists || !oldSnap.data() || !oldSnap.data().json) return false;
-    const savedGlobal = state;
-    state = JSON.parse(oldSnap.data().json);
-    migrateState();
-    const migrated = state;
-    state = savedGlobal;
-    await writeFullStateToCloud(migrated);
-    return migrated;
-  }catch(e){
-    console.error('Old-doc migration check failed', e);
-    return false;
-  }
-}
-
 function attachAllListeners(){
   hh('meta').onSnapshot(snap=>{
     if(snap.exists){
@@ -1642,7 +1766,7 @@ function attachAllListeners(){
   const firstSnapshotDone = {};
   Object.entries(COLLECTION_FIELDS).forEach(([field, type])=>{
     firstSnapshotDone[field] = false;
-    db.collection('household').where('_type','==',type).onSnapshot(snap=>{
+    hcol().where('_type','==',type).onSnapshot(snap=>{
       const remoteItems = snap.docs.map(d=>{ const data = d.data(); const {_type, ...rest} = data; return rest; });
       if(!firstSnapshotDone[field]){
         // Fresh page load: there's no valid baseline yet to tell "genuinely new local addition"
@@ -1691,48 +1815,59 @@ async function initCloudSync(onFirstData){
     await waitForAuthReady(); // so the very first request already carries the sign-in
     db = firebase.firestore();
     try{ await db.enablePersistence({synchronizeTabs:true}); }catch(e){ /* fine if this fails, sync still works online */ }
-
+    if(await settleHousehold()) await connectHousehold();
+  }catch(e){
+    console.error('Cloud sync unavailable', e);
+    if(!currentHid) showGate('offline');
+    else setSyncStatus('Offline — saving on this device only', false);
+  }finally{
+    renderAccountUI();
+    if(onFirstData) onFirstData();
+  }
+}
+// Connects the household this device has open: reads its settings, starts listening for
+// changes, and from then on sends this device's changes.
+async function connectHousehold(){
+  try{
     const metaSnap = await hh('meta').get();
     if(!metaSnap.exists){
-      const migrated = await migrateOldSingleDocIfPresent();
-      if(!migrated){
-        await writeFullStateToCloud(pluckFullState(state)); // brand-new setup — seed from local/SEED state
-      }
+      // Nothing in the cloud for this household yet. Only a device holding a saved copy may
+      // fill it in; one that started from the empty starting set must never do so.
+      if(stateFromStorage) await writeFullStateToCloud(pluckFullState(state));
     } else {
-      // Existing cloud data. If a migration just ran locally (during loadState(), before this
-      // function was called) and bumped our schemaVersion past what the cloud has, push the
-      // migrated meta fields up now — otherwise the listener we're about to attach would
-      // immediately read the stale cloud copy and silently revert this device's migration.
       const cloudMeta = metaSnap.data();
-      if((cloudMeta.schemaVersion||0) < state.schemaVersion){
+      if(stateFromStorage && (cloudMeta.schemaVersion||0) < state.schemaVersion){
+        // This device's saved copy is in a newer shape than the cloud's: send it up, or the
+        // listener below would read the older copy straight back.
         await hh('meta').set({ _type:'meta', ...Object.fromEntries(META_FIELDS.map(k=>[k, state[k]])) });
+      } else {
+        // Take the cloud's settings now rather than a moment later through the listener, so
+        // nothing saved in between can put this device's older settings over them.
+        META_FIELDS.forEach(k=>{ if(cloudMeta[k]!==undefined) state[k] = cloudMeta[k]; });
       }
     }
     attachAllListeners();
 
     // One-time backfill: accounts and cards used to live inside the shared meta document;
-    // they now live as individual documents (the actual fix for balance adjustments getting
-    // silently overwritten). If the cloud doesn't have them as documents yet but this device
-    // has real local data, push them now — don't wait for some unrelated future save to
-    // incidentally trigger it.
-    const acctCheck = await db.collection('household').where('_type','==','account').get();
-    if(acctCheck.docs.length === 0 && state.accounts && state.accounts.length){
+    // they now live as individual documents. If the cloud doesn't have them as documents yet
+    // but this device has real saved data, push them now.
+    const acctCheck = await hcol().where('_type','==','account').get();
+    if(stateFromStorage && acctCheck.docs.length === 0 && state.accounts && state.accounts.length){
       const batch = db.batch();
       state.accounts.forEach(a=> batch.set(hh(a.id), {...a, _type:'account'}));
       (state.cards||[]).forEach(c=> batch.set(hh(c.id), {...c, _type:'card'}));
       await batch.commit();
     }
 
-    cloudReady = true;
+    cloudReady = true; cloudDenied = false;
     setSyncStatus('Synced ✓', true);
   }catch(e){
     console.error('Cloud sync unavailable', e);
     if(isDeniedError(e)) noteCloudDenied();
     else setSyncStatus('Offline — saving on this device only', false);
-  }finally{
-    renderAccountUI();
-    if(onFirstData) onFirstData();
   }
+  renderAccountUI();
+  if(!isLegacy()) loadHouseholdDoc();
 }
 
 function diffChangedItems(field, current){
@@ -1764,6 +1899,7 @@ async function syncCollectionDiff(field, type, currentOverride){
 }
 
 async function saveState(){
+  if(!currentHid) return; // no household chosen yet
   await saveLocalOnly();
   // Record what changed to the outbox unconditionally — cloud-ready or not. The previous
   // version only did this inside the cloud-sync path below, which returns immediately when
@@ -1802,7 +1938,8 @@ async function saveState(){
 let whoami = null;
 async function loadWhoami(){
   try{
-    const val = localStorage.getItem('cfo-whoami');
+    whoami = null;
+    const val = currentHid ? localStorage.getItem(whoamiKey()) : null;
     if(val) whoami = val;
   }catch(e){ /* not set yet */ }
 }
@@ -1875,7 +2012,7 @@ function openBreakdown(kind){
     total = t.net;
   } else if(kind==='cash'){
     title = 'In bank';
-    sub = 'Every bank account counted toward this total (Cash Wallet and Sinking Fund are tracked separately). Tap an account to see its full statement.';
+    sub = 'Every bank account counted toward this total. Cash and money set aside for lumpy annual bills are counted separately. Tap an account to see its full statement.';
     const excluded = ['cash_wallet','sinking_fund'];
     rows = state.accounts.filter(a=>!excluded.includes(a.id)).map(a=>
       ({label:a.name, icon:acctGlyph(a), bg:CAT_ICON_BG, tint:'var(--icon-pos)', value:accountBalance(a), acctId:a.id, isCard:false}));
@@ -1907,7 +2044,7 @@ function openBreakdown(kind){
     total = t.otherAssetsTotal;
   } else if(kind==='networth'){
     title = 'Net Worth';
-    sub = 'Everything you hold, minus what you owe. The gap between the two figures below is the part of Pravesh\'s NPS locked into a mandatory annuity by law — real money, but it becomes a monthly pension, never a lump sum.';
+    sub = 'Everything you hold, minus what you owe. The second figure leaves out money that is locked in, such as the part of a pension fund that can only be taken as a monthly pension.';
     rows = [
       {label:'Total (everything)', icon:ICON.chart, bg:CAT_ICON_BG, tint:'var(--icon-pos)', value:t.netWorthTotal},
       {label:'Realistically Accessible', icon:ICON.wallet, bg:CAT_ICON_BG, tint:'var(--icon-pos)', value:t.netWorthAccessible}
@@ -2120,7 +2257,7 @@ document.getElementById('catedit-save').addEventListener('click', async ()=>{
       if(!b) return;
       if(newBudget !== (b.budget||0)) freezePastBudgetMonths(); // before the amount changes
       if(newName !== oldName){
-        if(!b.iconOf && CAT_META[oldName]) b.iconOf = oldName;
+        if(!b.iconOf && catMetaByName(oldName).key!=='dots') b.iconOf = oldName;
         b.cat = newName;
         renameCategoryEverywhere(oldName, newName);
       }
@@ -2162,7 +2299,7 @@ document.getElementById('budgetdetail-delete').addEventListener('click', async (
 
 async function saveWhoami(name){
   whoami = name;
-  try{ localStorage.setItem('cfo-whoami', name); }catch(e){}
+  try{ if(currentHid) localStorage.setItem(whoamiKey(), name); }catch(e){}
   renderGreeting();
 }
 
@@ -2177,10 +2314,14 @@ function renderGreeting(){
 }
 function renderAvatar(){ /* kept so old calls don't break — the avatar is drawn by renderGreeting() */ }
 function showWhoamiPicker(){
-  document.getElementById('hdr-hello').textContent = "Who's logging in?";
+  document.getElementById('hdr-hello').textContent = 'Your name on this device';
   const el = document.getElementById('hdr-greet');
-  el.innerHTML = `<div class="whoami-pick"><button data-who="Divya">Divya</button><button data-who="Pravesh">Pravesh</button></div>`;
-  el.querySelectorAll('[data-who]').forEach(b=> b.addEventListener('click', ()=> saveWhoami(b.dataset.who)));
+  el.innerHTML = `<div class="whoami-pick"><input id="who-input" maxlength="24" autocomplete="off" placeholder="Your name" value="${storyEsc(whoami||myFirstName())}"><button id="who-save">Save</button></div>`;
+  const inp = document.getElementById('who-input');
+  const save = ()=>{ const v = inp.value.trim(); if(v) saveWhoami(v); else renderGreeting(); };
+  document.getElementById('who-save').addEventListener('click', save);
+  inp.addEventListener('keydown', e=>{ if(e.key==='Enter') save(); });
+  inp.focus();
 }
 document.getElementById('hdr-avatar').addEventListener('click', showWhoamiPicker);
 
@@ -2278,6 +2419,84 @@ async function reopenPerson(id){
   render();
   showToast(`${p.name} is back on the list`);
 }
+// ---- ADD / EDIT / DELETE AN ACCOUNT OR CARD ----
+let acctEditId = null, acctEditIsCard = false;
+function accountInUse(id){
+  return state.transactions.some(t=> t.account===id || t.from===id || t.to===id)
+      || state.personLedger.some(e=> e.account===id)
+      || (state.balanceAdjustments||[]).some(a=> a.targetId===id)
+      || (state.pendingImports||[]).some(p=> p.accountId===id)
+      || Object.values(EMAIL_ACCOUNT_MAP).some(ids=> ids.includes(id));
+}
+function openAccountSheet(id, isCard){
+  acctEditId = id || null; acctEditIsCard = !!isCard;
+  const fields = document.getElementById('acct-fields');
+  const note = document.getElementById('acct-note');
+  const del = document.getElementById('acct-delete');
+  if(!acctEditId){
+    document.getElementById('acct-title').textContent = 'Add account';
+    fields.innerHTML = acctFieldsHtml('ac');
+    wireAcctFields('ac');
+    note.textContent = '';
+    del.classList.add('hide');
+    document.getElementById('acct-save').textContent = 'Add account';
+  } else {
+    const item = (isCard ? state.cards : state.accounts).find(x=>x.id===acctEditId);
+    if(!item) return;
+    const last4 = ((item.tag||'').match(/(\d{4})/)||[])[1] || '';
+    document.getElementById('acct-title').textContent = isCard ? 'Edit card' : 'Edit account';
+    fields.innerHTML = `<div class="field"><label>Name</label><input id="ac-name" maxlength="40" autocomplete="off" value="${storyEsc(item.name)}"></div>
+      <div class="field"><label>Last 4 digits (optional)</label><input id="ac-last4" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="1234" value="${last4}"></div>`;
+    const fixed = acctEditId==='cash_wallet' || acctEditId==='sinking_fund';
+    const used = accountInUse(acctEditId);
+    note.textContent = fixed ? '' : used ? 'This has entries, so it cannot be deleted. To change its balance, use Fix balance.' : 'To change its balance, use Fix balance.';
+    del.classList.toggle('hide', fixed || used);
+    del.textContent = isCard ? 'Delete card' : 'Delete account';
+    document.getElementById('acct-save').textContent = 'Save changes';
+  }
+  document.getElementById('acct-backdrop').classList.add('open');
+}
+(function wireAccountSheet(){
+  const backdrop = document.getElementById('acct-backdrop');
+  const close = ()=> backdrop.classList.remove('open');
+  document.getElementById('add-account-btn').addEventListener('click', ()=> openAccountSheet(null, false));
+  document.getElementById('acct-cancel').addEventListener('click', close);
+  backdrop.addEventListener('click', e=>{ if(e.target===backdrop) close(); });
+  document.getElementById('acct-save').addEventListener('click', async ()=>{
+    if(!acctEditId){
+      const r = readAcctFields('ac', [...state.accounts, ...state.cards]);
+      if(r.error){ showToast(r.error, 3500); return; }
+      (r.isCard ? state.cards : state.accounts).push(r.item);
+      await saveState(); render(); close();
+      showToast(r.isCard ? 'Card added' : 'Account added');
+      return;
+    }
+    const item = (acctEditIsCard ? state.cards : state.accounts).find(x=>x.id===acctEditId);
+    if(!item) return;
+    const name = document.getElementById('ac-name').value.trim();
+    const raw = document.getElementById('ac-last4').value.trim();
+    const last4 = raw.replace(/\D/g,'');
+    if(!name){ showToast('Enter a name.', 3000); return; }
+    if(raw && last4.length!==4){ showToast('Enter the last 4 digits, or leave that empty.', 3500); return; }
+    if([...state.accounts, ...state.cards].some(x=> x.id!==item.id && (x.name||'').trim().toLowerCase()===name.toLowerCase())){
+      showToast('Another account already has this name.', 3500); return;
+    }
+    item.name = name;
+    const had4 = ((item.tag||'').match(/(\d{4})/)||[])[1] || '';
+    if(last4 !== had4) item.tag = last4 ? '...'+last4 : '';
+    await saveState(); render(); close();
+    showToast('Saved');
+  });
+  document.getElementById('acct-delete').addEventListener('click', async ()=>{
+    if(!acctEditId || acctEditId==='cash_wallet' || accountInUse(acctEditId)) return;
+    const list = acctEditIsCard ? state.cards : state.accounts;
+    const item = list.find(x=>x.id===acctEditId);
+    if(!item || !confirm(`Delete ${item.name}? It has no entries.`)) return;
+    list.splice(list.indexOf(item), 1);
+    await saveState(); render(); close();
+    showToast('Deleted');
+  });
+})();
 function allBalanceTargets(){
   return [...state.accounts.map(a=>({id:a.id, name:a.name, em:a.em, isCard:false, balance:accountBalance(a)})),
           ...state.cards.map(c=>({id:c.id, name:c.name, em:c.em, isCard:true, balance:cardDue(c)}))];
@@ -2293,7 +2512,8 @@ function totals(){
   const pay = balances.filter(b=>b<0).reduce((s,b)=>s+b,0);
   const mf = state.mutualFunds.reduce((s,f)=>s+f.current,0);
   const eq = state.equities.reduce((s,e)=>s+e.current,0);
-  const sink = accountBalance(state.accounts.find(a=>a.id==='sinking_fund'));
+  const sinkAcc = state.accounts.find(a=>a.id==='sinking_fund');
+  const sink = sinkAcc ? accountBalance(sinkAcc) : 0;
   const otherAssetsTotal = (state.otherAssets||[]).reduce((s,a)=>s+a.current,0);
   const otherAssetsAccessible = (state.otherAssets||[]).reduce((s,a)=>s+a.current*((a.liquidPct??100)/100),0);
   // Two numbers, deliberately, not one — "Total" is everything you hold, informational;
@@ -2718,7 +2938,7 @@ function render(){
       <div class="chip-icon">${acctGlyph(item)}</div>
       <div class="al-body"><div class="al-name">${item.name}</div><div class="al-tag">${last4?'•••• '+last4:(item.tag||'')}${isCard?' · amount due':''}</div></div>
       <div class="al-right"><div class="al-amt maskable ${tone}">${fmt(value)}</div>
-        <div class="al-links"><button data-adjust="${item.id}" data-adjiscard="${isCard?1:0}">Fix balance</button></div></div>
+        <div class="al-links"><button data-editacct="${item.id}" data-editiscard="${isCard?1:0}">Edit</button><i>·</i><button data-adjust="${item.id}" data-adjiscard="${isCard?1:0}">Fix balance</button></div></div>
     </div>`;
   };
   document.getElementById('wallet-carousel').innerHTML =
@@ -2727,6 +2947,9 @@ function render(){
     (state.cards.length ? '<div class="grp">Credit cards</div>' + state.cards.map(c=> acctLineHtml(c, true)).join('') : '');
   document.querySelectorAll('#wallet-carousel [data-recon]').forEach(el=>{
     el.addEventListener('click', ()=> openReconSheet(el.getAttribute('data-recon'), el.getAttribute('data-iscard')==='1'));
+  });
+  document.querySelectorAll('#wallet-carousel [data-editacct]').forEach(el=>{
+    el.addEventListener('click', ()=> openAccountSheet(el.getAttribute('data-editacct'), el.getAttribute('data-editiscard')==='1'));
   });
   document.querySelectorAll('#wallet-carousel [data-adjust]').forEach(el=>{
     el.addEventListener('click', ()=> openAdjustBalance(el.getAttribute('data-adjust'), el.getAttribute('data-adjiscard')==='1'));
@@ -2837,6 +3060,7 @@ function render(){
   renderAnalysisPage();
   refreshOpenPages();
   renderTxFormLists();
+  applyHouseholdUI();
   applyMaskUI();
 }
 
@@ -2921,7 +3145,8 @@ function renderTxFormLists(){
   document.getElementById('cat-grid').classList.toggle('hide', !catPickerOpen);
 
   const targets = type==='expense' ? [...state.accounts, ...state.cards] : state.accounts;
-  if(!targets.find(a=>a.id===txSelectedAccount)) txSelectedAccount = targets[0].id;
+  // A new household's first choice is its bank account rather than Cash; the first household keeps its order.
+  if(!targets.find(a=>a.id===txSelectedAccount)){ const first = (!isLegacy() && targets.find(a=>a.id!=='cash_wallet')) || targets[0]; txSelectedAccount = first ? first.id : null; }
   document.getElementById('acct-row').innerHTML = targets.map(a=>
     `<div class="pli ${a.id===txSelectedAccount?'on':''}" data-acct="${a.id}"><div class="pli-icon">${acctGlyph(a)}</div><div class="pli-name">${a.name}</div><div class="pli-check">✓</div></div>`
   ).join('');
@@ -2936,7 +3161,7 @@ function renderTxFormLists(){
   document.getElementById('acct-summary').onclick = ()=>{ acctPickerOpen = !acctPickerOpen; renderTxFormLists(); };
   document.getElementById('acct-row').classList.toggle('hide', !acctPickerOpen);
 
-  if(!state.accounts.find(a=>a.id===txFrom)) txFrom = state.accounts[0].id;
+  if(!state.accounts.find(a=>a.id===txFrom)) txFrom = state.accounts.length ? state.accounts[0].id : null;
   document.getElementById('from-row').innerHTML = state.accounts.map(a=>
     `<div class="acct-chip ${a.id===txFrom?'on':''}" data-from="${a.id}">${acctGlyph(a)} ${a.name}</div>`
   ).join('');
@@ -2944,7 +3169,7 @@ function renderTxFormLists(){
     el.addEventListener('click', ()=>{ txFrom = el.dataset.from; renderTxFormLists(); });
   });
   const toTargets = [...state.accounts, ...state.cards];
-  if(!toTargets.find(a=>a.id===txTo) || txTo===txFrom) txTo = toTargets.find(a=>a.id!==txFrom).id;
+  if(!toTargets.find(a=>a.id===txTo) || txTo===txFrom){ const other = toTargets.find(a=>a.id!==txFrom); txTo = other ? other.id : null; }
   document.getElementById('to-row').innerHTML = toTargets.filter(a=>a.id!==txFrom).map(a=>
     `<div class="acct-chip ${a.id===txTo?'on':''}" data-to="${a.id}">${acctGlyph(a)} ${a.name}${state.cards.find(c=>c.id===a.id)?' (pay card)':''}</div>`
   ).join('');
@@ -2959,27 +3184,32 @@ function renderTxFormLists(){
 function txCurrentType(){ return document.querySelector('#tx-type button.on').dataset.v; }
 
 const CATEGORY_KEYWORDS = [
-  [/swiggy|zomato|domino|pizza|restaurant|dining|cafe|starbucks|barista/i, 'Food & Dining (Swiggy / Dining Out)'],
-  [/blinkit|zepto|instamart|bigbasket|grofers|grocery|groceries|dmart/i, 'Groceries (Blinkit)'],
-  [/amazon|flipkart|myntra|ajio|apparel|clothing|shopping/i, 'Essential Shopping (Home & Apparel)'],
-  [/petrol|diesel|fuel|hpcl|iocl|bpcl|\bshell\b|indian oil/i, 'Vehicle Fuel'],
-  [/netflix|hotstar|spotify|prime video|sonyliv|subscription|jiocinema/i, 'Subscriptions & Entertainment'],
-  [/\buber\b|\bola\b|rapido|metro card|parking|toll|fastag/i, 'Daily Commute & Parking'],
-  [/electricity|power bill|gas bill|broadband|wi-?fi bill|water bill|bses|mgl|airtel|jio fiber/i, 'Core Utilities (Power, Gas, Wi-Fi, Water)']
+  [/swiggy|zomato|domino|pizza|restaurant|dining|cafe|starbucks|barista/i, /food|dining/i],
+  [/blinkit|zepto|instamart|bigbasket|grofers|grocery|groceries|dmart/i, /grocer/i],
+  [/amazon|flipkart|myntra|ajio|apparel|clothing|shopping/i, /shopping/i],
+  [/petrol|diesel|fuel|hpcl|iocl|bpcl|\bshell\b|indian oil/i, /fuel/i],
+  [/netflix|hotstar|spotify|prime video|sonyliv|subscription|jiocinema/i, /subscription|entertain/i],
+  [/\buber\b|\bola\b|rapido|metro card|parking|toll|fastag/i, /commute|parking|transport/i],
+  [/electricity|power bill|gas bill|broadband|wi-?fi bill|water bill|bses|mgl|airtel|jio fiber/i, /utilit|\bbills?\b/i]
 ];
 const INCOME_KEYWORDS = [
-  [/refund|cashback|dividend|interest credited|reimburs/i, 'Other Income (dividends, IPO etc.)']
+  [/refund|cashback|dividend|interest credited|reimburs/i, /other income/i]
 ];
+// The household's own category of that kind, if it has one.
+function budgetCatMatching(re, income){
+  const row = (state.budget||[]).find(b=> !!b.income === !!income && re.test(b.cat));
+  return row ? row.cat : null;
+}
 function guessCategory(clean, payee, type){
   // Never match an expense-only keyword list against an income transaction, or vice versa —
   // that's how a credit ended up mislabeled "Parking" before this fix.
   if(type === 'income'){
-    for(const [re, cat] of INCOME_KEYWORDS){ if(re.test(clean)) return cat; }
+    for(const [re, catRe] of INCOME_KEYWORDS){ if(re.test(clean)) return budgetCatMatching(catRe, true); }
     return null; // genuinely ambiguous income (e.g. a person paying you back) — leave for manual pick, never guess an expense bucket
   }
   const hay = clean + ' ' + payee;
-  for(const [re, cat] of CATEGORY_KEYWORDS){
-    if(re.test(hay)) return cat;
+  for(const [re, catRe] of CATEGORY_KEYWORDS){
+    if(re.test(hay)) return budgetCatMatching(catRe, false);
   }
   return null;
 }
@@ -2987,8 +3217,7 @@ function guessCategory(clean, payee, type){
 // Definitive mapping of which bank/card notifications arrive at which inbox, as confirmed
 // directly. This is a hard constraint, not a hint — an email from one address can NEVER be
 // matched to an account outside its list, regardless of what digits appear in the body. This
-// is what should have prevented the Aman/Divya IndusInd mismatch: praveshyadav3835@gmail.com
-// can never legitimately produce a Divya-owned account.
+// is what prevents an alert being matched to an account that belongs to a different inbox.
 // Bump this whenever a meaningful change lands in parseBankSMS, looksLikePromotional, or the
 // account-matching logic — every email already marked "seen" at an older version becomes
 // eligible for a fresh read on the next sweep, rather than being permanently stuck with
@@ -3130,7 +3359,7 @@ function parseBankSMS(text, sourceEmail){
   result.category = guessCategory(clean, result.payee, result.type);
 
   // Learned history takes priority over the generic keyword guess — it's specific to
-  // how you and Divya actually categorize this exact payee. But never let a learned
+  // how this household actually categorizes this exact payee. But never let a learned
   // category cross the income/expense boundary — that's the exact class of bug that
   // mislabeled a credit as "Parking" before this fix.
   const learned = suggestForPayee(result.payee);
@@ -3780,7 +4009,7 @@ function generatePersonPDF(id){
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(90,90,90);
-  doc.text('Pravesh Yadav & Divya Misra - C113 DLF New Town Heights, Sector 91, Gurgaon', 14, 25);
+  if(pdfNameLine()) doc.text(pdfNameLine(), 14, 25);
   doc.text('Statement for: ' + p.name + (p.note? ' ('+p.note+')' : ''), 14, 31);
   doc.text('Generated on ' + new Date().toLocaleDateString('en-IN'), 14, 36);
 
@@ -3799,8 +4028,8 @@ function generatePersonPDF(id){
   doc.setFontSize(11);
   doc.setTextColor(20,20,20);
   const closingLabel = closing===0 ? 'Settled - nothing outstanding' :
-    closing>0 ? `Closing balance: ${fmtPdf(closing)} owed TO Pravesh & Divya by ${p.name}` :
-    `Closing balance: ${fmtPdf(Math.abs(closing))} owed BY Pravesh & Divya to ${p.name}`;
+    closing>0 ? `Closing balance: ${fmtPdf(closing)} to be received from ${p.name}` :
+    `Closing balance: ${fmtPdf(Math.abs(closing))} to be paid to ${p.name}`;
   doc.text(closingLabel, 14, finalY + 10);
 
   doc.save(`${p.name.replace(/\s+/g,'_')}_statement.pdf`);
@@ -3824,7 +4053,7 @@ function generateMonthEndReport(){
   doc.setFont('helvetica','bold'); doc.setFontSize(17);
   doc.text('Month-End Report', 14, y); y += 7;
   doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(90,90,90);
-  doc.text('Pravesh Yadav & Divya Misra - C113 DLF New Town Heights, Sector 91, Gurgaon', 14, y); y += 5;
+  if(pdfNameLine()){ doc.text(pdfNameLine(), 14, y); y += 5; }
   doc.text('Generated on ' + new Date().toLocaleDateString('en-IN', {day:'numeric', month:'long', year:'numeric'}), 14, y); y += 10;
 
   doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(20,20,20);
@@ -3836,10 +4065,10 @@ function generateMonthEndReport(){
       ['In bank', fmtPdf(t.cash)],
       ['Card dues', fmtPdf(-t.cardTotal)],
       ['Available money', fmtPdf(t.net)],
-      ['Set aside for lumpy annual bills', fmtPdf(t.sink)],
+      ...(state.accounts.some(a=>a.id==='sinking_fund') ? [['Set aside for lumpy annual bills', fmtPdf(t.sink)]] : []),
       ["You'll get", fmtPdf(t.recv)],
       ["You'll pay", fmtPdf(t.pay)],
-      ['Investments (current value)', fmtPdf(t.invest)],
+      ...(t.invest ? [['Investments (current value)', fmtPdf(t.invest)]] : []),
       ['This month — Income', fmtPdf(m.income)],
       ['This month — Expenses', fmtPdf(m.expense)],
       ['This month — Left', fmtPdf(m.net)],
@@ -3875,13 +4104,14 @@ function generateMonthEndReport(){
   });
   y = doc.lastAutoTable.finalY + 10;
 
-  if(y > 250){ doc.addPage(); y = 18; }
-  doc.setFont('helvetica','bold'); doc.setFontSize(12);
-  doc.text('Investments', 14, y); y += 2;
   const investRows = [
     ...state.mutualFunds.map(f=>[f.name, f.holder, fmtPdf(f.invested), fmtPdf(f.current)]),
     ...state.equities.map(e=>[e.name, e.holder, fmtPdf(e.invested), fmtPdf(e.current)])
   ];
+  if(investRows.length){
+  if(y > 250){ doc.addPage(); y = 18; }
+  doc.setFont('helvetica','bold'); doc.setFontSize(12);
+  doc.text('Investments', 14, y); y += 2;
   doc.autoTable({
     startY: y+4,
     head: [['Holding','Detail','Invested','Current']],
@@ -3891,6 +4121,7 @@ function generateMonthEndReport(){
     columnStyles:{ 2:{halign:'right'}, 3:{halign:'right'} }
   });
   y = doc.lastAutoTable.finalY + 10;
+  }
 
   if(state.balanceAdjustments && state.balanceAdjustments.length){
     if(y > 240){ doc.addPage(); y = 18; }
@@ -3914,32 +4145,11 @@ function generateMonthEndReport(){
   doc.save(`Month_End_Report_${new Date().toISOString().slice(0,10)}.pdf`);
   showToast('Report ready');
 }
-// ---------------------------------------------------------------------------
-// Month-end story — a live, in-app report read straight from `state`. Nothing here is
-// stored except two small things you type in (Divya's take-home / planning years, and the
-// reasons you give for an overspend); every figure is recomputed each time it opens.
-// ---------------------------------------------------------------------------
+// Small text helpers used across the app (short category label, HTML escaping, median).
 const storyCatLabel = k => /^Personal/.test(k) ? k : k.split(' (')[0].split(',')[0];
 const storyEsc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const STORY_SAVING_RE = /^(Wealth SIPs|Other Investments|Sinking Fund)/;
 function storyMedian(a){ if(!a.length) return 0; const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2 ? s[m] : (s[m-1]+s[m])/2; }
-function storyDonutSVG(slices){
-  const total = slices.reduce((s,x)=>s+x.val,0);
-  if(total<=0) return '';
-  const size=170, r=64, cx=85, cy=85, c=2*Math.PI*r;
-  let off=0;
-  const arcs = slices.map(s=>{
-    const len=(s.val/total)*c;
-    const a=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="26" stroke-dasharray="${len} ${c-len}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})"/>`;
-    off+=len; return a;
-  }).join('');
-  return `<svg viewBox="0 0 ${size} ${size}" width="170" height="170" role="img" aria-label="Where your assets sit">${arcs}</svg>`;
-}
-function storyBar(label, valueText, pct, color){
-  return `<div class="story-row"><div style="width:128px; flex-shrink:0; color:var(--ink-soft);">${storyEsc(label)}</div><div class="story-track"><div class="story-fill" style="width:${Math.max(0,Math.min(100,pct))}%; ${color?`background:${color};`:''}"></div></div><div style="min-width:86px; text-align:right; font-weight:700;">${valueText}</div></div>`;
-}
-// Shared by the story report and the new-month budget prompt, so "what counts as a one-off"
-// is answered the same way in both places rather than two separate guesses that could drift.
+// What counts as a one-off purchase, answered in one place for the budget suggestions.
 function computeRecurringSpend(txs){
   if(!txs.length) return {total:0, oneOffTotal:0, recurring:0};
   const total = txs.reduce((s,x)=>s+x.amount,0);
@@ -3950,243 +4160,6 @@ function computeRecurringSpend(txs){
   return {total, oneOffTotal, recurring: Math.max(0, total-oneOffTotal), n: txs.length};
 }
 
-function renderStoryReport(){
-  const t = totals();
-  const now = new Date();
-  const y = now.getFullYear(), mo = now.getMonth();
-  const monthStart = new Date(y, mo, 1);
-  const daysInMonth = new Date(y, mo+1, 0).getDate();
-  const daysElapsed = Math.min(daysInMonth, now.getDate());
-  const proj = daysElapsed < daysInMonth ? daysInMonth/daysElapsed : 1;
-  const monthKey = `${y}-${String(mo+1).padStart(2,'0')}`;
-  const monthName = now.toLocaleDateString('en-IN',{month:'long', year:'numeric'});
-  const sum = arr => arr.reduce((s,x)=>s+x.amount,0);
-
-  const monthTx = state.transactions.filter(x=> new Date(x.ts)>=monthStart && x.type!=='transfer');
-  const incTx = monthTx.filter(x=>x.type==='income');
-  const expTx = monthTx.filter(x=>x.type==='expense');
-  const income = sum(incTx);
-
-  // Per-category spend for THIS month — transactions plus People Ledger "they paid for us" entries
-  // that carry a category (same rule the budget uses), so this matches what Budget shows.
-  const catTotals = {};
-  const catTx = {};
-  expTx.forEach(x=>{
-    const b = findBudgetRowForCategory(x.category);
-    const k = b ? b.cat : (x.category || OTHER_EXPENSE_CAT);
-    catTotals[k] = (catTotals[k]||0) + x.amount;
-    (catTx[k] = catTx[k]||[]).push(x);
-  });
-  state.personLedger.filter(e=>e.type==='received' && e.category && new Date(e.ts)>=monthStart).forEach(e=>{
-    const b = findBudgetRowForCategory(e.category);
-    const k = b ? b.cat : e.category;
-    catTotals[k] = (catTotals[k]||0) + Math.abs(e.delta);
-  });
-  const catEntries = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
-  const saved = catEntries.filter(([k])=>STORY_SAVING_RE.test(k)).reduce((s,[,v])=>s+v,0);
-  const spending = catEntries.filter(([k])=>!STORY_SAVING_RE.test(k)).reduce((s,[,v])=>s+v,0);
-  const kept = income - spending;
-  const keptPct = income>0 ? (kept/income)*100 : null;
-
-  let h = '';
-
-  // ---------------- Opening ----------------
-  h += `<div style="font-size:13px; color:var(--ink-soft);">Pravesh &amp; Divya</div>`;
-  h += `<h1 style="font-size:28px; margin:2px 0 4px;">${monthName}</h1>`;
-  h += `<div style="font-size:13px; color:var(--ink-soft); margin-bottom:18px;">As of ${now.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})} · day ${daysElapsed} of ${daysInMonth}</div>`;
-  h += `<p class="story-p">This is your first full month keeping one set of books together. The point isn't to grade September — it's to start a record that, month by month, shows how you actually live, so the big decisions ahead (a step back from work, a baby) rest on real numbers rather than guesses.</p>`;
-
-  // ---------------- 1. Snapshot ----------------
-  h += `<div class="story-sec">1 · Where you stand</div>`;
-  const lockedAway = t.netWorthTotal - t.netWorthAccessible;
-  h += `<div class="story-card"><div style="font-size:12px; color:var(--ink-soft);">Net worth — realistically accessible</div><div class="story-hero">${fmt(t.netWorthAccessible)}</div><div style="font-size:12px; color:var(--ink-soft); margin-top:3px;">${fmt(t.netWorthTotal)} in total${lockedAway>1?` · ${fmt(lockedAway)} is the NPS annuity slice, a lifetime pension rather than a lump sum`:''}</div></div>`;
-
-  const npsAsset = (state.otherAssets||[]).filter(a=>a.liquidPct<100);
-  const slices = [
-    {label:'Bank cash', val:t.cash, color:'#378ADD'},
-    {label:'Investments', val:t.invest, color:'#7F77DD'},
-    {label:'Sinking fund', val:t.sink, color:'#5DCAA5'},
-    {label:'People owe you', val:Math.max(0,t.recv), color:'#D4537E'}
-  ];
-  (state.otherAssets||[]).forEach((a,i)=>{
-    const pal = ['#EF9F27','#1D9E75','#BA7517','#639922','#888780'];
-    if(a.current<=0) return;
-    if(a.liquidPct<100){
-      slices.push({label:`${a.name} (accessible)`, val:a.current*a.liquidPct/100, color:'#0F6E56'});
-      slices.push({label:`${a.name} (annuity-locked)`, val:a.current*(100-a.liquidPct)/100, color:'#F0997B'});
-    } else slices.push({label:a.name, val:a.current, color:pal[i%pal.length]});
-  });
-  const assetSlices = slices.filter(s=>s.val>0);
-  const assetTotal = assetSlices.reduce((s,x)=>s+x.val,0);
-  h += `<div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap; margin:6px 0 10px;"><div style="flex-shrink:0;">${storyDonutSVG(assetSlices)}</div><div style="flex:1; min-width:150px; font-size:12px;">${assetSlices.map(s=>`<div style="display:flex; align-items:center; gap:6px; margin:4px 0;"><span style="width:9px; height:9px; border-radius:2px; background:${s.color}; flex-shrink:0;"></span><span style="flex:1;">${storyEsc(s.label)}</span><span style="font-weight:700;">${Math.round(s.val/assetTotal*100)}%</span></div>`).join('')}</div></div>`;
-  h += `<p class="story-p" style="font-size:13px; color:var(--ink-soft);">Against those assets you owe ${fmt(Math.abs(t.cardTotal))} on cards and ${fmt(Math.abs(t.pay))} to family.</p>`;
-
-  h += `<div class="story-card">`;
-  h += storyBar('Came in', fmt(income), 100, 'var(--icon-pos)');
-  h += storyBar('Spent', fmt(spending), income>0 ? spending/income*100 : 100, 'var(--icon-neg)');
-  h += storyBar('Put aside (SIPs, sinking)', fmt(saved), income>0 ? saved/income*100 : 0, 'var(--peri)');
-  h += `<div style="margin-top:8px; font-size:13px;">${income<=0 ? 'No income logged yet this month, so there is nothing to compare spending against.' : (kept>=0 ? `You kept <b>${fmt(kept)}</b> of what came in — about <b>${Math.round(keptPct)}%</b>.` : `You spent <b>${fmt(-kept)}</b> more than came in so far this month — worth checking whether some income hasn't been logged yet.`)}</div>`;
-  h += `</div>`;
-
-  // ---------------- 2. Where the money went ----------------
-  h += `<div class="story-sec">2 · Where the money went</div>`;
-  h += `<div class="story-note">Month 1 of a 3-month exercise. A payee seen only once can't be called recurring yet — by month 3 these patterns will be solid, and the "ideal budget" below will be built from how you really spend, not from the starting guess.</div>`;
-
-  const topCats = catEntries.filter(([k])=>!STORY_SAVING_RE.test(k)).slice(0,8);
-  h += `<div class="story-card">${topCats.length ? topCats.map(([k,v])=>{
-    const b = state.budget.find(x=>x.cat===k);
-    const bud = b ? b.budget : 0;
-    const over = bud>0 && v>bud;
-    return storyBar(storyCatLabel(k), `${fmt(v)}${bud>0?` / ${fmt(bud)}`:''}`, bud>0 ? v/bud*100 : 100, over?'var(--icon-neg)':(bud>0?'var(--peri)':'var(--ink-soft)'));
-  }).join('') : '<div style="font-size:13px; color:var(--ink-soft);">No spending logged this month yet.</div>'}</div>`;
-
-  // Habits per category: how often, how much, when, and who to
-  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const partOf = hr => hr<12 ? 'mornings' : hr<17 ? 'afternoons' : hr<21 ? 'evenings' : 'late nights';
-  const suggestions = [];
-  h += `<div style="font-size:13px; font-weight:700; margin:16px 0 6px;">Patterns behind the biggest categories</div>`;
-  topCats.slice(0,6).forEach(([k,v])=>{
-    const txs = catTx[k] || [];
-    if(!txs.length) return;
-    const amts = txs.map(x=>x.amount);
-    const med = storyMedian(amts);
-    const byPayee = {};
-    txs.forEach(x=>{ const key = normalizePayee(x.payee||'') || 'unknown'; (byPayee[key] = byPayee[key]||{name:x.payee||'Unknown', n:0, total:0, max:0}); byPayee[key].n++; byPayee[key].total+=x.amount; byPayee[key].max=Math.max(byPayee[key].max,x.amount); });
-    const payees = Object.values(byPayee).sort((a,b)=>b.total-a.total);
-    const oneOffs = payees.filter(p=>p.n===1 && p.max>=Math.max(1500, 2*med));
-    const {oneOffTotal} = computeRecurringSpend(txs);
-    const dayCount = {}; const partCount = {};
-    txs.forEach(x=>{ const d=new Date(x.ts); dayCount[d.getDay()]=(dayCount[d.getDay()]||0)+1; const p=partOf(d.getHours()); partCount[p]=(partCount[p]||0)+1; });
-    const topDay = Object.entries(dayCount).sort((a,b)=>b[1]-a[1])[0];
-    const topPart = Object.entries(partCount).sort((a,b)=>b[1]-a[1])[0];
-    const small = txs.filter(x=>x.amount<200).length;
-    const recurring = Math.max(0, v - oneOffTotal);
-    // Only scale up categories that are spent on often (3+ times) — a once-a-month item like a
-    // fixed transfer or EMI already happened in full, and scaling it would overstate it.
-    const scale = txs.length>=3 ? proj : 1;
-    const suggested = Math.ceil((recurring*scale)/500)*500;
-    suggestions.push({cat:k, now:v, oneOffTotal, suggested});
-    h += `<div class="story-card" style="padding:13px 15px;">
-      <div style="display:flex; justify-content:space-between; font-weight:700;"><span>${storyEsc(storyCatLabel(k))}</span><span>${fmt(v)}</span></div>
-      <div style="font-size:12.5px; color:var(--ink-soft); margin-top:4px; line-height:1.55;">${txs.length} transaction${txs.length===1?'':'s'}, typically ${fmt(med)}${topDay && txs.length>=3 ? ` · most often on ${dayNames[topDay[0]]}, ${topPart[0]}` : ''}${small>=3?` · ${small} of them under ₹200`:''}.
-      Biggest: ${payees.slice(0,3).map(p=>`${storyEsc(p.name)} (${fmt(p.total)}${p.n>1?`, ${p.n}×`:''})`).join(', ')}.${oneOffs.length?`<br><b>One-off:</b> ${oneOffs.map(p=>`${storyEsc(p.name)} ${fmt(p.total)}`).join(', ')} — looks like a single purchase, so I've left it out of the suggested budget.`:''}</div>
-    </div>`;
-  });
-
-  // Overspends — asked for a reason, not just flagged
-  const overs = state.budget.filter(b=>!b.income && b.budget>0 && (catTotals[b.cat]||0) > b.budget);
-  const unbudgeted = catEntries.filter(([k,v])=>{ const b=state.budget.find(x=>x.cat===k); return !STORY_SAVING_RE.test(k) && b && b.budget===0 && v>0 && k!==OTHER_EXPENSE_CAT; });
-  if(overs.length || unbudgeted.length){
-    h += `<div style="font-size:13px; font-weight:700; margin:16px 0 6px;">What ran over — and why</div>`;
-    h += `<div class="story-note">The starting budget was a first guess, so "over" here means "worth a conversation", not "failed". Tell me the reason and it's kept alongside the number.</div>`;
-    [...overs.map(b=>({cat:b.cat, v:catTotals[b.cat], bud:b.budget})), ...unbudgeted.map(([k,v])=>({cat:k, v, bud:0}))].forEach(o=>{
-      const note = (state.storyNotes||{})[`${monthKey}|${o.cat}`];
-      h += `<div class="story-card" style="padding:13px 15px;"><div style="display:flex; justify-content:space-between; font-weight:700;"><span>${storyEsc(storyCatLabel(o.cat))}</span><span class="neg">${fmt(o.v)}${o.bud>0?` vs ${fmt(o.bud)}`:' · no budget set'}</span></div>
-        <div style="font-size:12.5px; margin-top:5px; color:var(--ink-soft);">${note ? `Your reason: <span style="color:var(--ink);">${storyEsc(note)}</span>` : 'No reason recorded yet.'}</div>
-        <button class="link-btn" data-storynote="${storyEsc(o.cat)}" style="margin-top:4px;">${note?'Edit reason':'Add reason'}</button></div>`;
-    });
-  }
-
-  // Suggested standard budget for next month
-  if(suggestions.length){
-    h += `<div style="font-size:13px; font-weight:700; margin:18px 0 6px;">Draft standard budget for next month</div>`;
-    h += `<div class="story-card"><table class="story-tbl"><tr style="font-size:11px; color:var(--ink-soft);"><td>Category</td><td>This month</td><td>Now budgeted</td><td>Suggested</td></tr>${suggestions.map(s=>{
-      const b = state.budget.find(x=>x.cat===s.cat);
-      return `<tr><td>${storyEsc(storyCatLabel(s.cat))}</td><td>${fmt(s.now)}</td><td>${b&&b.budget?fmt(b.budget):'—'}</td><td style="color:var(--peri);">${fmt(s.suggested)}</td></tr>`;
-    }).join('')}</table><div style="font-size:11.5px; color:var(--ink-soft); margin-top:8px;">Suggested = this month's regular spending${proj>1?`; frequent categories are scaled from ${daysElapsed} to ${daysInMonth} days`:''}, one-offs left out, rounded up to the next ₹500. A draft to react to — after three months it becomes the ideal budget, and variance is measured against that.</div></div>`;
-  }
-
-  // ---------------- 3. Divya stepping back ----------------
-  h += `<div class="story-sec">3 · If Divya steps back from work</div>`;
-  const planning = state.planning || {divyaMonthly:0, years:3};
-  const divyaLogged = sum(incTx.filter(x=>x.category==='Divya Salary'));
-  const divyaIncome = divyaLogged>0 ? divyaLogged : (planning.divyaMonthly||0);
-  const years = planning.years || 3;
-  if(divyaIncome<=0){
-    h += `<div class="story-card"><div style="font-size:14px; line-height:1.55;">To separate what Divya brings in from the rest, I need her monthly take-home — it isn't logged as "Divya Salary" this month, and none is set here.</div><button class="btn-primary" data-storyplan="1" style="margin-top:10px; background:var(--peri);">Set Divya's take-home &amp; planning years</button></div>`;
-  } else {
-    const otherIncome = divyaLogged>0 ? Math.max(0, income - divyaLogged) : income;
-    const run = spending*proj;
-    const gap = run - otherIncome;
-    const liquid = Math.max(0, t.net + t.sink);
-    const investable = t.invest + (state.otherAssets||[]).filter(a=>/EPF|NPS/i.test(a.name)).reduce((s,a)=>s+a.current*(a.liquidPct??100)/100,0);
-    h += `<p class="story-p">Divya's ${divyaLogged>0?'logged salary this month':'take-home (as you set it)'} is ${fmt(divyaIncome)}. Without it, ${fmt(otherIncome)} comes in against a spending pace of about ${fmt(run)} a month${proj>1?' (this month scaled to a full month)':''}.</p>`;
-    if(gap<=0){
-      h += `<div class="story-card">On today's pace, the rest of your income already covers your spending — a surplus of <b>${fmt(-gap)}</b> a month. Worth stress-testing again once the 3-month average is in.</div>`;
-    } else {
-      const runway = liquid/gap;
-      const corpus = gap*12/0.04;
-      const shortfall = Math.max(0, corpus - investable);
-      const r = 0.10/12, n = years*12;
-      const remaining = Math.max(0, corpus - investable*Math.pow(1.10, years));
-      const sip = n>0 ? remaining / (((Math.pow(1+r,n)-1)/r)*(1+r)) : 0;
-      h += `<div class="story-card">`;
-      h += storyBar('Monthly gap', fmt(gap), 100, 'var(--icon-neg)');
-      h += `<div style="font-size:13px; margin:8px 0;">Cash plus sinking fund would carry that gap for about <b>${runway.toFixed(1)} months</b> if nothing else changed.</div>`;
-      h += `<div style="font-size:13px; margin:8px 0;">To cover it permanently from investments (withdrawing about 4% a year), you'd want roughly <b>${fmt(corpus)}</b>. You hold about <b>${fmt(investable)}</b> in investments plus EPF/NPS-accessible money — a shortfall of <b>${fmt(shortfall)}</b>.</div>`;
-      h += `<div style="font-size:13px; margin:8px 0;">Planning for <b>${years} year${years===1?'':'s'}</b> and assuming 10% a year (an assumption, not a promise), closing that would take about <b>${fmt(sip)}</b> a month in new SIPs.</div>`;
-      h += `<div style="font-size:12px; color:var(--ink-soft);">The other lever is the gap itself: every ₹1,000 you can trim from monthly spending lowers the corpus needed by about ₹3 lakh.</div>`;
-      h += `<button class="link-btn" data-storyplan="1" style="margin-top:8px;">Change take-home or years</button></div>`;
-    }
-  }
-
-  // ---------------- 4. Baby fund ----------------
-  h += `<div class="story-sec">4 · The baby fund</div>`;
-  const goals = state.savingsGoals || [];
-  if(goals.length){
-    goals.forEach(g=>{
-      const monthsLeft = Math.max(1, Math.round((new Date(g.byDate)-now)/(30*24*60*60*1000)));
-      const rem = Math.max(0, g.target-(g.saved||0));
-      const per = rem/monthsLeft;
-      h += `<div class="story-card"><div style="display:flex; justify-content:space-between; font-weight:700;"><span>${storyEsc(g.name)}</span><span>${fmt(g.saved||0)} / ${fmt(g.target)}</span></div>
-        <div class="story-track" style="margin:8px 0;"><div class="story-fill" style="width:${g.target>0?Math.min(100,(g.saved||0)/g.target*100):0}%;"></div></div>
-        <div style="font-size:12.5px; color:var(--ink-soft);">${monthsLeft} months to ${new Date(g.byDate).toLocaleDateString('en-IN',{month:'long',year:'numeric'})} · about ${fmt(per)} a month to stay on pace${income>0?` · that's ${Math.round(per/income*100)}% of this month's income`:''}.</div></div>`;
-    });
-  } else h += `<div class="story-card" style="font-size:13px;">No savings goals set — add one in the Budget tab.</div>`;
-
-  // ---------------- 5. What's locked away ----------------
-  h += `<div class="story-sec">5 · What's held, and how reachable it is</div>`;
-  h += `<div class="story-card">${(state.otherAssets||[]).map(a=>{
-    const acc = a.liquidPct<100 ? `${a.liquidPct}% reachable as a lump sum` : 'fully reachable';
-    return `<div style="margin:9px 0;"><div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700;"><span>${storyEsc(a.name)}</span><span>${a.current>0?fmt(a.current):'not set'}</span></div><div style="font-size:11.5px; color:var(--ink-soft);">${a.current>0?acc:'add a value in the Invest tab'}</div></div>`;
-  }).join('')}</div>`;
-
-  // ---------------- 6. Lens ----------------
-  h += `<div class="story-sec">6 · Reading it through widely-taught money ideas</div>`;
-  const lens = [];
-  if(income>0) lens.push(`<b>Pay yourself first.</b> You set aside ${Math.round(saved/income*100)}% of income before it could be spent (SIPs and sinking fund). A common rule of thumb is to fix that share first and let spending flex, rather than saving whatever is left.`);
-  const personalShare = spending>0 ? ((catTotals['Personal (Pravesh)']||0)+(catTotals['Personal (Divya)']||0))/spending*100 : 0;
-  if(spending>0) lens.push(`<b>Lifestyle creep is quiet.</b> Personal spending is ${Math.round(personalShare)}% of what you spent. It's rarely one big item — it's small, frequent ones, which is why the patterns above matter more than any single purchase.`);
-  lens.push(`<b>Assets versus liabilities.</b> You hold ${fmt(t.invest)} in investments and carry ${fmt(Math.abs(t.cardTotal))} on cards. The classic test is whether the money you own is working for you faster than what you owe is working against you — clearing card dues in full each cycle keeps that one-sided.`);
-  lens.push(`<b>Wealth is what you keep.</b> Income matters less than the gap between income and spending — that gap is what funds both Divya's step back and the baby.`);
-  h += lens.map(l=>`<p class="story-p" style="font-size:14px;">${l}</p>`).join('');
-  h += `<div class="story-note">These are general principles widely taught in personal finance, applied to your own numbers — not personalised financial advice.</div>`;
-
-  h += `<div style="text-align:center; font-size:12px; color:var(--ink-soft); margin-top:30px;">Everything above is computed live from your ledger.</div>`;
-
-  document.getElementById('story-body').innerHTML = h;
-  document.querySelectorAll('[data-storynote]').forEach(el=> el.addEventListener('click', async ()=>{
-    const cat = el.getAttribute('data-storynote');
-    const key = `${monthKey}|${cat}`;
-    const existing = (state.storyNotes||{})[key] || '';
-    const val = prompt(`Why did "${storyCatLabel(cat)}" run over this month?`, existing);
-    if(val===null) return;
-    state.storyNotes = state.storyNotes || {};
-    if(val.trim()) state.storyNotes[key] = val.trim(); else delete state.storyNotes[key];
-    await saveState();
-    renderStoryReport();
-  }));
-  document.querySelectorAll('[data-storyplan]').forEach(el=> el.addEventListener('click', async ()=>{
-    const p = state.planning || {divyaMonthly:0, years:3};
-    const divRaw = prompt("Divya's monthly take-home (₹):", String(p.divyaMonthly||''));
-    if(divRaw===null) return;
-    const yrRaw = prompt('How many years until she steps back (2–5)?', String(p.years||3));
-    if(yrRaw===null) return;
-    state.planning = {divyaMonthly: parseFloat(divRaw)||0, years: Math.max(1, Math.min(10, parseFloat(yrRaw)||3))};
-    await saveState();
-    renderStoryReport();
-  }));
-}
 // ---------------------------------------------------------------------------
 // Insights tab — cash flow and category breakdown for a chosen period. One period state
 // (week/month/year/custom) drives the summary numbers, the category donut and the list below it.
@@ -4416,7 +4389,7 @@ const BUDGET_REVIEW_MONTHS = 3; // months to watch before settling the ideal bud
 function roundUpBudget(v){ const step = v < 2000 ? 100 : 500; return Math.ceil(v/step)*step; }
 // Suggested amount per expense category: the average of what was regularly spent in the
 // finished months on record (up to the last three), rounded up. One-off big purchases are
-// left out (same rule the month-end story uses), so a single large buy doesn't inflate a
+// left out, so a single large buy doesn't inflate a
 // category for good. No spending on record → keep the current amount.
 function budgetSuggestions(){
   const months = completedBudgetMonths().slice(-BUDGET_REVIEW_MONTHS);
@@ -4711,7 +4684,13 @@ document.getElementById('bp-save').addEventListener('click', async ()=>{
 // ---- Settings & tools page (gear button in Home's header) ----
 document.getElementById('open-tools-btn').addEventListener('click', ()=>{
   document.querySelector('#tools-page .fs-body').scrollTop = 0;
+  applyHouseholdUI();
+  loadHouseholdDoc();
   openFullscreen('tools-page');
+});
+document.getElementById('pdf-name-input').addEventListener('change', e=>{
+  try{ if(currentHid) localStorage.setItem(pdfNameKey(), e.target.value.trim()); }catch(err){}
+  showToast('Saved');
 });
 document.getElementById('tools-back-btn').addEventListener('click', ()=> closeFullscreen('tools-page'));
 
@@ -4741,15 +4720,6 @@ function stepHomeMonth(delta){
 }
 document.getElementById('home-cf-prev').addEventListener('click', ()=> stepHomeMonth(-1));
 document.getElementById('home-cf-next').addEventListener('click', ()=> stepHomeMonth(1));
-
-document.getElementById('open-story-btn').addEventListener('click', ()=>{
-  renderStoryReport();
-  document.getElementById('story-overlay').classList.add('open');
-  document.getElementById('story-overlay').scrollTop = 0;
-});
-document.getElementById('story-close-btn').addEventListener('click', ()=>{
-  document.getElementById('story-overlay').classList.remove('open');
-});
 
 document.getElementById('gen-report-btn').addEventListener('click', generateMonthEndReport);
 document.getElementById('clear-since-btn').addEventListener('click', async ()=>{
@@ -5308,7 +5278,7 @@ document.getElementById('commit-cancel').addEventListener('click', ()=> commitme
 
 // The Invest tab and its add/edit screens were removed (Insights took its place). The saved
 // investment figures themselves are left untouched in the data; they still feed the net-worth
-// lines of the month-end story and report.
+// lines of the month-end report.
 async function openEditSavingsGoal(index){
   const isNew = index===null || index===undefined;
   const existing = isNew ? null : state.savingsGoals[index];
@@ -5794,7 +5764,7 @@ function isDuplicateOf(candidate, existing, toleranceMinutes, requireAccountMatc
 }
 function buildExistingCashEventsPool(){
   // Real cash movements can be logged three ways in this app: a normal transaction, a transfer
-  // between two of your own accounts, or a People Ledger entry (e.g. "took ₹10,000 from Aman").
+  // between two of your own accounts, or a People Ledger entry (e.g. "took ₹5,000 from a friend").
   // All three must count when checking whether a fetched email describes something already
   // recorded. Payee is included on every entry now — needed for the corroboration check above.
   const fromTx = state.transactions.filter(t=>t.type!=='transfer').map(t=>({amount:t.amount, ts:t.ts, account:t.account, payee:t.payee}));
@@ -5909,8 +5879,8 @@ function mostLikelyAccountForEmail(email, allowedIds){
   return candidates[0][0];
 }
 // Re-validates an accountId against EMAIL_ACCOUNT_MAP at the point of USE, not just at the
-// point the pending import was first created. This is what makes the "Aman/Divya IndusInd"
-// class of bug self-heal for anything already sitting in the review queue from before that
+// point the pending import was first created. This is what makes a wrong-inbox match
+// self-heal for anything already sitting in the review queue from before that
 // map existed or before it covered a given inbox — the display simply refuses to trust an
 // accountId outside its source inbox's allowed list, regardless of how it got there.
 function validatedAccountId(accountId, sourceEmail){
@@ -6585,7 +6555,7 @@ async function loadEngineCloudExtras(){
   if(!cloudReady || !db){ engineCloudError = true; return; }
   try{
     const [snap, settingsDoc] = await Promise.all([
-      db.collection('household').where('_type','==','skippedEmail').get(),
+      hcol().where('_type','==','skippedEmail').get(),
       hh('readerSettings').get()
     ]);
     engineSkipped = snap.docs.map(d=>d.data());
@@ -6743,14 +6713,14 @@ document.getElementById('engine-copy-btn').addEventListener('click', async ()=>{
 // open/close code throughout the app.
 (function setupModalBackButton(){
   let pushedForModal = false;
-  const LAYERS = '.sheet-backdrop, .fullscreen-page, #story-overlay';
-  // Topmost first: a sheet always sits above a full-screen page, which sits above the story.
+  const LAYERS = '.sheet-backdrop, .fullscreen-page';
+  // Topmost first: a sheet always sits above a full-screen page.
   const topOpenLayer = () => {
     const sheets = document.querySelectorAll('.sheet-backdrop.open');
     if(sheets.length) return sheets[sheets.length-1];
     const pages = document.querySelectorAll('.fullscreen-page.open');
     if(pages.length) return pages[pages.length-1];
-    return document.querySelector('#story-overlay.open');
+    return null;
   };
 
   const observer = new MutationObserver(()=>{
@@ -6782,9 +6752,10 @@ document.getElementById('engine-copy-btn').addEventListener('click', async ()=>{
 
 (async function init(){
   await loadTheme();
-  await loadWhoami();
   loadMaskPref();
   await loadState();
+  await loadWhoami();
+  if(!currentHid) showGate('checking'); // a device with no household yet: nothing to show until sign-in is settled
   renderGreeting();
   render();
   initCloudSync(()=>{ render(); });
