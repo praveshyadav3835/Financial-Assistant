@@ -275,6 +275,11 @@
   .seg{display:flex; gap:8px;}
   .seg button{flex:1; padding:11px 6px; border-radius:14px; border:1px solid var(--line); background:var(--paper-dim); font-size:13px; font-weight:400; color:var(--ink-soft); cursor:pointer;}
   .seg button.on{background:var(--peri-dim); color:var(--peri); border-color:var(--peri); font-weight:500;}
+  .seg.seg-lg{width:100%;}
+  .seg.seg-lg button{padding:17px 6px; font-size:15.5px; font-weight:500;}
+  .bp-catsugg{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 0; border-top:1px dashed var(--line); font-size:13px; color:var(--ink);}
+  .bp-catsugg:first-child{border-top:none; padding-top:2px;}
+  .bp-catsugg .acts{display:flex; gap:12px; flex-shrink:0;}
   .q-dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--peri); margin-right:9px; vertical-align:middle; position:relative; top:-1px; box-shadow:0 0 10px var(--glow);}
   .verb-pills{display:flex; gap:8px; margin-bottom:16px;}
   .verb-pills button{flex:1; padding:12px 4px; border-radius:14px; border:1px solid var(--line); font-weight:500; font-size:13px; cursor:pointer; background:var(--paper-dim); color:var(--ink-soft);}
@@ -419,7 +424,7 @@
       <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg>
       <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l16 16"/><path d="M9.9 5.8A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-3 3.7M6.3 7.6A15.600 15.600 0 0 0 2.500 12S6 18.500 12 18.500c1.300 0 2.500-.300 3.600-.800"/><path d="M10 10a2.8 2.8 0 0 0 4 4"/></svg>
     </button>
-    <button class="round-btn" id="open-tools-btn" title="Settings and tools" aria-label="Settings and tools">
+    <button class="round-btn" id="open-tools-btn" title="Settings" aria-label="Settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.800v2.400M2.800 12h2.400M18.800 12h2.400M5.500 5.500l1.700 1.700M16.800 16.800l1.700 1.700M18.500 5.500l-1.700 1.700M7.200 16.800l-1.700 1.700"/></svg>
     </button>
   </header>
@@ -434,7 +439,7 @@
           <div class="hero-num maskable" id="home-cf-expense">—</div>
           <button class="hero-arrow" id="home-cf-next" aria-label="Next month">›</button>
         </div>
-        <div class="subs"><span>Income: <b class="acc maskable" id="home-cf-income">—</b></span><span>Net: <b class="maskable" id="home-cf-net">—</b></span></div>
+        <div class="subs"><span>Income: <b class="acc maskable" id="home-cf-income">—</b></span><span>Left: <b class="maskable" id="home-cf-net">—</b></span></div>
       </div>
       <div class="pace" id="trend-chart-wrap"></div>
       <div style="margin-top:18px;">
@@ -452,21 +457,21 @@
     <section class="tab" id="tab-money">
       <h1 class="page-title">Accounts</h1>
       <div class="hero">
-        <div class="lbl">Net liquid working surplus</div>
+        <div class="lbl">Available money</div>
         <div class="hero-num maskable" id="hdr-net" data-breakdown="net">—</div>
         <div class="subs">
-          <span data-breakdown="cash">Bank cash: <b class="v maskable" id="hdr-cash">—</b></span>
+          <span data-breakdown="cash">In bank: <b class="v maskable" id="hdr-cash">—</b></span>
           <span data-breakdown="cards">Card dues: <b class="v maskable" id="hdr-cards">—</b></span>
-          <span data-breakdown="gap">Net gap (people): <b class="v maskable" id="hdr-gap">—</b></span>
+          <span data-breakdown="gap">With people: <b class="v maskable" id="hdr-gap">—</b></span>
         </div>
       </div>
       <div class="card email-fetch">
-        <div class="ef-label">Email fetch</div>
-        <input type="date" id="gmail-custom-date" required aria-label="Choose date to fetch from">
-        <button class="btn-primary" id="gmail-custom-fetch-btn">Fetch</button>
+        <div class="ef-label">Check email</div>
+        <input type="date" id="gmail-custom-date" required aria-label="Choose date to check from">
+        <button class="btn-primary" id="gmail-custom-fetch-btn">Check</button>
         <span id="gmail-status-text" class="hide"></span>
       </div>
-      <div style="text-align:right; margin-top:6px;"><button class="link-btn" id="open-engine-report-btn">How well is it reading? Report →</button></div>
+      <div style="text-align:right; margin-top:6px;"><button class="link-btn" id="open-engine-report-btn">Email accuracy</button></div>
       <div class="panel">
         <div class="ph"><b>Accounts &amp; Cards</b></div>
         <div id="wallet-carousel"></div>
@@ -477,16 +482,16 @@
       <div class="page-top">
         <div class="side"></div>
         <h1 class="page-title">People</h1>
-        <div class="side right"><button class="icon-btn" id="add-person-btn" aria-label="Add a person">+</button></div>
+        <div class="side right"><button class="icon-btn" id="add-person-btn" aria-label="Add person">+</button></div>
       </div>
       <div class="hero">
-        <div class="lbl">Net gap with people</div>
+        <div class="lbl">Balance with people</div>
         <div class="hero-num maskable" id="people-net">—</div>
-        <div class="subs"><span>They owe you: <b class="pos-t maskable" id="people-recv">—</b></span><span>You owe: <b class="neg-t maskable" id="people-pay">—</b></span></div>
+        <div class="subs"><span>You'll get: <b class="pos-t maskable" id="people-recv">—</b></span><span>You'll pay: <b class="neg-t maskable" id="people-pay">—</b></span></div>
       </div>
       <div class="panel">
         <div class="ph"><b>People Ledger</b></div>
-        <p class="section-sub">Green = they owe you. Red = you owe them. Tap an amount to log a payment.</p>
+        <p class="section-sub">Green: you'll get. Red: you'll pay. Tap an amount to add a payment.</p>
         <div id="people-list"></div>
       </div>
     </section>
@@ -514,7 +519,7 @@
           <div class="hero-num maskable" id="analysis-expense" style="cursor:default;">—</div>
           <button class="hero-arrow" id="analysis-next" aria-label="Next period">›</button>
         </div>
-        <div class="subs"><span>Income: <b class="acc maskable" id="analysis-income">—</b></span><span>Net: <b class="maskable" id="analysis-net">—</b></span></div>
+        <div class="subs"><span>Income: <b class="acc maskable" id="analysis-income">—</b></span><span>Left: <b class="maskable" id="analysis-net">—</b></span></div>
         <div id="analysis-compare" style="font-size:12.5px; color:var(--ink-soft); margin-top:6px;"></div>
       </div>
       <div class="panel">
@@ -533,7 +538,7 @@
 
         <div class="ph" style="margin-top:30px;"><b>Month-end</b></div>
         <button class="btn-primary" id="open-story-btn">Open the month-end story</button>
-        <button class="btn-ghost" id="gen-report-btn">Generate month-end report (PDF)</button>
+        <button class="btn-ghost" id="gen-report-btn">Month-end report (PDF)</button>
         <p class="section-sub" style="margin-top:10px;">A snapshot PDF of accounts, budget, people, and investments — good for record-keeping or sharing with family.</p>
       </div>
     </section>
@@ -552,21 +557,13 @@
 <!-- ADD TRANSACTION SHEET -->
 <div class="sheet-backdrop" id="tx-backdrop">
   <div class="sheet">
-    <h3 id="tx-heading">What happened?</h3>
-
-    <button class="link-btn" id="paste-sms-toggle" style="margin-bottom:10px;">Paste bank SMS instead</button>
-    <div id="paste-sms-box" class="hide">
-      <div class="field">
-        <textarea id="sms-paste-text" placeholder="Paste the bank/card SMS text here — e.g. 'Rs.430 debited from A/c XX2687 to VPA...'"></textarea>
-      </div>
-      <button class="btn-ghost" id="sms-parse-btn" style="margin-top:0; margin-bottom:14px;">Parse &amp; fill in below</button>
-    </div>
+    <h3 id="tx-heading">Add transaction</h3>
 
     <div class="verb-pills" id="tx-type">
-      <button data-v="expense" class="on spent">Spent</button>
-      <button data-v="income" class="got">Got money</button>
-      <button data-v="transfer" class="moved">Moved</button>
-      <button data-v="person" class="forsomeone">For someone</button>
+      <button data-v="expense" class="on spent">Expense</button>
+      <button data-v="income" class="got">Income</button>
+      <button data-v="transfer" class="moved">Transfer</button>
+      <button data-v="person" class="forsomeone">People</button>
     </div>
 
     <div class="amount-display">
@@ -580,16 +577,16 @@
     </div>
 
     <div id="tx-single-fields">
-      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;" id="cat-label">What was it for?</label>
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;" id="cat-label">Category</label>
       <div class="pick-summary" id="cat-summary"></div>
       <div class="cat-grid hide" id="cat-grid"></div>
 
-      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;" id="acct-label">Which account?</label>
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;" id="acct-label">Paid from</label>
       <div class="pick-summary" id="acct-summary"></div>
       <div class="pick-list hide" id="acct-row"></div>
 
       <div class="field">
-        <label>Who / what was this? <span style="font-weight:400;">(optional)</span></label>
+        <label><span id="payee-label">Paid to</span> <span style="font-weight:400;">(optional)</span></label>
         <input id="tx-payee" placeholder="e.g. Swiggy, Mukul the delivery guy">
       </div>
     </div>
@@ -603,32 +600,30 @@
     </div>
 
     <div id="tx-person-fields" class="hide">
-      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">Which way did the money move?</label>
       <div class="seg" id="tx-person-dir">
-        <button data-v="gave" class="on">You paid for them</button>
-        <button data-v="received">They paid you back</button>
+        <button data-v="gave" class="on">You gave</button>
+        <button data-v="received">You got</button>
       </div>
-      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">Who?</label>
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">Person</label>
       <div class="acct-row" id="tx-person-row"></div>
-      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;" id="tx-person-cat-label">What was it for? <span style="font-weight:400;">(optional)</span></label>
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;" id="tx-person-cat-label">Category <span style="font-weight:400;">(optional)</span></label>
       <div class="pick-summary" id="tx-person-cat-summary"></div>
       <div class="cat-grid hide" id="tx-person-cat-grid"></div>
-      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">Through which account?</label>
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">Account</label>
       <div class="acct-row" id="tx-person-acct-row"></div>
       <div class="field"><label>Note (optional)</label><input id="tx-person-note" placeholder="e.g. metro card recharge"></div>
-      <p class="section-sub" id="tx-person-note-sub">This won't show up as an expense or income — it just settles in their People Ledger.</p>
+      <p class="section-sub" id="tx-person-note-sub">Not counted as spending or income.</p>
     </div>
 
     <div class="toggle-row" id="tx-household-row">
-      <span>Family expense?</span>
-      <div class="seg" style="max-width:150px;" id="tx-household">
-        <button data-v="yes" class="on">Yes</button>
-        <button data-v="no">Just me</button>
+      <div class="seg seg-lg" id="tx-household">
+        <button data-v="yes" class="on">Household</button>
+        <button data-v="no">Personal</button>
       </div>
     </div>
 
-    <button class="btn-primary" id="tx-save">Log it</button>
-    <button class="btn-ghost" id="tx-cancel">Never mind</button>
+    <button class="btn-primary" id="tx-save">Add</button>
+    <button class="btn-ghost" id="tx-cancel">Cancel</button>
   </div>
 </div>
 
@@ -637,18 +632,17 @@
   <div class="sheet">
     <h3 id="person-title">Adjust balance</h3>
     <div class="field">
-      <label>Which way did the money move?</label>
       <div class="seg" id="person-dir">
-        <button data-v="gave" class="on">You gave them money</button>
-        <button data-v="received">They gave you money</button>
+        <button data-v="gave" class="on">You gave</button>
+        <button data-v="received">You got</button>
       </div>
     </div>
     <div class="field">
-      <label id="person-acct-label">Which account?</label>
+      <label id="person-acct-label">Account</label>
       <div class="acct-row" id="person-acct-row"></div>
     </div>
     <div class="field">
-      <label>What was it for? <span style="font-weight:400;">(optional)</span></label>
+      <label>Category <span style="font-weight:400;">(optional)</span></label>
       <div class="pick-summary" id="person-cat-summary"></div>
       <div class="cat-grid hide" id="person-cat-grid"></div>
       <p class="section-sub" id="person-cat-sub"></p>
@@ -663,17 +657,17 @@
 <!-- ADD PERSON SHEET -->
 <div class="sheet-backdrop" id="addperson-backdrop">
   <div class="sheet">
-    <h3>Add a person</h3>
+    <h3>Add person</h3>
     <div class="field"><label>Name</label><input id="ap-name" placeholder="e.g. Rahul"></div>
     <div class="field"><label>Note</label><input id="ap-note" placeholder="e.g. lent for car repair"></div>
     <div class="field">
-      <label>Starting balance</label>
+      <label>Opening balance</label>
       <div class="seg" id="ap-dir">
-        <button data-v="owe_you" class="on">They owe you</button>
-        <button data-v="you_owe">You owe them</button>
+        <button data-v="owe_you" class="on">You'll get</button>
+        <button data-v="you_owe">You'll pay</button>
       </div>
     </div>
-    <div class="field"><label>Amount (₹) — 0 if just opening a tab</label><input id="ap-amount" type="number" inputmode="decimal" placeholder="0"></div>
+    <div class="field"><label>Amount (₹). Enter 0 if nothing is owed yet.</label><input id="ap-amount" type="number" inputmode="decimal" placeholder="0"></div>
     <button class="btn-primary" id="ap-save">Add person</button>
     <button class="btn-ghost" id="ap-cancel">Cancel</button>
   </div>
@@ -687,8 +681,8 @@
     <div class="field"><label>Note</label><input id="ep-note" autocomplete="off" placeholder="e.g. lent for car repair"></div>
     <p class="section-sub" id="ep-status"></p>
     <button class="btn-primary" id="ep-save">Save changes</button>
-    <button class="btn-ghost" id="ep-settle">Mark as settled</button>
-    <button class="btn-ghost" id="ep-delete" style="color:var(--debt); border-color:var(--debt);">Delete person and their entries</button>
+    <button class="btn-ghost" id="ep-settle">Settle</button>
+    <button class="btn-ghost" id="ep-delete" style="color:var(--debt); border-color:var(--debt);">Delete person and ledger</button>
     <button class="btn-ghost" id="ep-cancel">Cancel</button>
   </div>
 </div>
@@ -696,28 +690,27 @@
 <!-- EDIT PERSON ENTRY SHEET -->
 <div class="sheet-backdrop" id="editpersonentry-backdrop">
   <div class="sheet">
-    <h3 id="editpe-title">Edit entry</h3>
+    <h3 id="editpe-title">Edit</h3>
     <div class="field">
-      <label>Which way did the money move?</label>
       <div class="seg" id="editpe-dir">
-        <button data-v="gave" class="on">You gave them money</button>
-        <button data-v="received">They gave you money</button>
+        <button data-v="gave" class="on">You gave</button>
+        <button data-v="received">You got</button>
       </div>
     </div>
     <div class="field">
-      <label>Which account?</label>
+      <label>Account</label>
       <div class="acct-row" id="editpe-acct-row"></div>
     </div>
     <div class="field"><label>Amount (₹)</label><input id="editpe-amount" type="number" inputmode="decimal"></div>
     <div class="field">
-      <label>What was it for? <span style="font-weight:400;">(optional)</span></label>
+      <label>Category <span style="font-weight:400;">(optional)</span></label>
       <div class="pick-summary" id="editpe-cat-summary"></div>
       <div class="cat-grid hide" id="editpe-cat-grid"></div>
       <p class="section-sub" id="editpe-cat-sub"></p>
     </div>
     <div class="field"><label>Notes</label><input id="editpe-remarks" placeholder=""></div>
     <button class="btn-primary" id="editpe-save">Save changes</button>
-    <button class="btn-ghost" id="editpe-delete" style="color:var(--debt); border-color:var(--debt);">Delete this entry</button>
+    <button class="btn-ghost" id="editpe-delete" style="color:var(--debt); border-color:var(--debt);">Delete</button>
     <button class="btn-ghost" id="editpe-cancel">Cancel</button>
   </div>
 </div>
@@ -726,17 +719,17 @@
 <div class="sheet-backdrop" id="reviewimport-backdrop">
   <div class="sheet">
     <h3>Review this transaction</h3>
-    <p class="section-sub" id="ri-source-note">Found in your email</p>
+    <p class="section-sub" id="ri-source-note">From your email</p>
     <div class="ri-dir-row">
       <p class="section-sub" id="ri-direction-note" style="font-weight:700; color:var(--ink);"></p>
-      <button class="link-btn" id="ri-flip-dir" type="button">Wrong way round?</button>
+      <button class="link-btn" id="ri-flip-dir" type="button">Wrong direction?</button>
     </div>
 
-    <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">What was this?</label>
+    <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">Type</label>
     <div class="seg" id="ri-mode" style="margin-bottom:14px;">
-      <button data-v="regular" class="on" id="ri-mode-regular-btn">Regular expense</button>
-      <button data-v="transfer" id="ri-mode-transfer-btn">Paid off a card</button>
-      <button data-v="person" id="ri-mode-person-btn">For someone</button>
+      <button data-v="regular" class="on" id="ri-mode-regular-btn">Expense</button>
+      <button data-v="transfer" id="ri-mode-transfer-btn">Transfer</button>
+      <button data-v="person" id="ri-mode-person-btn">People</button>
     </div>
 
     <div class="field" id="ri-cat-field">
@@ -746,22 +739,21 @@
     </div>
 
     <div class="field" id="ri-transfer-field">
-      <label>Which card (or account) did this pay off?</label>
+      <label>To</label>
       <div class="pick-summary" id="ri-transfer-summary"></div>
       <div class="pick-list hide" id="ri-transfer-row"></div>
-      <p class="section-sub">Logged as a transfer, not spending — this reduces that card's outstanding due and leaves your budget untouched, same as paying it off manually already works.</p>
+      <p class="section-sub">Added as a transfer, not spending. Your budget is not affected.</p>
     </div>
 
     <div class="field" id="ri-person-field">
-      <label>Who / what was this for?</label>
+      <label>Person</label>
       <div class="acct-row" id="ri-person-row"></div>
-      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">What was it for? <span style="font-weight:400;">(optional)</span></label>
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">Category <span style="font-weight:400;">(optional)</span></label>
       <div class="pick-summary" id="ri-person-cat-summary"></div>
       <div class="cat-grid hide" id="ri-person-cat-grid"></div>
-      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">Which way did the money move?</label>
       <div class="seg" id="ri-person-dir">
-        <button data-v="gave" class="on">You paid for them</button>
-        <button data-v="received">They paid you back</button>
+        <button data-v="gave" class="on">You gave</button>
+        <button data-v="received">You got</button>
       </div>
       <p class="section-sub" id="ri-person-cat-sub"></p>
     </div>
@@ -773,17 +765,16 @@
       <div class="section-sub" id="ri-acct-note" style="color:var(--debt); margin-top:4px;"></div>
     </div>
     <div class="field" id="ri-household-row">
-      <label>Family expense?</label>
-      <div class="seg" style="max-width:150px;" id="ri-household">
-        <button data-v="yes" class="on">Yes</button>
-        <button data-v="no">Just me</button>
+      <div class="seg seg-lg" id="ri-household">
+        <button data-v="yes" class="on">Household</button>
+        <button data-v="no">Personal</button>
       </div>
     </div>
-    <div class="field"><label>Who / what was this?</label><input id="ri-payee"></div>
+    <div class="field"><label id="ri-payee-label">Paid to</label><input id="ri-payee"></div>
     <div class="field"><label>Amount (₹)</label><input id="ri-amount" type="number" inputmode="decimal"></div>
-    <button class="btn-primary" id="ri-approve-btn">Approve &amp; add to ledger</button>
-    <button class="btn-ghost" id="ri-already-logged-btn">Already logged this manually</button>
-    <button class="btn-ghost" id="ri-dismiss-btn" style="color:var(--debt); border-color:var(--debt);">Not a real transaction</button>
+    <button class="btn-primary" id="ri-approve-btn">Add</button>
+    <button class="btn-ghost" id="ri-already-logged-btn">Already added</button>
+    <button class="btn-ghost" id="ri-dismiss-btn" style="color:var(--debt); border-color:var(--debt);">Not a transaction</button>
     <button class="btn-ghost" id="ri-cancel-btn">Cancel</button>
   </div>
 </div>
@@ -791,7 +782,7 @@
 <!-- EDIT TRANSACTION SHEET -->
 <div class="sheet-backdrop" id="edittx-backdrop">
   <div class="sheet">
-    <h3 id="edittx-heading">Edit this entry</h3>
+    <h3 id="edittx-heading">Edit transaction</h3>
     <div id="edit-regular-fields">
       <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">Category</label>
       <div class="pick-summary" id="edit-cat-summary"></div>
@@ -799,7 +790,7 @@
       <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">Account</label>
       <div class="pick-summary" id="edit-acct-summary"></div>
       <div class="pick-list hide" id="edit-acct-row"></div>
-      <div class="field"><label>Who / what was this?</label><input id="edit-payee" placeholder=""></div>
+      <div class="field"><label id="edit-payee-label">Paid to</label><input id="edit-payee" placeholder=""></div>
     </div>
     <div id="edit-transfer-fields" class="hide">
       <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">From</label>
@@ -813,7 +804,7 @@
     <div class="field"><label>Amount (₹)</label><input id="edit-amount" type="number" inputmode="decimal"></div>
     <div class="field"><label>Date</label><input id="edit-date" type="date"></div>
     <button class="btn-primary" id="edittx-save">Save changes</button>
-    <button class="btn-ghost" id="edittx-delete" style="color:var(--debt); border-color:var(--debt);">Delete this entry</button>
+    <button class="btn-ghost" id="edittx-delete" style="color:var(--debt); border-color:var(--debt);">Delete</button>
     <button class="btn-ghost" id="edittx-cancel">Cancel</button>
   </div>
 </div>
@@ -821,15 +812,15 @@
 <!-- ADJUST BALANCE SHEET -->
 <div class="sheet-backdrop" id="adjustbal-backdrop">
   <div class="sheet">
-    <h3 id="adjustbal-title">Adjust balance</h3>
+    <h3 id="adjustbal-title">Fix balance</h3>
     <p class="section-sub" id="adjustbal-current">Current: —</p>
     <div class="field">
-      <label id="adjustbal-label">What's the real balance (from the statement)?</label>
+      <label id="adjustbal-label">Actual balance</label>
       <input id="adjustbal-target" type="number" inputmode="decimal" placeholder="0">
     </div>
-    <div class="field"><label>Note (optional)</label><input id="adjustbal-remarks" placeholder="e.g. September reconciliation, bank fee not logged"></div>
+    <div class="field"><label>Note (optional)</label><input id="adjustbal-remarks" placeholder="e.g. bank fee not added"></div>
     <p class="section-sub" id="adjustbal-preview"></p>
-    <button class="btn-primary" id="adjustbal-save">Save adjustment</button>
+    <button class="btn-primary" id="adjustbal-save">Save</button>
     <button class="btn-ghost" id="adjustbal-cancel">Cancel</button>
   </div>
 </div>
@@ -934,12 +925,13 @@
     <div id="bp-plan">
       <div id="bp-lastmonth"></div>
       <div id="bp-track"></div>
-      <div class="divider-label" id="bp-this-label">This month — suggestion and your budget</div>
+      <div class="divider-label" id="bp-this-label">This month's budget</div>
       <p class="section-sub" id="bp-suggest-note"></p>
       <p class="section-sub" style="margin-top:-8px;">Tap a category's name (✎) to rename or delete it.</p>
-      <button class="btn-ghost" id="bp-apply-all" style="margin:0 0 12px;">Use all suggestions</button>
+      <button class="btn-ghost" id="bp-apply-all" style="margin:0 0 12px;">Use all</button>
       <div class="card" id="bp-rows"></div>
       <button class="link-btn" id="bp-add-cat" style="margin:4px 0 6px;">+ Add a category</button>
+      <div id="bp-cat-suggest"></div>
       <div id="bp-special-wrap"></div>
       <div class="divider-label">Expected income</div>
       <div class="card" id="bp-income-rows"></div>
@@ -950,7 +942,7 @@
       </div>
     </div>
     <div id="bp-bills" class="hide">
-      <div class="divider-label" style="margin-top:6px;">Sinking fund — lumpy annual bills</div>
+      <div class="divider-label" style="margin-top:6px;">Lumpy annual bills</div>
       <p class="section-sub" id="sink-summary-line"></p>
       <div class="card" id="sink-list"></div>
       <button class="link-btn" id="add-commitment-btn" style="margin-top:8px;">+ Add a new bill</button>
@@ -965,7 +957,7 @@
 <div class="fullscreen-page" id="engine-page">
   <div class="fs-header">
     <button class="fs-back" id="engine-back-btn" aria-label="Back">←</button>
-    <h2>Email reader report</h2>
+    <h2>Email accuracy</h2>
   </div>
   <div class="fs-body">
     <div class="seg" id="engine-period">
@@ -982,7 +974,7 @@
 <div class="fullscreen-page" id="tools-page">
   <div class="fs-header">
     <button class="fs-back" id="tools-back-btn" aria-label="Back">←</button>
-    <h2>Settings &amp; tools</h2>
+    <h2>Settings</h2>
   </div>
   <div class="fs-body">
     <div class="divider-label" style="margin-top:6px;">Appearance</div>
@@ -991,23 +983,23 @@
       <button data-v="light">Light</button>
     </div>
 
-    <div class="divider-label">Email reader</div>
-    <button class="btn-ghost" id="tools-engine-report-btn" style="margin-top:0;">Email reader report</button>
+    <div class="divider-label">Bank emails</div>
+    <button class="btn-ghost" id="tools-engine-report-btn" style="margin-top:0;">Email accuracy</button>
 
-    <div class="divider-label">Bulk recategorize by date</div>
+    <div class="divider-label">Move to a category</div>
     <p class="section-sub">Move everything in a date range into one category at once — useful for a trip or event where every expense has a different payee but should be grouped together.</p>
     <div class="field"><label>From</label><input id="bulk-recat-from" type="date"></div>
     <div class="field"><label>To</label><input id="bulk-recat-to" type="date"></div>
-    <div class="field"><label>Move into category</label><input id="bulk-recat-cat" placeholder="e.g. Goa Trip"></div>
-    <button class="btn-primary" id="bulk-recat-btn">Recategorize this range</button>
+    <div class="field"><label>Category</label><input id="bulk-recat-cat" placeholder="e.g. Goa Trip"></div>
+    <button class="btn-primary" id="bulk-recat-btn">Move</button>
 
     <div id="adj-log-wrap"></div>
 
-    <div class="divider-label" style="color:var(--debt);">Danger zone</div>
-    <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Clear transactions since a date</button>
-    <p class="section-sub" style="margin-top:8px;">Wipes logged expenses, income, and transfers from a chosen date onward, so you can re-enter everything manually. Does not touch People Ledger, account balances, or budget settings.</p>
+    <div class="divider-label" style="color:var(--debt);">Delete data</div>
+    <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
+    <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-06 · v66-new-icon</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-07 · v67-plain-words</p>
   </div>
 </div>
 
@@ -1017,7 +1009,7 @@
   <div class="fs-header">
     <button class="fs-back" id="acctstatement-close" aria-label="Back">←</button>
     <h2 id="acctstatement-title">Statement</h2>
-    <button class="fs-action" id="acctstatement-adjust-btn" title="Adjust balance" aria-label="Adjust balance"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-6"/><path d="M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+    <button class="fs-action" id="acctstatement-adjust-btn" title="Fix balance" aria-label="Fix balance"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-6"/><path d="M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
     <button class="fs-action" id="acctstatement-add-btn" title="Add a transaction" aria-label="Add a transaction" style="font-size:22px; line-height:1;">+</button>
   </div>
   <div class="fs-body">
@@ -1027,10 +1019,10 @@
       <button data-stmttab="all" class="on">All</button>
       <button data-stmttab="credit">Credit</button>
       <button data-stmttab="debit">Debit</button>
-      <button data-stmttab="adjust">Adjustments</button>
+      <button data-stmttab="adjust">Balance fixes</button>
     </div>
     <div id="acctstatement-list"></div>
-    <button class="btn-ghost" id="acctstatement-reset" style="margin-top:18px;">Reset statement — start fresh from today</button>
+    <button class="btn-ghost" id="acctstatement-reset" style="margin-top:18px;">Start fresh from today</button>
   </div>
 </div>
 
@@ -1786,28 +1778,28 @@ function openBreakdown(kind){
   const t = totals();
   let title = '', sub = '', rows = [], total = 0;
   if(kind==='net'){
-    title = 'Net Liquid Working Surplus';
-    sub = 'Liquid bank cash minus what\'s currently due on credit cards.';
+    title = 'Available money';
+    sub = 'Money in bank minus what is due on credit cards.';
     rows = [
-      {label:'Liquid Bank Cash', icon:ICON.wallet, bg:CAT_ICON_BG, tint:'var(--icon-pos)', value:t.cash},
-      {label:'Credit Card Dues', icon:ICON.card, bg:CAT_ICON_BG, tint:'var(--icon-neg)', value:-t.cardTotal}
+      {label:'In bank', icon:ICON.wallet, bg:CAT_ICON_BG, tint:'var(--icon-pos)', value:t.cash},
+      {label:'Card dues', icon:ICON.card, bg:CAT_ICON_BG, tint:'var(--icon-neg)', value:-t.cardTotal}
     ];
     total = t.net;
   } else if(kind==='cash'){
-    title = 'Liquid Bank Cash';
+    title = 'In bank';
     sub = 'Every bank account counted toward this total (Cash Wallet and Sinking Fund are tracked separately). Tap an account to see its full statement.';
     const excluded = ['cash_wallet','sinking_fund'];
     rows = state.accounts.filter(a=>!excluded.includes(a.id)).map(a=>
       ({label:a.name, icon:acctGlyph(a), bg:CAT_ICON_BG, tint:'var(--icon-pos)', value:accountBalance(a), acctId:a.id, isCard:false}));
     total = t.cash;
   } else if(kind==='cards'){
-    title = 'Credit Card Dues';
+    title = 'Card dues';
     sub = 'What\'s currently outstanding on each card. Tap a card to see its full statement.';
     rows = state.cards.map(c=>
       ({label:c.name, icon:ICON.card, bg:CAT_ICON_BG, tint:'var(--icon-neg)', value:cardDue(c), acctId:c.id, isCard:true}));
     total = t.cardTotal;
   } else if(kind==='sink'){
-    title = 'Sinking Fund';
+    title = 'Lumpy annual bills';
     sub = 'Set aside for lumpy annual bills. Tap to see its full statement.';
     const acc = state.accounts.find(a=>a.id==='sinking_fund');
     rows = acc ? [{label:acc.name, icon:acctGlyph(acc), bg:CAT_ICON_BG, tint:'var(--icon-neutral)', value:accountBalance(acc), acctId:acc.id, isCard:false}] : [];
@@ -1834,14 +1826,14 @@ function openBreakdown(kind){
     ];
     total = t.netWorthAccessible;
   } else if(kind==='recv' || kind==='pay'){
-    title = kind==='recv' ? 'Receivables' : 'Family Payables';
-    sub = kind==='recv' ? 'People who currently owe you money. Tap a name to log a repayment.' : 'People you currently owe money to. Tap a name to log a repayment.';
+    title = kind==='recv' ? "You'll get" : "You'll pay";
+    sub = kind==='recv' ? 'People who owe you. Tap a name to add a payment.' : 'People you owe. Tap a name to add a payment.';
     rows = state.people.map(p=>({label:p.name, icon:ICON.handshake, bg:CAT_ICON_BG, tint: kind==='recv' ? 'var(--icon-pos)' : 'var(--icon-neg)', value:personBalance(p.id), personId:p.id}))
       .filter(r=> kind==='recv' ? r.value>0 : r.value<0);
     total = kind==='recv' ? t.recv : t.pay;
   } else if(kind==='gap'){
-    title = 'Net Gap (People)';
-    sub = 'Everyone in your People Ledger with a non-zero balance. Tap a name to log a repayment.';
+    title = 'Balance with people';
+    sub = 'Everyone in your People Ledger with a balance. Tap a name to add a payment.';
     rows = state.people.map(p=>({label:p.name, icon:ICON.handshake, bg:CAT_ICON_BG, tint: personBalance(p.id)>=0 ? 'var(--icon-pos)' : 'var(--icon-neg)', value:personBalance(p.id), personId:p.id}))
       .filter(r=> r.value!==0);
     total = t.gap;
@@ -1926,7 +1918,7 @@ function openBudgetDetail(cat){
     <div class="tx-item" data-editpersonbudgettx="${e.id}" style="cursor:pointer;">
       <div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
       <div class="tx-body"><div class="tx-top"><span class="tx-title">${person?person.name:'Someone'} paid — you owe them</span><span class="tx-amt neg maskable">-${fmt(Math.abs(e.delta))}</span></div>
-      <div class="tx-meta">${new Date(e.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · People Ledger — real spending, they fronted the cash</div></div>
+      <div class="tx-meta">${new Date(e.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · People Ledger — real spending, they paid for you</div></div>
     </div>`;
     }).join('');
   document.getElementById('budgetdetail-list').innerHTML = rowsHtml || '<div class="empty">No entries in this category yet.</div>';
@@ -1977,7 +1969,7 @@ function renameCategoryEverywhere(oldName, newName){
 async function deleteBudgetCategory(catName){
   const b = state.budget.find(x=>x.cat===catName);
   if(!b) return false;
-  if(b.cat===OTHER_EXPENSE_CAT){ alert('This is the built-in fallback category and can\'t be deleted.'); return false; }
+  if(b.cat===OTHER_EXPENSE_CAT){ alert('This category holds anything uncategorized and can\'t be deleted.'); return false; }
   const affected = state.transactions.filter(t=>t.category===b.cat).length + state.personLedger.filter(e=>e.category===b.cat).length;
   const msg = affected
     ? `Delete "${b.cat}"? ${affected} transaction(s) in it will be moved to "${OTHER_EXPENSE_CAT}" — they won't be deleted.`
@@ -1990,7 +1982,7 @@ async function deleteBudgetCategory(catName){
   recomputeBudgetActuals();
   await saveState();
   render();
-  showToast('🗑️ Category deleted.');
+  showToast('Category deleted');
   return true;
 }
 const cateditBackdrop = document.getElementById('catedit-backdrop');
@@ -2008,7 +2000,7 @@ function openCategorySheet(catName, opts){
   document.getElementById('catedit-budget-label').textContent = income ? 'Expected each month (₹)' : 'Monthly budget (₹)';
   document.getElementById('catedit-budget').value = b ? (b.budget||0) : '';
   document.getElementById('catedit-note').textContent = locked
-    ? 'This is the built-in fallback for anything uncategorized — its name can\'t be changed.'
+    ? 'This category holds anything uncategorized, so its name can\'t be changed.'
     : income ? ''
     : 'With a budget, it counts as a regular monthly expense. Left at 0, it is only tracked separately (for a trip or one-time event) and stays outside the monthly budget.';
   document.getElementById('catedit-delete').style.display = (b && !locked) ? 'block' : 'none';
@@ -2051,7 +2043,7 @@ document.getElementById('catedit-save').addEventListener('click', async ()=>{
     await saveState();
     render();
     cateditBackdrop.classList.remove('open');
-    showToast(oldName ? '✅ Category updated' : `✅ "${newName}" added`);
+    showToast(oldName ? 'Category saved' : `"${newName}" added`);
     if(cateditCtx.onDone) cateditCtx.onDone({oldName, newName, deleted:false});
   } finally {
     btn.disabled = false; btn.textContent = 'Save';
@@ -2188,7 +2180,7 @@ async function settlePerson(id){
   expandedPeople.delete(id);
   await saveState();
   render();
-  showToast(`${p.name} settled — history kept under Settled`);
+  showToast(`${p.name} settled. Ledger kept under Settled.`);
 }
 async function reopenPerson(id){
   const p = state.people.find(x=>x.id===id);
@@ -2322,41 +2314,42 @@ function renameCategoryInBudgetRecord(oldName, newName){
 function normalizePayee(s){
   return (s||'').toLowerCase().replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();
 }
-function checkRepeatedPayeePattern(payee){
-  // Catches burst-like spending under one repeated label (e.g. logging "Trip" for every expense
-  // on a short trip) — asks before doing anything, never creates or moves anything silently.
-  // Bounded to a 14-day window deliberately: this is meant to catch a short burst of activity,
-  // not a lifetime recurring habit (which the regular categories already handle fine).
-  const norm = normalizePayee(payee);
-  if(!norm) return;
-  if((state.dismissedPatternPrompts||[]).includes(norm)) return;
-  if(state.budget.some(b=> b.special && normalizePayee(b.cat)===norm)) return;
+// A payee added as an expense several times in a short burst (e.g. "Trip" for every spend on a
+// short trip) is offered as a category of its own. The offer sits in the budget's category
+// list; nothing is created or moved until it is accepted there.
+// Bounded to 14 days on purpose: this is for a burst, not a long-running habit.
+function categorySuggestions(){
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-14);
-  const matches = state.transactions.filter(t=>
-    t.type==='expense' && normalizePayee(t.payee)===norm && new Date(t.ts) >= cutoff
-  );
-  if(matches.length >= 4){
-    promptCreateSpecialCategory(payee, matches);
-  }
+  const groups = {};
+  state.transactions.forEach(t=>{
+    if(t.type!=='expense' || new Date(t.ts) < cutoff) return;
+    const norm = normalizePayee(t.payee);
+    if(!norm) return;
+    (groups[norm] = groups[norm] || {norm, payee:t.payee, matches:[]}).matches.push(t);
+  });
+  return Object.values(groups).filter(g=>
+    g.matches.length >= 4 &&
+    !(state.dismissedPatternPrompts||[]).includes(g.norm) &&
+    !state.budget.some(b=> normalizePayee(b.cat)===g.norm))
+    .sort((x,y)=> y.matches.length - x.matches.length).slice(0,3);
 }
-async function promptCreateSpecialCategory(payeeDisplay, matchingTx){
-  const norm = normalizePayee(payeeDisplay);
-  const wantsIt = confirm(`You've logged "${payeeDisplay}" ${matchingTx.length} times in the last couple weeks. Create a dedicated category for this so it's tracked separately from your regular monthly budget?`);
-  if(!wantsIt){
-    if(!state.dismissedPatternPrompts) state.dismissedPatternPrompts = [];
-    state.dismissedPatternPrompts.push(norm);
-    await saveState();
-    return;
-  }
-  const catName = payeeDisplay.trim();
+async function createCategoryFromSuggestion(norm){
+  const g = categorySuggestions().find(x=>x.norm===norm);
+  if(!g) return;
+  const catName = g.payee.trim();
   if(!state.budget.find(b=>b.cat===catName)){
     state.budget.push({cat:catName, budget:0, actual:0, special:true});
   }
-  matchingTx.forEach(t=>{ t.category = catName; });
+  g.matches.forEach(t=>{ t.category = catName; });
   recomputeBudgetActuals();
   await saveState();
   render();
-  showToast(`✓ Created "${catName}" — moved ${matchingTx.length} entries in, tracked separately from your regular budget.`);
+  showToast(`"${catName}" added. ${g.matches.length} transactions moved in, outside the monthly budget.`);
+}
+async function dismissCategorySuggestion(norm){
+  if(!state.dismissedPatternPrompts) state.dismissedPatternPrompts = [];
+  if(!state.dismissedPatternPrompts.includes(norm)) state.dismissedPatternPrompts.push(norm);
+  await saveState();
 }
 function findPayeeMemoryKey(norm){
   if(!norm || !state.payeeMemory) return null;
@@ -2419,7 +2412,7 @@ function buildTrendChartSVG(){
   const monthExpenses = allMonthExpenses.filter(t=> !specialCats.has(t.category));
   const specialExpenses = allMonthExpenses.filter(t=> specialCats.has(t.category));
   if(!allMonthExpenses.length){
-    return `<div class="pace-head"><b>This month's spending pace</b></div><div class="empty">Log a few expenses to see your spending pace here.</div>`;
+    return `<div class="pace-head"><b>Budget this month</b></div><div class="empty">Add a few expenses to see how the month is going.</div>`;
   }
   const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
   const today = now.getDate();
@@ -2468,7 +2461,7 @@ function buildTrendChartSVG(){
   const minusTripPath = hasSpecial && points.length>1 ? toPath(toPoints(cumulative)) : '';
   const paceLine = totalBudget>0
     ? `<line x1="${xOf(1)}" y1="${yOf(totalBudget/daysInMonth).toFixed(1)}" x2="${xOf(daysInMonth)}" y2="${yOf(totalBudget).toFixed(1)}" style="stroke:var(--ink-soft); stroke-width:1.3; stroke-dasharray:4,4; opacity:.7;"/>
-       <text x="${W-padX-2}" y="${(yOf(totalBudget)-4).toFixed(1)}" text-anchor="end" style="font-size:9.5px; fill:var(--ink-soft); font-family:var(--font);">Budget pace</text>`
+       <text x="${W-padX-2}" y="${(yOf(totalBudget)-4).toFixed(1)}" text-anchor="end" style="font-size:9.5px; fill:var(--ink-soft); font-family:var(--font);">Budget</text>`
     : '';
   const labelDays = [...new Set([1, 10, 20, daysInMonth])];
   const labelsHtml = labelDays.map(d=> `<text x="${Math.min(W-12, Math.max(12, xOf(d))).toFixed(1)}" y="${H-6}" text-anchor="middle" style="font-size:10px; fill:var(--ink-soft); font-family:var(--font);">${d}</text>`).join('');
@@ -2488,11 +2481,11 @@ function buildTrendChartSVG(){
     ${labelsHtml}
   </svg>`;
 
-  const headHtml = `<div class="pace-head"><b>This month's spending pace</b><span>${totalBudget>0 ? `<span class="${overBudget?'neg-t':'acc'}">${pct}%</span> of budget` : 'no budget set'}</span></div>
+  const headHtml = `<div class="pace-head"><b>Budget this month</b><span>${totalBudget>0 ? `<span class="${overBudget?'neg-t':'acc'}">${pct}%</span> of budget` : 'no budget set'}</span></div>
     ${totalBudget>0 ? `<div class="pace-bar"><div style="width:${Math.min(100,pct)}%; ${overBudget?'background:var(--debt);':''}"></div></div>` : ''}
     <div class="pace-legend">
       <span>${totalBudget>0 ? `<span class="maskable ${overBudget?'neg-t':'pos-t'}">${overBudget ? fmt(Math.abs(remaining))+' over budget' : fmt(remaining)+' left'}</span>${hasSpecial?' · regular spending':''}` : ''}</span>
-      ${hasSpecial ? `<span><span class="acc">●</span> Total <span class="maskable">${fmt(grandTotalSpent)}</span> · <span style="color:var(--gold);">●</span> without trips <span class="maskable">${fmt(totalSpent)}</span></span>` : ''}
+      ${hasSpecial ? `<span><span class="acc">●</span> Total <span class="maskable">${fmt(grandTotalSpent)}</span> · <span style="color:var(--gold);">●</span> excluding one-time <span class="maskable">${fmt(totalSpent)}</span></span>` : ''}
     </div>`;
   return svg + headHtml;
 }
@@ -2535,8 +2528,8 @@ function renderHomeBudget(){
     const prevName = new Date(now.getFullYear(), now.getMonth()-1, 1).toLocaleDateString('en-IN',{month:'long'});
     nudge.innerHTML = `<div class="heads-up-card" id="home-budget-nudge-card" style="cursor:pointer;">
       <div class="hu-icon">${ICON.chart}</div>
-      <div class="hu-body"><div class="hu-title">Set ${now.toLocaleDateString('en-IN',{month:'long'})}'s budget</div><div class="hu-sub">See ${prevName}'s budget vs actual and the suggested amounts</div></div>
-      <div class="hu-tag">Review →</div></div>`;
+      <div class="hu-body"><div class="hu-title">Set ${now.toLocaleDateString('en-IN',{month:'long'})}'s budget</div><div class="hu-sub">See ${prevName}'s budget vs spent and the suggested amounts</div></div>
+      <div class="hu-tag">Review</div></div>`;
     document.getElementById('home-budget-nudge-card').addEventListener('click', openBudgetPage);
   } else {
     nudge.innerHTML = '';
@@ -2570,7 +2563,7 @@ function renderHomeBudget(){
   const listEl = document.getElementById('home-budget-list');
   listEl.innerHTML =
     (shown.length ? shown.map(rowHtml).join('') : '<div class="empty" style="padding:14px 0;">No budget categories yet — tap Edit budget to set them up.</div>') +
-    (homeBudgetExpanded && special.length ? `<div class="hb-sub">Trips &amp; special — outside the monthly budget</div>` + special.map(rowHtml).join('') : '') +
+    (homeBudgetExpanded && special.length ? `<div class="hb-sub">One-time — outside the monthly budget</div>` + special.map(rowHtml).join('') : '') +
     (regular.length > HOME_BUDGET_COLLAPSED_COUNT
       ? `<button class="link-btn" id="home-budget-toggle" style="display:block; width:100%; text-align:center; padding:11px 0 2px; font-size:12.5px;">${homeBudgetExpanded ? 'Show fewer ▲' : `Show all ${regular.length} categories ▼`}</button>`
       : '');
@@ -2621,7 +2614,7 @@ function render(){
     }
     const meta = catMeta(tx.category);
     return `<div class="tx-item" data-editrecent="${i}" style="cursor:pointer;"><div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${tx.payee}</span><span class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmt(tx.amount)}</span></div><div class="tx-meta">${targetName(tx.account)} · ${tx.category}</div></div></div>`;
-  }).join('') : '<div class="empty">No transactions yet — tap the + to log your first one.</div>';
+  }).join('') : '<div class="empty">No transactions yet. Tap + to add one.</div>';
   document.querySelectorAll('[data-editrecent]').forEach(el=>{
     el.addEventListener('click', ()=> openEditTx(recentTxRefs[parseInt(el.getAttribute('data-editrecent'))]));
   });
@@ -2637,7 +2630,7 @@ function render(){
       <div class="chip-icon">${acctGlyph(item)}</div>
       <div class="al-body"><div class="al-name">${item.name}</div><div class="al-tag">${last4?'•••• '+last4:(item.tag||'')}${isCard?' · amount due':''}</div></div>
       <div class="al-right"><div class="al-amt maskable ${tone}">${fmt(value)}</div>
-        <div class="al-links"><button data-adjust="${item.id}" data-adjiscard="${isCard?1:0}">Adjust</button><i>·</i><button data-recon="${item.id}" data-iscard="${isCard?1:0}">Reconcile</button></div></div>
+        <div class="al-links"><button data-adjust="${item.id}" data-adjiscard="${isCard?1:0}">Fix balance</button></div></div>
     </div>`;
   };
   document.getElementById('wallet-carousel').innerHTML =
@@ -2661,7 +2654,7 @@ function render(){
       entries.length ? entries.map(e=>`
         <div class="tx-item" data-editpersonentry="${e.id}" style="cursor:pointer; padding-left:2px;">
           <div class="chip-icon" style="color:${e.delta<0?'var(--icon-neg)':'var(--icon-pos)'};">${e.delta<0?ICON.outbox:ICON.inbox}</div>
-          <div class="tx-body"><div class="tx-top"><span class="tx-title">${e.remarks || (e.type==='opening'?'Opening balance':(e.delta<0?'You gave them money':'They gave you money'))}</span><span class="tx-amt ${e.delta<0?'neg':'pos'}">${e.delta<0?'-':'+'}${fmt(Math.abs(e.delta))}</span></div>
+          <div class="tx-body"><div class="tx-top"><span class="tx-title">${e.remarks || (e.type==='opening'?'Opening balance':(e.type==='gave'?'You gave':'You got'))}</span><span class="tx-amt ${e.delta<0?'neg':'pos'}">${e.delta<0?'-':'+'}${fmt(Math.abs(e.delta))}</span></div>
           <div class="tx-meta">${new Date(e.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}${e.account? ' · '+targetName(e.account):''}${e.category? ' · '+e.category.split(' (')[0].split(',')[0] : ''}</div></div>
         </div>`).join('') : '<div class="empty" style="padding:14px 0;">No entries yet.</div>'
     }</div>` : '';
@@ -2672,7 +2665,7 @@ function render(){
           <div data-toggleperson="${p.id}" style="cursor:pointer;">
             <div class="name">${p.name}${chevron}</div><div class="sub">${p.note||''}</div>
           </div>
-          <div class="person-links"><button class="link-btn" data-pdf="${p.id}">Statement PDF</button><i>·</i><button class="link-btn" data-editperson="${p.id}">Edit</button></div>
+          <div class="person-links"><button class="link-btn" data-pdf="${p.id}">Share statement</button><i>·</i><button class="link-btn" data-editperson="${p.id}">Edit</button></div>
         </div>
         <div class="row-actions">${settled
           ? `<button class="pill-btn sm" data-reopenperson="${p.id}">Reopen</button>`
@@ -2685,10 +2678,10 @@ function render(){
   const activeList = activePeople(), settledList = settledPeople();
   document.getElementById('people-list').innerHTML =
     (activeList.length ? activeList.map(personBlockHtml).join('')
-      : `<div class="empty">${settledList.length ? 'Everyone is settled. Tap + to add someone.' : 'No one on the ledger yet. Tap + to add someone.'}</div>`) +
+      : `<div class="empty">${settledList.length ? 'Everyone is settled. Tap + to add someone.' : 'No one in the People Ledger yet. Tap + to add someone.'}</div>`) +
     (settledList.length
       ? `<button class="settled-toggle" id="settled-toggle"><span>Settled · ${settledList.length}</span><span>${showSettledPeople?'Hide ▲':'Show ▼'}</span></button>` +
-        (showSettledPeople ? `<p class="section-sub" style="margin:6px 0 12px;">Nothing owed either way. Their entries stay on record, so your account balances are unchanged.</p>` + settledList.map(personBlockHtml).join('') : '')
+        (showSettledPeople ? `<p class="section-sub" style="margin:6px 0 12px;">Settled. The ledger is kept.</p>` + settledList.map(personBlockHtml).join('') : '')
       : '');
   const settledToggle = document.getElementById('settled-toggle');
   if(settledToggle) settledToggle.addEventListener('click', ()=>{ showSettledPeople = !showSettledPeople; render(); });
@@ -2718,7 +2711,7 @@ function render(){
     return s + c.amount/12;
   },0);
   document.getElementById('sink-summary-line').textContent =
-    `${state.commitments.length} bill${state.commitments.length===1?'':'s'} · Reserve: ${fmt(t.sink)} · ~${fmt(monthlyNeed)}/mo needed`;
+    `${state.commitments.length} bill${state.commitments.length===1?'':'s'} · Set aside: ${fmt(t.sink)} · ${fmt(monthlyNeed)} a month needed`;
   document.getElementById('sink-list').innerHTML = state.commitments.length ? state.commitments.map((c,i)=>`
     <div class="row" data-editcommit="${i}" style="cursor:pointer;"><div><div class="name">${c.name}</div><div class="sub">${c.freq} · due ${c.due}</div></div><div class="amt">${fmt(c.amount)}</div></div>
   `).join('') : '<div class="empty" style="padding:10px 0;">No bills added yet.</div>';
@@ -2744,8 +2737,8 @@ function render(){
   const adjWrap = document.getElementById('adj-log-wrap');
   if(state.balanceAdjustments && state.balanceAdjustments.length){
     const recentAdj = [...state.balanceAdjustments].sort((a,b)=> new Date(b.ts)-new Date(a.ts)).slice(0,10);
-    adjWrap.innerHTML = '<div class="divider-label">Balance corrections (suspense log)</div><details><summary style="cursor:pointer; color:var(--ink); font-weight:700; font-size:13.5px; padding:8px 0;">'
-      + recentAdj.length + ' correction' + (recentAdj.length===1?'':'s') + ' on record</summary><div class="card">' + recentAdj.map(adj=>`
+    adjWrap.innerHTML = '<div class="divider-label">Balance fixes</div><details><summary style="cursor:pointer; color:var(--ink); font-weight:700; font-size:13.5px; padding:8px 0;">'
+      + recentAdj.length + ' balance fix' + (recentAdj.length===1?'':'es') + ' on record</summary><div class="card">' + recentAdj.map(adj=>`
       <div class="row"><div><div class="name">${targetName(adj.targetId)}</div><div class="sub">${new Date(adj.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})} · ${adj.remarks||'Statement reset'}</div></div>
       <div class="amt ${adj.diff<0?'neg':'pos'}">${adj.diff>=0?'+':''}${fmt(adj.diff)}</div></div>
     `).join('') + '</div></details>';
@@ -2803,13 +2796,16 @@ function updateAmountDisplay(){
     display = parts.length>1 ? withCommas+'.'+parts[1] : withCommas;
   }
   document.getElementById('amount-val').textContent = display;
+  // keep the button's amount in step with every key press, not only after the next redraw
+  const saveBtn = document.getElementById('tx-save');
+  if(saveBtn){ const amt = parseFloat(txAmount)||0; saveBtn.textContent = amt>0 ? `Add ${fmt(amt)}` : 'Add'; }
 }
 
 function renderTxFormLists(){
   const type = txCurrentType();
-  document.getElementById('tx-heading').textContent = type==='expense'?'What did you spend on?':type==='income'?'Nice, money in!':'Moving money around';
-  document.getElementById('cat-label').textContent = type==='income' ? 'What kind of income?' : 'What was it for?';
-  document.getElementById('acct-label').textContent = type==='income' ? 'Into which account?' : 'Paid from where?';
+  document.getElementById('cat-label').textContent = 'Category';
+  document.getElementById('payee-label').textContent = type==='income' ? 'Received from' : 'Paid to';
+  document.getElementById('acct-label').textContent = type==='income' ? 'Received in' : 'Paid from';
 
   const catOptions = type==='income' ? state.budget.filter(b=>b.income).map(b=>b.cat) : [...state.budget.filter(b=>!b.income).map(b=>b.cat)];
   const cats = [...new Set([...catOptions, OTHER_EXPENSE_CAT])];
@@ -2870,7 +2866,7 @@ function renderTxFormLists(){
 
   const saveBtn = document.getElementById('tx-save');
   const amt = parseFloat(txAmount)||0;
-  saveBtn.textContent = amt>0 ? `Log ${fmt(amt)}` : 'Log it';
+  saveBtn.textContent = amt>0 ? `Add ${fmt(amt)}` : 'Add';
 }
 function txCurrentType(){ return document.querySelector('#tx-type button.on').dataset.v; }
 
@@ -3061,32 +3057,6 @@ function parseBankSMS(text, sourceEmail){
 
   return result;
 }
-document.getElementById('paste-sms-toggle').addEventListener('click', ()=>{
-  document.getElementById('paste-sms-box').classList.toggle('hide');
-});
-document.getElementById('sms-parse-btn').addEventListener('click', ()=>{
-  const text = document.getElementById('sms-paste-text').value;
-  if(!text.trim()){ alert('Paste the SMS text first.'); return; }
-  const parsed = parseBankSMS(text);
-  if(!parsed.amount){
-    alert("Couldn't find an amount in that text. You can still fill the form in manually below.");
-    return;
-  }
-  txAmount = parsed.amount.toString();
-  updateAmountDisplay();
-  document.querySelectorAll('#tx-type button').forEach(b=> b.classList.toggle('on', b.dataset.v===parsed.type));
-  if(parsed.accountId) txSelectedAccount = parsed.accountId;
-  if(parsed.category) txSelectedCat = parsed.category;
-  catPickerOpen = false; acctPickerOpen = false;
-  renderTxFormLists();
-  document.getElementById('tx-payee').value = parsed.payee || '';
-  document.getElementById('paste-sms-box').classList.add('hide');
-  document.getElementById('sms-paste-text').value = '';
-  const gotBoth = parsed.accountId && parsed.category;
-  const wasLearned = !!suggestForPayee(parsed.payee);
-  showToast(wasLearned ? '🧠 Recognized this one — check & save' : gotBoth ? '📋 Amount, account & category all filled — just check & save' : '📋 Amount filled — double-check account/category below');
-});
-
 document.querySelectorAll('nav.tabbar button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     document.querySelectorAll('nav.tabbar button').forEach(b=>b.classList.remove('active'));
@@ -3156,8 +3126,8 @@ function renderTxPersonChips(){
     txSelectedPerson = added.person.id;
     await saveState();
     renderTxPersonChips();
-    if(added.status==='reopened') showToast(`${added.person.name} was settled earlier — back on the list, history kept`);
-    else if(added.status==='exists') showToast(`${added.person.name} is already on your list — selected`);
+    if(added.status==='reopened') showToast(`${added.person.name} was settled earlier. Reopened, ledger kept.`);
+    else if(added.status==='exists') showToast(`${added.person.name} is already on your list. Selected.`);
   });
   // A category here is optional — it's just for your own record of what money spent "for
   // someone" was actually for (e.g. "Parties"). It never counts toward budget actuals, same
@@ -3185,10 +3155,10 @@ function renderTxPersonChips(){
   const noteSub = document.getElementById('tx-person-note-sub');
   if(noteSub){
     noteSub.textContent = (dirNow==='received' && txPersonSelectedCat)
-      ? `This counts as ${txPersonSelectedCat} spending in your budget — they fronted it, you owe them back.`
+      ? `Counts as ${txPersonSelectedCat} spending in your budget. They paid, so you'll pay them back.`
       : dirNow==='gave'
-        ? "This won't count toward your budget — you're the one fronting the money, so it's a loan, not your expense."
-        : "Tag a category above if you want this counted as spending (only applies when they paid for you).";
+        ? "Not counted in your budget. You paid, so it is a loan, not your expense."
+        : "Choose a category above to count this as spending (only when they paid for you).";
   }
 
   const targets = [...state.accounts, ...state.cards];
@@ -3209,8 +3179,6 @@ function openAddTxSheet(presetAccountId){
   document.getElementById('tx-payee').value='';
   document.getElementById('tx-transfer-note').value='';
   document.getElementById('tx-date').value = new Date().toISOString().slice(0,10);
-  document.getElementById('paste-sms-box').classList.add('hide');
-  document.getElementById('sms-paste-text').value='';
   userTouchedCategory = false; userTouchedAccount = false;
   catPickerOpen = false; acctPickerOpen = false;
   txSelectedPerson = null; txSelectedPersonAcct = null;
@@ -3236,7 +3204,7 @@ document.getElementById('tx-payee').addEventListener('blur', ()=>{
   if(applied){
     catPickerOpen = false; acctPickerOpen = false;
     renderTxFormLists();
-    showToast('🧠 Filled in from what you usually do — check it\'s right');
+    showToast('Filled in from past transactions. Check and save.');
   }
 });
 document.getElementById('tx-cancel').addEventListener('click', ()=> txBackdrop.classList.remove('open'));
@@ -3251,19 +3219,19 @@ function buildTsFromDateInput(inputId){
 }
 document.getElementById('tx-save').addEventListener('click', async ()=>{
   const amount = parseFloat(txAmount);
-  if(!amount || amount<=0){ alert('Pop in an amount first.'); return; }
+  if(!amount || amount<=0){ alert('Enter an amount.'); return; }
   const type = txCurrentType();
   const ts = buildTsFromDateInput('tx-date');
 
   if(type==='transfer'){
-    if(txFrom===txTo){ alert('Pick two different accounts.'); return; }
+    if(txFrom===txTo){ alert('Choose two different accounts.'); return; }
     state.transactions.push({id:genId('tx'), ts, type:'transfer', from:txFrom, to:txTo, amount, remarks:document.getElementById('tx-transfer-note').value.trim()});
   } else if(type==='person'){
-    if(!txSelectedPerson){ alert('Pick who this was for.'); return; }
-    if(!txSelectedPersonAcct){ alert('Pick which account the money moved through.'); return; }
+    if(!txSelectedPerson){ alert('Choose a person.'); return; }
+    if(!txSelectedPersonAcct){ alert('Choose an account.'); return; }
     const dir = segValue('tx-person-dir');
     const delta = dir==='gave' ? amount : -amount;
-    const remarks = document.getElementById('tx-person-note').value.trim() || (dir==='gave' ? 'You gave them money' : 'They gave you money');
+    const remarks = document.getElementById('tx-person-note').value.trim() || (dir==='gave' ? 'You gave' : 'You got');
     state.personLedger.push({id:genId('pl'), personId:txSelectedPerson, ts, type:dir, delta, account:txSelectedPersonAcct, remarks, category:txPersonSelectedCat||null});
     recomputeBudgetActuals();
     lastPersonSaveCountedSpend = (dir==='received' && txPersonSelectedCat) ? txPersonSelectedCat : null;
@@ -3276,18 +3244,17 @@ document.getElementById('tx-save').addEventListener('click', async ()=>{
       account: txSelectedAccount,
       payee, category: txSelectedCat, amount,
       household: type==='expense' ? segValue('tx-household')==='yes' : false,
-      remarks: whoami ? ('Logged by '+whoami) : ''
+      remarks: whoami ? ('Added by '+whoami) : ''
     };
     state.transactions.push(tx);
     const budgetCat = state.budget.find(b=>b.cat===tx.category);
     recomputeBudgetActuals();
     recordPayeeLearning(tx.payee, tx.category, tx.account, 1);
-    if(tx.type==='expense') checkRepeatedPayeePattern(tx.payee);
   }
   await saveState();
   render();
   txBackdrop.classList.remove('open');
-  showToast(type==='transfer' ? '🔄 Moved, all sorted!' : type==='person' ? (lastPersonSaveCountedSpend ? `🤝 Logged as ${lastPersonSaveCountedSpend} spending — they fronted it, you owe them.` : '🤝 Settled in their ledger — not counted as spending.') : type==='income' ? '🤑 Nice, logged!' : '✅ Logged it, well done!');
+  showToast(type==='transfer' ? 'Transfer added' : type==='person' ? (lastPersonSaveCountedSpend ? `Added as ${lastPersonSaveCountedSpend} spending. They paid, so you'll pay them back.` : 'Added. Not counted as spending.') : type==='income' ? 'Income added' : 'Added');
 });
 
 // ---- EDIT TRANSACTION ----
@@ -3326,7 +3293,8 @@ function renderEditTransferPickers(){
 function renderEditChips(){
   if(!editingTx) return;
   const isTransfer = editingTx.type==='transfer';
-  document.getElementById('edittx-heading').textContent = isTransfer ? 'Edit this transfer' : 'Edit this entry';
+  document.getElementById('edittx-heading').textContent = isTransfer ? 'Edit transfer' : 'Edit transaction';
+  document.getElementById('edit-payee-label').textContent = editingTx.type==='income' ? 'Received from' : 'Paid to';
   document.getElementById('edit-regular-fields').classList.toggle('hide', isTransfer);
   document.getElementById('edit-transfer-fields').classList.toggle('hide', !isTransfer);
   if(isTransfer){ renderEditTransferPickers(); return; }
@@ -3400,7 +3368,7 @@ document.getElementById('edittx-save').addEventListener('click', async ()=>{
   }
   if(editingTx.type==='transfer'){
     if(!editFrom || !editTo){ alert('Choose both the From and the To account.'); return; }
-    if(editFrom===editTo){ alert('Pick two different accounts.'); return; }
+    if(editFrom===editTo){ alert('Choose two different accounts.'); return; }
     editingTx.from = editFrom;
     editingTx.to = editTo;
     editingTx.amount = amount;
@@ -3409,7 +3377,7 @@ document.getElementById('edittx-save').addEventListener('click', async ()=>{
     await saveState();
     render();
     edittxBackdrop.classList.remove('open');
-    showToast('✅ Transfer updated');
+    showToast('Saved');
     return;
   }
   editingTx.category = editSelectedCat;
@@ -3422,7 +3390,7 @@ document.getElementById('edittx-save').addEventListener('click', async ()=>{
   await saveState();
   render();
   edittxBackdrop.classList.remove('open');
-  showToast('✅ Fixed!');
+  showToast('Saved');
 });
 document.getElementById('edittx-delete').addEventListener('click', async ()=>{
   if(!confirm('Delete this entry? This cannot be undone.')) return;
@@ -3432,7 +3400,7 @@ document.getElementById('edittx-delete').addEventListener('click', async ()=>{
   await saveState();
   render();
   edittxBackdrop.classList.remove('open');
-  showToast('Deleted.');
+  showToast('Deleted');
 });
 
 const personBackdrop = document.getElementById('person-backdrop');
@@ -3442,7 +3410,7 @@ let personSelectedCat = null;
 let personCatPickerOpen = false;
 function renderPersonAcctChips(){
   const dir = segValue('person-dir');
-  document.getElementById('person-acct-label').textContent = dir==='gave' ? 'Paid from which account?' : 'Landed in which account?';
+  document.getElementById('person-acct-label').textContent = dir==='gave' ? 'Paid from' : 'Received in';
   const targets = [...state.accounts, ...state.cards]; // bank accounts, cash, sinking fund, AND cards — paying for someone on credit counts too
   if(!targets.find(a=>a.id===personSelectedAccount)) personSelectedAccount = 'cash_wallet';
   document.getElementById('person-acct-row').innerHTML = targets.map(a=>
@@ -3475,10 +3443,10 @@ function renderPersonCatPicker(){
   const sub = document.getElementById('person-cat-sub');
   if(sub){
     sub.textContent = (dirNow==='received' && personSelectedCat)
-      ? `Counts as ${personSelectedCat} spending in your budget — they fronted it, you owe them back.`
+      ? `Counts as ${personSelectedCat} spending in your budget. They paid, so you'll pay them back.`
       : dirNow==='gave'
-        ? "Won't count toward your budget — you're fronting the money, so it's a loan, not your expense."
-        : "Tag a category if you want this counted as spending (only applies when they paid for you).";
+        ? "Not counted in your budget. You paid, so it is a loan, not your expense."
+        : "Choose a category to count this as spending (only when they paid for you).";
   }
 }
 function openPersonSheet(id){
@@ -3501,13 +3469,13 @@ document.getElementById('person-save').addEventListener('click', async ()=>{
   if(!amount || amount<=0){ alert('Enter a valid amount.'); return; }
   const dir = segValue('person-dir');
   const delta = dir==='gave' ? amount : -amount;
-  const remarks = document.getElementById('person-remarks').value.trim() || (dir==='gave' ? 'You gave them money' : 'They gave you money');
+  const remarks = document.getElementById('person-remarks').value.trim() || (dir==='gave' ? 'You gave' : 'You got');
   state.personLedger.push({id:'pl_'+Date.now(), personId:activePerson, ts:new Date().toISOString(), type:dir, delta, account:personSelectedAccount, remarks, category:personSelectedCat||null});
   recomputeBudgetActuals();
   await saveState();
   render();
   personBackdrop.classList.remove('open');
-  showToast('Updated!');
+  showToast('Saved');
 });
 
 // ---- EDIT / DELETE A PERSON LEDGER ENTRY ----
@@ -3549,10 +3517,10 @@ function renderEditPeCatPicker(){
   const sub = document.getElementById('editpe-cat-sub');
   if(sub){
     sub.textContent = (dirNow==='received' && editPeSelectedCat)
-      ? `Counts as ${editPeSelectedCat} spending in your budget — they fronted it, you owe them back.`
+      ? `Counts as ${editPeSelectedCat} spending in your budget. They paid, so you'll pay them back.`
       : dirNow==='gave'
-        ? "Won't count toward your budget — you're fronting the money, so it's a loan, not your expense."
-        : "Tag a category if you want this counted as spending (only applies when they paid for you).";
+        ? "Not counted in your budget. You paid, so it is a loan, not your expense."
+        : "Choose a category to count this as spending (only when they paid for you).";
   }
 }
 function openEditPersonEntry(entry){
@@ -3587,7 +3555,7 @@ document.getElementById('editpe-save').addEventListener('click', async ()=>{
   await saveState();
   render();
   editPersonEntryBackdrop.classList.remove('open');
-  showToast('✅ Fixed!');
+  showToast('Saved');
 });
 document.getElementById('editpe-delete').addEventListener('click', async ()=>{
   if(!confirm('Delete this entry? This cannot be undone.')) return;
@@ -3597,7 +3565,7 @@ document.getElementById('editpe-delete').addEventListener('click', async ()=>{
   await saveState();
   render();
   editPersonEntryBackdrop.classList.remove('open');
-  showToast('Deleted.');
+  showToast('Deleted');
 });
 
 // ---- EDIT PERSON: rename, note, settle / reopen, delete ----
@@ -3611,12 +3579,12 @@ function openEditPerson(id){
   document.getElementById('ep-name').value = p.name || '';
   document.getElementById('ep-note').value = p.note || '';
   document.getElementById('ep-status').innerHTML = settled
-    ? 'Settled — nothing owed either way. Their entries are kept.'
-    : zero ? 'Balance is zero. Mark as settled to take them off the list — their entries are kept.'
-    : `${bal>0 ? 'They owe you' : 'You owe them'} <b class="maskable">${fmt(Math.abs(bal))}</b>. Can be settled once this reaches zero.`;
+    ? 'Settled. The ledger is kept.'
+    : zero ? 'Balance is zero. Settle to take them off the list. The ledger is kept.'
+    : `${bal>0 ? "You'll get" : "You'll pay"} <b class="maskable">${fmt(Math.abs(bal))}</b>. Can be settled once this reaches zero.`;
   const settleBtn = document.getElementById('ep-settle');
   settleBtn.classList.toggle('hide', !zero);
-  settleBtn.textContent = settled ? 'Put back on the list' : 'Mark as settled';
+  settleBtn.textContent = settled ? 'Reopen' : 'Settle';
   editPersonBackdrop.classList.add('open');
   applyMaskUI();
 }
@@ -3635,7 +3603,7 @@ document.getElementById('ep-save').addEventListener('click', async ()=>{
   await saveState();
   render();
   editPersonBackdrop.classList.remove('open');
-  showToast('Saved.');
+  showToast('Saved');
 });
 document.getElementById('ep-settle').addEventListener('click', async ()=>{
   const p = state.people.find(x=>x.id===editingPersonId);
@@ -3659,7 +3627,7 @@ document.getElementById('ep-delete').addEventListener('click', async ()=>{
   await saveState();
   render();
   editPersonBackdrop.classList.remove('open');
-  showToast('Deleted.');
+  showToast('Deleted');
 });
 
 const addPersonBackdrop = document.getElementById('addperson-backdrop');
@@ -3684,12 +3652,12 @@ document.getElementById('ap-save').addEventListener('click', async ()=>{
   const newId = added.person.id;
   if(amt>0){
     const delta = dir==='owe_you' ? amt : -amt;
-    state.personLedger.push({id:'pl_'+Date.now(), personId:newId, ts:new Date().toISOString(), type:'opening', delta, remarks:'Starting balance'});
+    state.personLedger.push({id:'pl_'+Date.now(), personId:newId, ts:new Date().toISOString(), type:'opening', delta, remarks:'Opening balance'});
   }
   await saveState();
   render();
   addPersonBackdrop.classList.remove('open');
-  showToast(added.status==='reopened' ? `${added.person.name} was settled earlier — back on the list, history kept` : 'Added to the ledger!');
+  showToast(added.status==='reopened' ? `${added.person.name} was settled earlier. Reopened, ledger kept.` : 'Added to the People Ledger');
 });
 
 // ---- PERSON STATEMENT PDF ----
@@ -3711,7 +3679,7 @@ function generatePersonPDF(id){
   entries.forEach(e=>{
     running += e.delta;
     const dateStr = new Date(e.ts).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
-    const label = e.remarks || (e.type==='gave' ? 'You gave them money' : e.type==='received' ? 'They gave you money' : 'Opening balance');
+    const label = e.remarks || (e.type==='gave' ? 'You gave' : e.type==='received' ? 'You got' : 'Opening balance');
     const amtStr = (e.delta>=0?'+ ':'- ') + fmtPdf(Math.abs(e.delta));
     rows.push([dateStr, label, amtStr, fmtPdf(running)]);
   });
@@ -3748,7 +3716,7 @@ function generatePersonPDF(id){
   doc.text(closingLabel, 14, finalY + 10);
 
   doc.save(`${p.name.replace(/\s+/g,'_')}_statement.pdf`);
-  showToast('📄 Statement ready to send!');
+  showToast('Statement ready to share');
 }
 
 // ---- MONTH-END REPORT ----
@@ -3777,16 +3745,16 @@ function generateMonthEndReport(){
     startY: y+4,
     head: [['Metric','Amount']],
     body: [
-      ['Liquid Bank Cash', fmtPdf(t.cash)],
-      ['Credit Card Dues', fmtPdf(-t.cardTotal)],
-      ['Net Liquid Working Surplus', fmtPdf(t.net)],
-      ['Sinking Fund Reserve', fmtPdf(t.sink)],
-      ['Receivables (owed to you)', fmtPdf(t.recv)],
-      ['Family Payables (you owe)', fmtPdf(t.pay)],
+      ['In bank', fmtPdf(t.cash)],
+      ['Card dues', fmtPdf(-t.cardTotal)],
+      ['Available money', fmtPdf(t.net)],
+      ['Set aside for lumpy annual bills', fmtPdf(t.sink)],
+      ["You'll get", fmtPdf(t.recv)],
+      ["You'll pay", fmtPdf(t.pay)],
       ['Investments (current value)', fmtPdf(t.invest)],
-      ['This month — Income logged', fmtPdf(m.income)],
-      ['This month — Expenses logged', fmtPdf(m.expense)],
-      ['This month — Net cash flow', fmtPdf(m.net)],
+      ['This month — Income', fmtPdf(m.income)],
+      ['This month — Expenses', fmtPdf(m.expense)],
+      ['This month — Left', fmtPdf(m.net)],
     ],
     styles:{ font:'helvetica', fontSize:9, cellPadding:3, textColor:[20,20,20] },
     headStyles:{ font:'helvetica', fontStyle:'bold', fillColor:[59,42,58], textColor:[251,243,236] },
@@ -3839,10 +3807,10 @@ function generateMonthEndReport(){
   if(state.balanceAdjustments && state.balanceAdjustments.length){
     if(y > 240){ doc.addPage(); y = 18; }
     doc.setFont('helvetica','bold'); doc.setFontSize(12);
-    doc.text('Balance Corrections (Suspense Log)', 14, y); y += 2;
+    doc.text('Balance fixes', 14, y); y += 2;
     doc.autoTable({
       startY: y+4,
-      head: [['Date','Account','Adjustment','Note']],
+      head: [['Date','Account','Fix','Note']],
       body: [...state.balanceAdjustments].sort((a,b)=> new Date(b.ts)-new Date(a.ts)).map(adj=>[
         new Date(adj.ts).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}),
         targetName(adj.targetId),
@@ -3856,7 +3824,7 @@ function generateMonthEndReport(){
   }
 
   doc.save(`Month_End_Report_${new Date().toISOString().slice(0,10)}.pdf`);
-  showToast('📊 Report ready!');
+  showToast('Report ready');
 }
 // ---------------------------------------------------------------------------
 // Month-end story — a live, in-app report read straight from `state`. Nothing here is
@@ -4260,7 +4228,7 @@ function renderAnalysisPage(){
       <div class="amt maskable">${fmt(val)}</div>
       <div style="color:var(--ink-soft); font-size:17px; margin-left:2px;">›</div>
     </div>`;
-  }).join('') : '<div class="empty" style="padding:14px 0;">Nothing logged in this period.</div>';
+  }).join('') : '<div class="empty" style="padding:14px 0;">Nothing in this period.</div>';
   document.querySelectorAll('#analysis-cat-list [data-analysiscat]').forEach(el=>{
     el.addEventListener('click', ()=> openCatTx(el.getAttribute('data-analysiscat'), analysisCatMode, p));
   });
@@ -4393,7 +4361,7 @@ function budgetMonthTableHtml(sm){
     if(Math.abs(d) < 0.5) return `<td class="d">on budget</td>`;
     return d<0 ? `<td class="d over"><span class="maskable">${fmt(-d)}</span> over</td>` : `<td class="d"><span class="maskable">${fmt(d)}</span> under</td>`;
   };
-  return `<table class="bva"><thead><tr><th>Category</th><th>Budget</th><th>Actual</th><th>Difference</th></tr></thead><tbody>${
+  return `<table class="bva"><thead><tr><th>Category</th><th>Budget</th><th>Spent</th><th>Difference</th></tr></thead><tbody>${
     rows.map(r=>`<tr><td>${storyEsc(storyCatLabel(r.cat))}</td><td class="maskable">${r.budget>0 ? fmt(r.budget) : '—'}</td><td class="maskable">${fmt(r.actual)}</td>${diffCell(r.budget, r.actual)}</tr>`).join('')
   }<tr class="tot"><td>Total</td><td class="maskable">${fmt(sm.budget)}</td><td class="maskable">${fmt(sm.actual)}</td>${diffCell(sm.budget, sm.actual)}</tr></tbody></table>`;
 }
@@ -4437,11 +4405,11 @@ function renderBudgetPage(keepTypedValues, change){
     const diff = prev.budget - prev.actual;
     const overRows = prev.rows.filter(r=> r.budget>0 && r.actual>r.budget).sort((a,b)=> (b.actual-b.budget)-(a.actual-a.budget));
     const pct = prev.budget>0 ? Math.min(100, prev.actual/prev.budget*100) : (prev.actual>0?100:0);
-    lastEl.innerHTML = `<div class="divider-label" style="margin-top:6px;">Last month — ${prevLong}: budget vs actual</div>
+    lastEl.innerHTML = `<div class="divider-label" style="margin-top:6px;">Last month — ${prevLong}: budget vs spent</div>
       <div class="card">
         <div class="bp-stat" style="margin-top:0;">
           <div class="cell"><div class="l">Budget</div><div class="v maskable">${fmt(prev.budget)}</div></div>
-          <div class="cell"><div class="l">Actual</div><div class="v maskable">${fmt(prev.actual)}</div></div>
+          <div class="cell"><div class="l">Spent</div><div class="v maskable">${fmt(prev.actual)}</div></div>
           <div class="cell"><div class="l">${diff<0?'Over by':'Under by'}</div><div class="v maskable ${diff<0?'neg':'pos'}">${fmt(Math.abs(diff))}</div></div>
         </div>
         <div class="bar-track" style="margin:12px 0 0;"><div class="bar-fill ${diff<0?'over':''}" style="width:${pct}%"></div></div>
@@ -4449,12 +4417,12 @@ function renderBudgetPage(keepTypedValues, change){
           overRows.length
             ? `Over budget in ${overRows.length} categor${overRows.length===1?'y':'ies'}: ` + overRows.slice(0,3).map(r=>`${storyEsc(storyCatLabel(r.cat))} <span style="color:var(--debt); font-weight:700; white-space:nowrap;" class="maskable">+${fmt(r.actual-r.budget)}</span>`).join(', ') + (overRows.length>3?` and ${overRows.length-3} more`:'') + '.'
             : 'Every category stayed within its budget.'
-        }${prev.special>0 ? ` Trips &amp; special spending of <span class="maskable">${fmt(prev.special)}</span> is tracked separately, outside this budget.` : ''}</div>
+        }${prev.special>0 ? ` One-time spending of <span class="maskable">${fmt(prev.special)}</span> is tracked separately, outside this budget.` : ''}</div>
         ${budgetMonthTableHtml(prev)}
       </div>`;
   } else {
-    lastEl.innerHTML = `<div class="divider-label" style="margin-top:6px;">Last month — budget vs actual</div>
-      <div class="card"><div class="empty" style="padding:8px 0;">Nothing was logged in ${prevLong}, so there is no budget vs actual to show yet. It appears here once a full month is on record.</div></div>`;
+    lastEl.innerHTML = `<div class="divider-label" style="margin-top:6px;">Last month — budget vs spent</div>
+      <div class="card"><div class="empty" style="padding:8px 0;">Nothing was added in ${prevLong}, so there is no budget vs spent to show yet. It appears here once a full month is on record.</div></div>`;
   }
 
   // 2. The record so far — the months being watched before settling the ideal budget
@@ -4468,7 +4436,7 @@ function renderBudgetPage(keepTypedValues, change){
         // Last month's categories are already listed in the card above; older months open here.
         const canOpen = !(prev && sm.key===prev.key);
         const isOpen = canOpen && bpOpenMonth===sm.key;
-        return `<div class="row" ${canOpen?`data-bpmonth="${sm.key}" style="cursor:pointer;"`:''}><div><div class="name">${d.toLocaleDateString('en-IN',{month:'short', year:'numeric'})}${canOpen?` <span style="font-size:11px; color:var(--ink-soft);">${isOpen?'▲':'▼'}</span>`:''}</div><div class="sub maskable">Budget ${fmt(sm.budget)} · Actual ${fmt(sm.actual)}</div></div>
+        return `<div class="row" ${canOpen?`data-bpmonth="${sm.key}" style="cursor:pointer;"`:''}><div><div class="name">${d.toLocaleDateString('en-IN',{month:'short', year:'numeric'})}${canOpen?` <span style="font-size:11px; color:var(--ink-soft);">${isOpen?'▲':'▼'}</span>`:''}</div><div class="sub maskable">Budget ${fmt(sm.budget)} · Spent ${fmt(sm.actual)}</div></div>
           <div class="amt maskable ${diff<0?'neg':'pos'}" style="font-size:13.5px;">${diff<0?'Over ':'Under '}${fmt(Math.abs(diff))}</div></div>${isOpen ? budgetMonthTableHtml(sm) : ''}`;
       }).join('')}
       <div style="font-size:12px; color:var(--ink-soft); margin-top:11px; padding-top:11px; border-top:1px dashed var(--line);">${
@@ -4487,7 +4455,7 @@ function renderBudgetPage(keepTypedValues, change){
 
   // 3. This month — suggestion + editable amount per category
   const sugg = budgetSuggestions();
-  document.getElementById('bp-this-label').textContent = `${monthName} — suggested and your budget`;
+  document.getElementById('bp-this-label').textContent = `${monthName} budget`;
   document.getElementById('bp-suggest-note').textContent = sugg.months.length
     ? `Suggested = what you regularly spent ${sugg.months.length===1 ? 'last month' : 'on average over the last '+sugg.months.length+' months'}, rounded up. One-off big purchases are left out. Change any amount, then Save.`
     : 'Suggestions start once a full month is on record. Until then, set each amount yourself and Save.';
@@ -4510,18 +4478,18 @@ function renderBudgetPage(keepTypedValues, change){
       const pct = pr.budget>0 ? Math.min(100, pr.actual/pr.budget*100) : (pr.actual>0?100:0);
       const gap = pr.budget - pr.actual;
       const gapHtml = !(pr.budget>0) ? '' : Math.abs(gap)<0.5 ? ' · on budget' : over ? ` · <span class="over"><span class="maskable">${fmt(-gap)}</span> over</span>` : ` · <b><span class="maskable">${fmt(gap)}</span> under</b>`;
-      lastHtml = `<div class="bp-last">${prevShort}: budget ${pr.budget>0 ? `<span class="maskable">${fmt(pr.budget)}</span>` : 'not set'} · actual <b class="maskable">${fmt(pr.actual)}</b>${gapHtml}</div>
+      lastHtml = `<div class="bp-last">${prevShort}: budget ${pr.budget>0 ? `<span class="maskable">${fmt(pr.budget)}</span>` : 'not set'} · spent <b class="maskable">${fmt(pr.actual)}</b>${gapHtml}</div>
         <div class="bar-track"><div class="bar-fill ${over?'over':''}" style="width:${pct}%"></div></div>`;
     }
     let suggHtml = '';
     if(sg && sugg.months.length && !(quietRow && !sg.fromSpend && !sg.oneOff)){
       const oneOffNote = sg.oneOff>0 ? ` <span class="maskable">(one-off ${fmt(sg.oneOff)} left out)</span>` : '';
       if(sg.fromSpend && sg.value !== (b.budget||0)){
-        suggHtml = `<div class="bp-sugg">Suggested <b class="maskable" style="color:var(--ink);">${fmt(sg.value)}</b>${oneOffNote} · <button class="bp-use" data-bpuse="${i}" data-bpval="${sg.value}">use this</button></div>`;
+        suggHtml = `<div class="bp-sugg">Suggested <b class="maskable" style="color:var(--ink);">${fmt(sg.value)}</b>${oneOffNote} · <button class="bp-use" data-bpuse="${i}" data-bpval="${sg.value}">Use</button></div>`;
       } else if(sg.fromSpend){
         suggHtml = `<div class="bp-sugg">Suggested <b class="maskable" style="color:var(--ink);">${fmt(sg.value)}</b>${oneOffNote} — same as your budget</div>`;
       } else {
-        suggHtml = `<div class="bp-sugg">${sg.oneOff>0 ? `Only one-off spending (<span class="maskable">${fmt(sg.oneOff)}</span>)` : 'Nothing logged'} — suggested: keep <span class="maskable">${fmt(sg.value)}</span></div>`;
+        suggHtml = `<div class="bp-sugg">${sg.oneOff>0 ? `Only one-off spending (<span class="maskable">${fmt(sg.oneOff)}</span>)` : 'Nothing spent'} — suggested: keep <span class="maskable">${fmt(sg.value)}</span></div>`;
       }
     }
     return `<div class="bp-row">
@@ -4532,9 +4500,26 @@ function renderBudgetPage(keepTypedValues, change){
     </div>`;
   }).join('') || '<div class="empty" style="padding:10px 0;">No expense categories yet.</div>';
 
+  // Suggested categories: payees that repeat in a short burst
+  const catSugg = categorySuggestions();
+  const suggWrap = document.getElementById('bp-cat-suggest');
+  suggWrap.innerHTML = catSugg.length
+    ? `<div class="divider-label">Suggested categories</div><div class="card">${catSugg.map(g=>
+        `<div class="bp-catsugg"><span>"${storyEsc(g.payee.trim())}" appears ${g.matches.length} times recently. Make it a category?</span>
+          <span class="acts"><button class="link-btn" data-catsugg-make="${storyEsc(g.norm)}">Make</button><button class="link-btn" data-catsugg-skip="${storyEsc(g.norm)}" style="color:var(--ink-soft);">No</button></span></div>`).join('')}</div>`
+    : '';
+  suggWrap.querySelectorAll('[data-catsugg-make]').forEach(el=> el.addEventListener('click', async ()=>{
+    await createCategoryFromSuggestion(el.getAttribute('data-catsugg-make'));
+    renderBudgetPage(true);
+  }));
+  suggWrap.querySelectorAll('[data-catsugg-skip]').forEach(el=> el.addEventListener('click', async ()=>{
+    await dismissCategorySuggestion(el.getAttribute('data-catsugg-skip'));
+    renderBudgetPage(true);
+  }));
+
   const specials = state.budget.filter(b=>b.special);
   document.getElementById('bp-special-wrap').innerHTML = specials.length
-    ? `<div class="divider-label">Tracked separately — no monthly budget (trips, one-time events)</div>
+    ? `<div class="divider-label">One-time (no budget)</div>
        <p class="section-sub">Tap one to rename it or give it a budget. With a budget it moves up into the regular list.</p>
        <div class="card">${specials.map(b=>
         `<div class="row" data-bpedit="${storyEsc(b.cat)}" style="cursor:pointer;"><div class="name">${storyEsc(b.cat)} <span class="bp-pencil">✎</span></div><div class="amt maskable">${fmt(b.actual)}<span style="font-size:11px; font-weight:500; color:var(--ink-soft);"> this month</span></div></div>`).join('')}</div>`
@@ -4551,7 +4536,7 @@ function renderBudgetPage(keepTypedValues, change){
         <input class="bp-input" type="number" inputmode="numeric" min="0" data-bpidx="${i}" data-bpcat="${storyEsc(b.cat)}" value="${valueFor(b)}" aria-label="${storyEsc(b.cat)} expected for ${monthName}"></div>
       ${hasPrev ? (()=>{ const exp = prevIncomeAmounts[b.cat]||0, got = prevActualsAll[b.cat]||0, gap = got-exp;
         if(!exp && !got) return '';
-        const gapHtml = !(exp>0) || Math.abs(gap)<0.5 ? '' : gap<0 ? ` · <span class="over"><span class="maskable">${fmt(-gap)}</span> short</span>` : ` · <b><span class="maskable">${fmt(gap)}</span> more</b>`;
+        const gapHtml = !(exp>0) || Math.abs(gap)<0.5 ? '' : gap<0 ? ` · <span class="over"><span class="maskable">${fmt(-gap)}</span> less</span>` : ` · <b><span class="maskable">${fmt(gap)}</span> more</b>`;
         return `<div class="bp-last">${prevShort}: expected <span class="maskable">${fmt(exp)}</span> · received <b class="maskable">${fmt(got)}</b>${gapHtml}</div>`; })() : ''}
     </div>`;
   }).join('') || '<div class="empty" style="padding:10px 0;">No income categories yet.</div>';
@@ -4629,7 +4614,7 @@ document.getElementById('bp-save').addEventListener('click', async ()=>{
     await saveState();
     render();
     renderBudgetPage(false);
-    showToast(changes.length ? `✅ Budget saved — ${changes.length} amount${changes.length===1?'':'s'} changed` : '✅ Budget confirmed for the month');
+    showToast(changes.length ? `Budget saved. ${changes.length} amount${changes.length===1?'':'s'} changed.` : 'Budget confirmed for the month');
   } finally {
     btn.disabled = false; btn.textContent = label;
   }
@@ -4681,19 +4666,19 @@ document.getElementById('story-close-btn').addEventListener('click', ()=>{
 document.getElementById('gen-report-btn').addEventListener('click', generateMonthEndReport);
 document.getElementById('clear-since-btn').addEventListener('click', async ()=>{
   const defaultDate = (typeof HISTORY_START_DATE!=='undefined') ? HISTORY_START_DATE : new Date().toISOString().slice(0,10);
-  const dateStr = prompt('Clear all logged expenses, income, and transfers from this date onward (YYYY-MM-DD):', defaultDate);
+  const dateStr = prompt('Delete all expenses, income and transfers from this date onward (YYYY-MM-DD):', defaultDate);
   if(!dateStr) return;
   const cutoff = new Date(dateStr);
   if(isNaN(cutoff.getTime())){ alert('Could not read that date — please use YYYY-MM-DD.'); return; }
   const matching = state.transactions.filter(t=> new Date(t.ts) >= cutoff);
   if(!matching.length){ alert('No transactions found on or after ' + dateStr + '.'); return; }
-  const typed = prompt(`This will permanently delete ${matching.length} transaction(s) logged on or after ${dateStr}. Your account balances, budget settings, and People Ledger are untouched. This cannot be undone.\n\nType DELETE to confirm:`);
-  if(typed !== 'DELETE'){ showToast('Cancelled — nothing was deleted.'); return; }
+  const typed = prompt(`This will permanently delete ${matching.length} transaction(s) dated on or after ${dateStr}. Your account balances, budget settings, and People Ledger are untouched. This cannot be undone.\n\nType DELETE to confirm:`);
+  if(typed !== 'DELETE'){ showToast('Cancelled. Nothing was deleted.'); return; }
   state.transactions = state.transactions.filter(t=> new Date(t.ts) < cutoff);
   recomputeBudgetActuals();
   await saveState();
   render();
-  showToast(`🗑️ Cleared ${matching.length} transaction(s) since ${dateStr}.`);
+  showToast(`Deleted ${matching.length} transaction(s) from ${dateStr}.`);
 });
 
 document.getElementById('bulk-recat-btn').addEventListener('click', async ()=>{
@@ -4716,7 +4701,7 @@ document.getElementById('bulk-recat-btn').addEventListener('click', async ()=>{
   document.getElementById('bulk-recat-from').value = '';
   document.getElementById('bulk-recat-to').value = '';
   document.getElementById('bulk-recat-cat').value = '';
-  showToast(`✓ Moved ${matching.length} expense(s) into "${catName}".`);
+  showToast(`Moved ${matching.length} expense(s) to "${catName}".`);
 });
 
 const nowForExport = new Date();
@@ -4761,7 +4746,7 @@ function downloadTransactionsPDF({start, end, label, cat, mode}){
   if(!cat){
     doc.autoTable({
       startY: y+4, head: [['Summary','Amount']],
-      body: [['Income', fmtPdf(income)], ['Expenses', fmtPdf(expense)], ['Net balance', fmtPdf(income-expense)]],
+      body: [['Income', fmtPdf(income)], ['Expenses', fmtPdf(expense)], ['Left', fmtPdf(income-expense)]],
       styles, headStyles, columnStyles:{ 1:{halign:'right'} }, tableWidth: 90,
       didParseCell: rightHead([1])
     });
@@ -4816,7 +4801,7 @@ function downloadTransactionsPDF({start, end, label, cat, mode}){
   }
   const fileLabel = pdfSafe((cat ? storyCatLabel(cat)+'_' : '') + label).replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'');
   doc.save(`transactions_${fileLabel}.pdf`);
-  showToast(`✓ PDF downloaded — ${all.length} transaction${all.length===1?'':'s'}`);
+  showToast(`PDF downloaded. ${all.length} transaction${all.length===1?'':'s'}.`);
 }
 
 function csvEscape(val){
@@ -4854,7 +4839,7 @@ function downloadTransactionsCSV(from, to, labelForFilename){
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showToast(`✓ Downloaded ${rows.length} transaction(s).`);
+  showToast(`Downloaded ${rows.length} transaction(s).`);
 }
 
 // ---- RECONCILIATION ----
@@ -4869,9 +4854,9 @@ function openAdjustBalance(id, isCard, suggestedTarget){
   adjustTargetId = id; adjustIsCard = isCard;
   const name = targetName(id);
   const current = currentBalanceFor(id, isCard);
-  document.getElementById('adjustbal-title').textContent = 'Adjust — ' + name;
-  document.getElementById('adjustbal-current').textContent = `Current in app: ${fmt(current)}`;
-  document.getElementById('adjustbal-label').textContent = isCard ? "What's the real amount due?" : "What's the real balance?";
+  document.getElementById('adjustbal-title').textContent = 'Fix balance — ' + name;
+  document.getElementById('adjustbal-current').textContent = `App balance: ${fmt(current)}`;
+  document.getElementById('adjustbal-label').textContent = isCard ? 'Actual amount due' : 'Actual balance';
   document.getElementById('adjustbal-target').value = (typeof suggestedTarget === 'number') ? suggestedTarget : '';
   document.getElementById('adjustbal-remarks').value = '';
   document.getElementById('adjustbal-preview').textContent = '';
@@ -4885,19 +4870,19 @@ function updateAdjustPreview(){
   if(isNaN(target)){ previewEl.textContent=''; return; }
   const current = currentBalanceFor(adjustTargetId, adjustIsCard);
   const diff = target - current;
-  if(Math.abs(diff) < 0.5){ previewEl.textContent = 'No difference — nothing to adjust.'; return; }
-  previewEl.textContent = `This will post a ${diff>0?'+':''}${fmt(diff)} suspense adjustment to match the statement.`;
+  if(Math.abs(diff) < 0.5){ previewEl.textContent = 'No difference. Nothing to fix.'; return; }
+  previewEl.textContent = `This adds a balance fix of ${diff>0?'+':''}${fmt(diff)}.`;
 }
 document.getElementById('adjustbal-cancel').addEventListener('click', ()=> document.getElementById('adjustbal-backdrop').classList.remove('open'));
 const adjustbalBackdrop = document.getElementById('adjustbal-backdrop');
 adjustbalBackdrop.addEventListener('click', e=>{ if(e.target===adjustbalBackdrop) adjustbalBackdrop.classList.remove('open'); });
 document.getElementById('adjustbal-save').addEventListener('click', async ()=>{
   const target = parseFloat(document.getElementById('adjustbal-target').value);
-  if(isNaN(target)){ alert('Enter the real balance.'); return; }
+  if(isNaN(target)){ alert('Enter the actual balance.'); return; }
   const current = currentBalanceFor(adjustTargetId, adjustIsCard);
   const diff = target - current;
   if(Math.abs(diff) >= 0.5){
-    const remarks = document.getElementById('adjustbal-remarks').value.trim() || 'Manual balance correction';
+    const remarks = document.getElementById('adjustbal-remarks').value.trim() || 'Balance fix';
     if(adjustIsCard){
       const c = state.cards.find(x=>x.id===adjustTargetId);
       c.openingDue += diff; // due UP means diff positive should increase due directly
@@ -4913,7 +4898,7 @@ document.getElementById('adjustbal-save').addEventListener('click', async ()=>{
   await saveState();
   render();
   document.getElementById('adjustbal-backdrop').classList.remove('open');
-  showToast(Math.abs(diff) >= 0.5 ? '✅ Balance corrected!' : 'Already matched — no change needed.');
+  showToast(Math.abs(diff) >= 0.5 ? 'Balance fixed' : 'Already matching. No change needed.');
 });
 
 const reconBackdrop = document.getElementById('recon-backdrop');
@@ -4953,7 +4938,7 @@ function renderMonthView(){
     const i = monthviewTxRefs.indexOf(tx);
     const meta = catMeta(tx.category);
     return `<div class="tx-item" data-editmonth="${i}" style="cursor:pointer;"><div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${tx.payee}</span><span class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmt(tx.amount)}</span></div><div class="tx-meta">${new Date(tx.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${targetName(tx.account)} · ${tx.category}</div></div></div>`;
-  }).join('') : '<div class="empty" style="padding:14px 0;">No income or expenses logged this month yet.</div>';
+  }).join('') : '<div class="empty" style="padding:14px 0;">No income or expenses this month yet.</div>';
 
   const transferHtml = transferTx.length ? transferTx.map(tx=>{
     const i = monthviewTxRefs.indexOf(tx);
@@ -4963,14 +4948,14 @@ function renderMonthView(){
   const peopleHtml = monthPeople.length ? monthPeople.map(e=>{
     const person = state.people.find(p=>p.id===e.personId);
     const gave = e.delta > 0;
-    return `<div class="tx-item" style="opacity:0.75;"><div class="chip-icon">${ICON.handshake}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${gave?'You gave':'You received from'} ${person?person.name:'Unknown'}</span><span class="tx-amt ${gave?'neg':'pos'}">${gave?'-':'+'}${fmt(Math.abs(e.delta))}</span></div><div class="tx-meta">${new Date(e.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${targetName(e.account)} · People Ledger</div></div></div>`;
+    return `<div class="tx-item" style="opacity:0.75;"><div class="chip-icon">${ICON.handshake}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${gave?'You gave':'You got from'} ${person?person.name:'Unknown'}</span><span class="tx-amt ${gave?'neg':'pos'}">${gave?'-':'+'}${fmt(Math.abs(e.delta))}</span></div><div class="tx-meta">${new Date(e.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${targetName(e.account)} · People Ledger</div></div></div>`;
   }).join('') : '';
 
   document.getElementById('monthview-list').innerHTML = `
     <div class="divider-label" style="margin-top:10px;">Income &amp; Expenses</div>
     <div class="card">${spendHtml}</div>
     ${transferTx.length ? `<div class="divider-label" style="margin-top:16px;">Transfers between your own accounts — not counted as spending</div><div class="card">${transferHtml}</div>` : ''}
-    ${monthPeople.length ? `<div class="divider-label" style="margin-top:16px;">People Ledger touching your accounts — not counted as spending, shown for reconciliation</div><div class="card">${peopleHtml}</div>` : ''}
+    ${monthPeople.length ? `<div class="divider-label" style="margin-top:16px;">People Ledger entries through your accounts — not counted as spending</div><div class="card">${peopleHtml}</div>` : ''}
   `;
   document.getElementById('monthview-list').querySelectorAll('[data-editmonth]').forEach(el=>{
     el.addEventListener('click', ()=>{
@@ -5043,10 +5028,8 @@ function renderAcctStatement(targetId, isCard){
       <div class="netsummary-label">${isCard?'Amount Due':'Available Balance'}${target.tag?' · '+storyEsc(target.tag):''}</div>
       <div class="netsummary-value maskable ${isCard ? (liveTotal>0?'neg':'') : (liveTotal<0?'neg':'pos')}">${fmt(liveTotal)}</div>
       <div class="stmt-incorrect">Incorrect ${isCard?'amount':'balance'}? <button id="acctstatement-edit-link">Edit</button></div>
-      <button class="pill-btn" id="acctstatement-recon-btn" style="margin-top:14px;">Reconcile with a statement</button>
     </div>`;
   document.getElementById('acctstatement-edit-link').addEventListener('click', ()=> openAdjustBalance(targetId, isCard));
-  document.getElementById('acctstatement-recon-btn').addEventListener('click', ()=> openReconSheet(targetId, isCard));
 
   const entries = statementEntries(target, isCard);
   const adjustments = (state.balanceAdjustments||[]).filter(a=>a.targetId===targetId).sort((a,b)=>new Date(b.ts)-new Date(a.ts));
@@ -5075,25 +5058,24 @@ function renderAcctStatement(targetId, isCard){
     const pendingMatch = (state.pendingImports||[]).find(p=> p.accountId===targetId && Math.abs(p.amount-discrepancy)<1);
     const dismissedMatch = !pendingMatch && (state.dismissedImports||[]).find(p=> p.accountId===targetId && Math.abs(p.amount-discrepancy)<1);
     if(pendingMatch){
-      suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px; cursor:pointer;" data-openpending="${pendingMatch.id}"><div><div class="name">🎯 Likely cause: ${pendingMatch.payee||'a transaction'} — still needs approval</div><div class="sub">Dated ${new Date(pendingMatch.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · found via email but not yet added to your ledger — tap to review it now.</div></div><div class="amt">${fmt(pendingMatch.amount)}</div></div>`;
+      suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px; cursor:pointer;" data-openpending="${pendingMatch.id}"><div><div class="name">Likely cause: ${pendingMatch.payee||'a transaction'} — still to review</div><div class="sub">Dated ${new Date(pendingMatch.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · from your email, not added yet. Tap to review.</div></div><div class="amt">${fmt(pendingMatch.amount)}</div></div>`;
     } else if(dismissedMatch){
-      suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">🎯 Likely cause: ${dismissedMatch.payee||'a transaction'} — dismissed as not real</div><div class="sub">Dated ${new Date(dismissedMatch.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · the bank's email said this happened, but it was marked "not a real transaction." If that was a mistake, logging it manually will close this gap.</div></div><div class="amt">${fmt(dismissedMatch.amount)}</div></div>`;
+      suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">Likely cause: ${dismissedMatch.payee||'a transaction'} — marked not a transaction</div><div class="sub">Dated ${new Date(dismissedMatch.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · the bank's email said this happened, but it was marked "not a transaction". If that was a mistake, adding it by hand will close this gap.</div></div><div class="amt">${fmt(dismissedMatch.amount)}</div></div>`;
     } else if(anchorTs){
       const suspect = entries.find(e=> new Date(e.ts) < anchorTs && Math.abs(Math.abs(e.delta) - discrepancy) < 1);
       if(suspect){
-        suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">🎯 Likely cause: ${suspect.label}${suspect.sub?' · '+suspect.sub:''}</div><div class="sub">Dated ${new Date(suspect.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} — before your last adjustment, so it should already be included in it. If it was added or its account changed after ${anchorTs.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}, that's the gap.</div></div><div class="amt">${fmt(Math.abs(suspect.delta))}</div></div>`;
+        suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">Likely cause: ${suspect.label}${suspect.sub?' · '+suspect.sub:''}</div><div class="sub">Dated ${new Date(suspect.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} — before your last balance fix, so it should already be included in it. If it was added or its account changed after ${anchorTs.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}, that's the gap.</div></div><div class="amt">${fmt(Math.abs(suspect.delta))}</div></div>`;
       }
     }
     // No automatic match — say so plainly rather than silently offering nothing. Comparing
     // against a real bank statement is a separate, heavier step (needs the file uploaded);
     // it's offered here as an explicit choice, not something tapping the warning jumps into.
     if(!suspectHtml){
-      suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">No single entry explains it</div><div class="sub">${anchorTs ? `An entry dated before your last adjustment (${anchorTs.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}) may have been added, changed or deleted after it — that moves the balance away from the adjusted figure. Otherwise it` : 'It'} may be a transaction that was never logged anywhere. Check against a real statement to be sure.</div></div></div>
-      <p class="section-sub" id="acctstatement-reconcile-link" style="color:var(--peri); margin:8px 0 0; cursor:pointer; text-decoration:underline;">Compare against a bank statement instead →</p>`;
+      suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">No single entry explains it</div><div class="sub">${anchorTs ? `An entry dated before your last balance fix (${anchorTs.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}) may have been added, changed or deleted after it — that moves the balance away from the fixed figure. Otherwise it` : 'It'} may be a transaction that was never added. Check it against your bank's own record.</div></div></div>`;
     }
   }
   document.getElementById('acctstatement-warning').innerHTML = discrepancy>=1
-    ? `<div class="card" style="margin-bottom:12px;"><div style="font-size:13.5px; font-weight:700; color:var(--debt);">⚠️ <span class="maskable">${fmt(discrepancy)}</span> unaccounted for since ${adj ? 'your last adjustment' : 'the opening balance'}</div>${suspectHtml}</div>`
+    ? `<div class="card" style="margin-bottom:12px;"><div style="font-size:13.5px; font-weight:700; color:var(--debt);">⚠️ <span class="maskable">${fmt(discrepancy)}</span> unaccounted for since ${adj ? 'your last balance fix' : 'the opening balance'}</div>${suspectHtml}</div>`
     : '';
 
   // One list, newest first: every transaction, every adjustment ("Adjusted to ₹…") and, at
@@ -5120,7 +5102,7 @@ function renderAcctStatement(targetId, isCard){
         ? `was ${fmt(a.oldValue)} · ${a.diff>0?'+':'−'}${fmt(Math.abs(a.diff)).replace('-','')}${a.remarks?' · '+storyEsc(a.remarks):''}`
         : 'Statement reset — balance confirmed, no change';
       return `<div class="stmt-row adj"><div class="sr-date">${dayStr(it.ts)}</div>
-        <div class="sr-body"><div class="sr-label">${changed?'Adjusted to':'Confirmed at'}</div><div class="sr-sub maskable">${sub}</div></div>
+        <div class="sr-body"><div class="sr-label">${changed?'Fixed to':'Confirmed at'}</div><div class="sr-sub maskable">${sub}</div></div>
         <div class="sr-amt maskable">${fmt(a.newValue)}</div></div>`;
     }
     const debit = isDebit(it);
@@ -5223,7 +5205,7 @@ document.getElementById('commit-save').addEventListener('click', async ()=>{
   await saveState();
   render();
   commitmentBackdrop.classList.remove('open');
-  showToast('✓ Saved.');
+  showToast('Saved');
 });
 document.getElementById('commit-delete').addEventListener('click', async ()=>{
   if(editingCommitIndex === null) return;
@@ -5232,7 +5214,7 @@ document.getElementById('commit-delete').addEventListener('click', async ()=>{
   await saveState();
   render();
   commitmentBackdrop.classList.remove('open');
-  showToast('Removed.');
+  showToast('Removed');
 });
 document.getElementById('commit-cancel').addEventListener('click', ()=> commitmentBackdrop.classList.remove('open'));
 
@@ -5260,7 +5242,7 @@ async function openEditSavingsGoal(index){
   }
   await saveState();
   render();
-  showToast('✅ Updated!');
+  showToast('Saved');
 }
 document.getElementById('add-savings-goal-btn').addEventListener('click', ()=> openEditSavingsGoal(null));
 document.getElementById('acctstatement-reset').addEventListener('click', async ()=>{
@@ -5277,7 +5259,7 @@ document.getElementById('acctstatement-reset').addEventListener('click', async (
   });
   await saveState();
   renderAcctStatement(targetId, isCard);
-  showToast('✓ Statement reset — starting fresh from today.');
+  showToast('Starting fresh from today');
 });
 reconBackdrop.addEventListener('click', e=>{ if(e.target===reconBackdrop) reconBackdrop.classList.remove('open'); });
 
@@ -5781,21 +5763,21 @@ document.getElementById('gmail-custom-fetch-btn').addEventListener('click', asyn
   if(!dateVal){ showToast('Choose a date first', 2500); document.getElementById('gmail-custom-date').focus(); return; }
   const btn = document.getElementById('gmail-custom-fetch-btn');
   const statusEl = document.getElementById('gmail-status-text');
-  btn.disabled = true; btn.textContent = 'Fetching…';
-  statusEl.textContent = 'Checking all connected inboxes now…';
+  btn.disabled = true; btn.textContent = 'Checking…';
+  statusEl.textContent = 'Checking…';
   try{
     const res = await fetch(`https://us-central1-financial-assistant-141e8.cloudfunctions.net/manualFetch?after=${dateVal}`);
     const data = await res.json();
     if(!data.ok) throw new Error(data.error || 'Unknown error');
-    const dismissedNote = (data.totalAutoDismissed ? ` · ${data.totalAutoDismissed} auto-dismissed as recognized junk` : '') + (data.totalSkippedBySender ? ` · ${data.totalSkippedBySender} set aside (not from a bank alert address)` : '');
-    statusEl.textContent = `Checked automatically every 12 hours · last manual check found ${data.totalFound} across ${data.inboxCount} inbox(es)${dismissedNote}`;
-    showToast((data.totalFound ? `Found ${data.totalFound} transaction(s) — check Home` : 'Nothing new found from that date') + (data.totalSkippedBySender ? ` · ${data.totalSkippedBySender} set aside by the sender rule` : ''), 4000);
+    const dismissedNote = (data.totalAutoDismissed ? ` · ${data.totalAutoDismissed} ignored automatically` : '') + (data.totalSkippedBySender ? ` · ${data.totalSkippedBySender} skipped, not from a bank` : '');
+    statusEl.textContent = `Checked every 12 hours · last check found ${data.totalFound} across ${data.inboxCount} inbox(es)${dismissedNote}`;
+    showToast((data.totalFound ? `Found ${data.totalFound} transaction(s). See Home.` : 'Nothing new from that date') + (data.totalSkippedBySender ? ` · ${data.totalSkippedBySender} skipped, not from a bank` : ''), 4000);
   }catch(e){
     console.error('Manual fetch failed', e);
-    statusEl.textContent = 'Checked automatically every 12 hours';
-    showToast('⚠️ Fetch failed — try again in a moment', 3500);
+    statusEl.textContent = 'Checked every 12 hours';
+    showToast('Check failed. Try again in a moment.', 3500);
   }finally{
-    btn.disabled = false; btn.textContent = 'Fetch';
+    btn.disabled = false; btn.textContent = 'Check';
   }
 });
 
@@ -5820,8 +5802,8 @@ function renderGmailAccountsList(){
   const anyActive = remembered.some(email => gmailAccounts.find(a=>a.email===email && Date.now()<a.expiry));
   document.getElementById('gmail-check-row').classList.toggle('hide', !anyActive);
   document.getElementById('gmail-status-text').textContent = anyActive
-    ? gmailAccounts.filter(a=>Date.now()<a.expiry).length + ' account(s) active this session'
-    : (remembered.length + ' account(s) connected before — tap Reconnect below');
+    ? gmailAccounts.filter(a=>Date.now()<a.expiry).length + ' inbox(es) connected'
+    : (remembered.length + ' inbox(es) connected before. Tap Reconnect below.');
 }
 
 function recordEmailAccountMatch(email, accountId){
@@ -5911,9 +5893,9 @@ async function runGmailCheck(fullSweep, customDate){
   const statusEl = document.getElementById('gmail-status-text');
   const checkBtn = document.getElementById('gmail-check-btn');
   const customBtn = document.getElementById('gmail-custom-fetch-btn');
-  if(checkBtn && checkBtn.disabled){ showToast('Already checking — hang on.'); return; }
+  if(checkBtn && checkBtn.disabled){ showToast('Already checking.'); return; }
   const setBusy = (busy)=>{
-    if(checkBtn){ checkBtn.disabled = busy; checkBtn.textContent = busy ? '⏳ Checking…' : '🔄 Check for new transactions'; }
+    if(checkBtn){ checkBtn.disabled = busy; checkBtn.textContent = busy ? 'Checking…' : 'Check email'; }
     if(customBtn) customBtn.disabled = busy;
   };
   setBusy(true);
@@ -5921,10 +5903,10 @@ async function runGmailCheck(fullSweep, customDate){
   const rememberedCount = (state.gmailConnectedEmails||[]).length;
   if(validAccounts.length < rememberedCount){
     const missing = state.gmailConnectedEmails.filter(e=>!validAccounts.find(a=>a.email===e));
-    showToast(`⚠️ ${missing.length} account(s) need reconnecting first — results would be incomplete`);
+    showToast(`${missing.length} inbox(es) need reconnecting first, or results would be incomplete`);
   }
   if(!validAccounts.length){
-    statusEl.textContent = gmailAccounts.length ? 'All sessions expired — tap Reconnect below' : 'Not connected';
+    statusEl.textContent = gmailAccounts.length ? 'Inboxes need reconnecting. Tap Reconnect below.' : 'Not connected';
     renderGmailAccountsList();
     setBusy(false);
     return;
@@ -5939,7 +5921,7 @@ async function runGmailCheck(fullSweep, customDate){
   statusEl.textContent = customDate
     ? `Checking ${validAccounts.length} inbox${validAccounts.length>1?'es':''} from ${customDate}…`
     : fullSweep
-      ? `Full sweep: checking ${validAccounts.length} inbox${validAccounts.length>1?'es':''} from ${HISTORY_START_DATE}…`
+      ? `Checking ${validAccounts.length} inbox${validAccounts.length>1?'es':''} from ${HISTORY_START_DATE}…`
       : `Checking ${validAccounts.length} inbox${validAccounts.length>1?'es':''} for new transactions…`;
 
   try{
@@ -5992,7 +5974,7 @@ async function runGmailCheck(fullSweep, customDate){
     const dupCount = classified.filter(c=>c.status==='duplicate').length;
     statusEl.textContent = `${gmailAccounts.length} account${gmailAccounts.length>1?'s':''} connected — checked just now`;
     showToast(classified.length
-      ? `📧 ${fullSweep?'Full sweep':'Check'} complete — ${classified.length} found (${newCount} new, ${dupCount} already logged)`
+      ? `Email checked: ${classified.length} found (${newCount} new, ${dupCount} already added)`
       : 'No transaction emails found in that period');
   }catch(e){
     console.error('Gmail check failed', e);
@@ -6058,7 +6040,7 @@ function renderLearningMatches(){
       state.pendingImports = state.pendingImports.filter(x=>x.id!==p.candidate.id);
       await saveState();
       render();
-      showToast('Learned ✓');
+      showToast('Remembered');
     });
   });
   wrap.querySelectorAll('[data-learn-skip]').forEach(el=>{
@@ -6086,14 +6068,14 @@ function renderLastFetchSummary(){
   const livePendingCount = liveItems.filter(it=>it.liveStatus==='pending').length;
   const liveResolvedCount = liveItems.length - livePendingCount;
   wrap.innerHTML = `<div class="card" style="margin-bottom:16px;">
-    <div class="row"><div><div class="name">Last check: ${s.total} found via email</div><div class="sub">${new Date(s.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${livePendingCount} still pending, ${liveResolvedCount} resolved</div></div>
+    <div class="row"><div><div class="name">Last check: ${s.total} from your email</div><div class="sub">${new Date(s.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${livePendingCount} to review, ${liveResolvedCount} done</div></div>
       <button class="link-btn" id="clear-fetch-summary-btn" title="Clear this card" style="font-size:18px; line-height:1; padding:2px 6px;">✕</button>
     </div>
     <details style="margin-top:4px;">
       <summary style="cursor:pointer; color:var(--peri); font-size:13px; padding:6px 0;">Show all ${s.total} — cross-check against your inbox</summary>
       ${liveItems.map(it=>`<div class="row" style="padding:8px 0;">
         <div><div class="name" style="font-size:13.5px;">${it.payee}</div><div class="sub">${new Date(it.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${it.sourceEmail||''}</div></div>
-        <div style="text-align:right;"><div class="amt" style="font-size:13.5px;">${fmt(it.amount)}</div><div class="sub" style="color:${it.liveStatus==='pending'?'var(--peri)':'var(--sage)'};">${it.liveStatus==='pending'?'pending':'✓ resolved'}</div></div>
+        <div style="text-align:right;"><div class="amt" style="font-size:13.5px;">${fmt(it.amount)}</div><div class="sub" style="color:${it.liveStatus==='pending'?'var(--peri)':'var(--sage)'};">${it.liveStatus==='pending'?'to review':'done'}</div></div>
       </div>`).join('')}
     </details>
   </div>`;
@@ -6112,7 +6094,7 @@ function renderPendingReview(){
   const newCount = items.filter(i=>i.status==='pending').length;
   const dupCount = items.filter(i=>i.status==='duplicate').length;
   wrap.innerHTML = `<div class="card queue-card" style="margin-bottom:16px;">
-    <div class="row"><div><div class="name"><span class="q-dot"></span>${items.length} transaction${items.length>1?'s':''} found via email</div><div class="sub">${newCount} need${newCount===1?'s':''} approval${dupCount?`, ${dupCount} already in your ledger`:''}</div></div>
+    <div class="row"><div><div class="name"><span class="q-dot"></span>${items.length} transaction${items.length>1?'s':''} from your email</div><div class="sub">${newCount} to review${dupCount?`, ${dupCount} already added`:''}</div></div>
       <button class="link-btn" id="clear-all-pending-btn" style="color:var(--debt);">Clear all</button>
     </div>
     ${items.map(it=>{
@@ -6122,7 +6104,7 @@ function renderPendingReview(){
       const acctLabel = acctObj ? acctObj.name : 'account not detected';
       const matchedObj = it.matchedAccount ? [...state.accounts, ...state.cards].find(a=>a.id===it.matchedAccount) : null;
       const mismatchNote = (isDup && matchedObj && matchedObj.id !== it.accountId)
-        ? `<div class="sub" style="color:var(--peri);">Matched to your entry in ${matchedObj.name} instead</div>` : '';
+        ? `<div class="sub" style="color:var(--peri);">Matches your transaction in ${matchedObj.name}</div>` : '';
       return `<div class="row" data-reviewimport="${it.id}" style="cursor:pointer;">
         <div style="display:flex; align-items:center; gap:11px; ${isDup?'opacity:0.55;':''}">
           <div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
@@ -6130,18 +6112,18 @@ function renderPendingReview(){
         </div>
         <div style="text-align:right;">
           <div class="amt ${it.type==='income'?'pos':'neg'}">${fmt(it.amount)}</div>
-          <div class="sub" style="font-size:10.5px; color:${isDup?'var(--sage)':'var(--peri)'};">${isDup?'✓ already logged — tap to check':'needs approval'}</div>
+          <div class="sub" style="font-size:10.5px; color:${isDup?'var(--sage)':'var(--peri)'};">${isDup?'already added — tap to check':'to review'}</div>
         </div>
       </div>`;
     }).join('')}
   </div>`;
   document.getElementById('clear-all-pending-btn').addEventListener('click', async ()=>{
-    if(!confirm(`Clear all ${items.length} pending items? This just empties the review queue — nothing gets added to your ledger, and you can always re-fetch fresh ones afterward.`)) return;
+    if(!confirm(`Clear all ${items.length} items to review? Nothing is added. You can check email again later.`)) return;
     state.pendingImports = [];
     state.processedGmailIds = [];
     await saveState();
     render();
-    showToast('Cleared.');
+    showToast('Cleared');
   });
   wrap.querySelectorAll('[data-reviewimport]').forEach(el=>{
     el.addEventListener('click', ()=> openReviewImport(el.getAttribute('data-reviewimport')));
@@ -6164,13 +6146,14 @@ function renderReviewChips(imp){
   // off a card — this is what fixed the IDFC-bank-debit-that's-really-a-card-payment case),
   // or Transfer-out to a person.
   const dirNoteEl = document.getElementById('ri-direction-note');
-  if(dirNoteEl) dirNoteEl.textContent = (isCredit ? '↓ Money came IN (credit)' : '↑ Money went OUT (debit)') + (riSelectedType!==imp.type ? ' — corrected' : '');
+  if(dirNoteEl) dirNoteEl.textContent = (isCredit ? 'Received' : 'Paid') + (riSelectedType!==imp.type ? ' (corrected)' : '');
   const flipEl = document.getElementById('ri-flip-dir');
-  if(flipEl) flipEl.textContent = riSelectedType!==imp.type ? 'Undo' : 'Wrong way round?';
+  if(flipEl) flipEl.textContent = riSelectedType!==imp.type ? 'Undo' : 'Wrong direction?';
+  document.getElementById('ri-payee-label').textContent = isCredit ? 'Received from' : 'Paid to';
   const regularBtn = document.getElementById('ri-mode-regular-btn');
-  if(regularBtn) regularBtn.textContent = isCredit ? 'Income' : 'Regular expense';
+  if(regularBtn) regularBtn.textContent = isCredit ? 'Income' : 'Expense';
   const personBtn = document.getElementById('ri-mode-person-btn');
-  if(personBtn) personBtn.textContent = isCredit ? 'Transfer — they paid me back' : 'Transfer — I paid for them';
+  if(personBtn) personBtn.textContent = 'People';
   // "Paid off a card" only makes sense for money leaving your account — hide it for a
   // credit, and silently fall back to Regular if it was somehow left selected from a
   // previous item.
@@ -6239,8 +6222,8 @@ function renderReviewChips(imp){
         const added = addOrReopenPerson(name);
         riSelectedPerson = added.person.id;
         await saveState();
-        if(added.status==='reopened') showToast(`${added.person.name} was settled earlier — back on the list, history kept`);
-        else if(added.status==='exists') showToast(`${added.person.name} is already on your list — selected`);
+        if(added.status==='reopened') showToast(`${added.person.name} was settled earlier. Reopened, ledger kept.`);
+        else if(added.status==='exists') showToast(`${added.person.name} is already on your list. Selected.`);
       } else {
         riSelectedPerson = el.dataset.riperson;
       }
@@ -6273,10 +6256,10 @@ function renderReviewChips(imp){
   const riPersonSub = document.getElementById('ri-person-cat-sub');
   if(riPersonSub){
     riPersonSub.textContent = (riDirNow==='received' && riPersonSelectedCat)
-      ? `Counts as ${riPersonSelectedCat} spending in your budget — they fronted it, you owe them back.`
+      ? `Counts as ${riPersonSelectedCat} spending in your budget. They paid, so you'll pay them back.`
       : riDirNow==='gave'
-        ? "Won't count toward your budget — you're fronting the money, so it's a loan, not your expense."
-        : "Tag a category if you want this counted as spending (only applies when they paid for you).";
+        ? "Not counted in your budget. You paid, so it is a loan, not your expense."
+        : "Choose a category to count this as spending (only when they paid for you).";
   }
 
   const targets = riSelectedType==='expense' ? [...state.accounts, ...state.cards] : state.accounts;
@@ -6315,9 +6298,9 @@ function openReviewImport(id){
   riTransferTarget = null; riTransferPickerOpen = false;
   document.getElementById('ri-mode').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v==='regular'));
   document.getElementById('ri-person-dir').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v === (imp.type==='income' ? 'received' : 'gave')));
-  const sourceLine = 'Found in ' + (imp.sourceEmail||'your email') + ' · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + (imp.sender ? ' · sent by ' + imp.sender : '') + (imp.subject ? ' · “' + imp.subject + '”' : '');
+  const sourceLine = 'From ' + (imp.sourceEmail||'your email') + ' · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + (imp.sender ? ' · sent by ' + imp.sender : '') + (imp.subject ? ' · “' + imp.subject + '”' : '');
   document.getElementById('ri-source-note').textContent = imp.status==='duplicate'
-    ? '⚠️ Looks like this may already be in your ledger. Check before adding — if it\'s genuinely separate, just approve it. ' + sourceLine
+    ? 'Possible duplicate. Check before adding. ' + sourceLine
     : sourceLine;
   document.getElementById('ri-payee').value = imp.payee;
   document.getElementById('ri-amount').value = imp.amount;
@@ -6338,7 +6321,7 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
   const mode = segValue('ri-mode');
 
   if(mode==='person'){
-    if(!riSelectedPerson){ alert('Pick who this was for.'); return; }
+    if(!riSelectedPerson){ alert('Choose a person.'); return; }
     const dir = segValue('ri-person-dir');
     const delta = dir==='gave' ? amount : -amount;
     const plId = genId('pl');
@@ -6350,7 +6333,7 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
     await saveState();
     render();
     reviewImportBackdrop.classList.remove('open');
-    showToast((dir==='received' && riPersonSelectedCat) ? `✅ Added — logged as ${riPersonSelectedCat} spending, since they fronted it.` : '✅ Added to the People Ledger!');
+    showToast((dir==='received' && riPersonSelectedCat) ? `Added as ${riPersonSelectedCat} spending. They paid for you.` : 'Added to the People Ledger');
     return;
   }
 
@@ -6359,8 +6342,8 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
     // bill. That's money moving between two things you own, not spending — it belongs as a
     // transfer (which already correctly reduces the card's outstanding due, same as paying
     // it off any other way), never as a category expense that would inflate your budget.
-    if(!riTransferTarget){ alert('Pick which card or account this paid off.'); return; }
-    if(riTransferTarget===riSelectedAccount){ alert('The destination can\'t be the same as the source account.'); return; }
+    if(!riTransferTarget){ alert('Choose the account or card it went to.'); return; }
+    if(riTransferTarget===riSelectedAccount){ alert('Choose two different accounts.'); return; }
     const tx = {
       id: genId('tx'), ts: imp.ts, type: 'transfer',
       from: riSelectedAccount, to: riTransferTarget, amount, remarks: payee || 'Imported from email'
@@ -6372,7 +6355,7 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
     await saveState();
     render();
     reviewImportBackdrop.classList.remove('open');
-    showToast('✅ Logged as a transfer — not counted as spending.');
+    showToast('Transfer added');
     return;
   }
 
@@ -6387,12 +6370,11 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
   recomputeBudgetActuals();
   recordPayeeLearning(payee, riSelectedCat, riSelectedAccount, wasEdited ? 3 : 1);
   if(imp.sourceEmail) recordEmailAccountMatch(imp.sourceEmail, riSelectedAccount);
-  if(tx.type==='expense') checkRepeatedPayeePattern(tx.payee);
   state.pendingImports = state.pendingImports.filter(p=>p.id!==activeImportId);
   await saveState();
   render();
   reviewImportBackdrop.classList.remove('open');
-  showToast('✅ Added to your ledger!');
+  showToast('Added');
 });
 // Shared by both "Already logged" and "Not a real transaction" — same mechanics (stop
 // asking about this exact email again), different REASON recorded. That distinction matters:
@@ -6416,11 +6398,11 @@ async function dismissImport(reason, why){
 }
 document.getElementById('ri-already-logged-btn').addEventListener('click', async ()=>{
   await dismissImport('already_logged');
-  showToast('📋 Marked as already logged — won\'t ask again about this one.');
+  showToast('Marked as already added');
 });
 document.getElementById('ri-dismiss-btn').addEventListener('click', async ()=>{
   await dismissImport('not_real');
-  showToast('Rejected.');
+  showToast('Ignored');
 });
 document.getElementById('ri-flip-dir').addEventListener('click', ()=>{
   const imp = state.pendingImports.find(p=>p.id===activeImportId);
@@ -6530,7 +6512,7 @@ async function setSenderRule(on){
   try{
     await hh('readerSettings').set({_type:'readerSettings', senderRule: !!on, updatedAt: new Date().toISOString(), updatedBy: whoami||null});
     engineRuleOn = !!on;
-    showToast(on ? 'Sender rule on — only bank alert addresses are read' : 'Sender rule off — the next fetch reads every mail again', 4000);
+    showToast(on ? 'On: only bank alert addresses are read' : 'Off: the next check reads every mail again', 4000);
   }catch(e){
     console.error('Could not save the sender rule switch', e);
     showToast('Could not save — try again', 3000);
@@ -6545,8 +6527,8 @@ function renderEngineReport(){
   const scoreCard = d.scored
     ? `<div class="card"><div class="eng-score"><div class="big">${pct(d.exact, d.scored)}</div><div class="of">right first time — ${d.exact} of ${d.scored} needed no change</div></div>
         <div class="eng-line ${d.corrected?'bad':''}"><span>Added after you corrected it</span><span>${d.corrected}${d.corrected ? ' — ' + Object.entries(d.fieldCounts).sort((a,b)=>b[1]-a[1]).map(([f,n])=>`${f} ${n}`).join(', ') : ''}</span></div>
-        <div class="eng-line ${d.scoredNotReal?'bad':''}"><span>Not a real transaction</span><span>${d.scoredNotReal}</span></div>
-        <div class="eng-line"><span>Real, but you had already logged it</span><span>${d.scoredAlready}</span></div></div>`
+        <div class="eng-line ${d.scoredNotReal?'bad':''}"><span>Not a transaction</span><span>${d.scoredNotReal}</span></div>
+        <div class="eng-line"><span>Real, but already added</span><span>${d.scoredAlready}</span></div></div>`
     : `<div class="card"><div class="empty" style="padding:6px 0; text-align:left;">Scoring starts with this build. From now on every email entry you add, correct or reject is counted here, so the share that needed no checking becomes a number. Rejections made earlier are still shown below.</div></div>`;
   const inboxCards = d.rows.map(r=>`<div class="card" style="margin-bottom:10px;">
       <div class="eng-inbox">${storyEsc(r.inbox)}</div>
@@ -6556,7 +6538,7 @@ function renderEngineReport(){
         <div class="cell ${r.notReal?'bad':''}"><div class="l">Not real</div><div class="v">${r.notReal}</div></div>
         <div class="cell"><div class="l">Already in</div><div class="v">${r.alreadyLogged}</div></div>
         <div class="cell"><div class="l">Waiting</div><div class="v">${r.waiting}</div></div>
-      </div>${r.auto ? `<div class="eng-sub" style="margin-top:8px;">${r.auto} more rejected automatically by the reader</div>` : ''}${r.setAside ? `<div class="eng-sub" style="margin-top:8px;">${r.setAside} set aside by the sender rule</div>` : ''}
+      </div>${r.auto ? `<div class="eng-sub" style="margin-top:8px;">${r.auto} more rejected automatically by the reader</div>` : ''}${r.setAside ? `<div class="eng-sub" style="margin-top:8px;">${r.setAside} skipped, not from a bank</div>` : ''}
     </div>`).join('');
   const ruleHtml = `<div class="card">
       <div class="eng-sub" style="margin-bottom:10px;">On: only mail from your banks' own alert addresses is read, and the address decides the account. Off: every mail is read, as before.</div>
@@ -6564,15 +6546,15 @@ function renderEngineReport(){
         <button data-v="on" class="${engineRuleOn===true?'on':''}" ${engineRuleOn===null?'disabled':''}>On</button>
         <button data-v="off" class="${engineRuleOn===false?'on':''}" ${engineRuleOn===null?'disabled':''}>Off</button>
       </div>
-      ${engineRuleOn===null ? `<div class="eng-sub" style="margin-top:8px;">${engineCloudError ? 'Could not reach the cloud just now, so the switch and the set-aside list are not shown.' : 'Loading…'}</div>` : ''}
+      ${engineRuleOn===null ? `<div class="eng-sub" style="margin-top:8px;">${engineCloudError ? 'Could not reach the cloud just now, so the switch and the skipped list are not shown.' : 'Loading…'}</div>` : ''}
     </div>`;
   const SHOW_SENDERS = 20;
   const skippedHtml = engineSkipped===null ? ''
-    : `<div class="divider-label">Set aside by the sender rule — ${d.skipped.length}</div>` + (d.skipped.length
+    : `<div class="divider-label">Skipped, not from a bank — ${d.skipped.length}</div>` + (d.skipped.length
       ? `<div class="card"><div class="eng-sub" style="margin-bottom:4px;">These looked like transactions but did not come from a bank alert address. If a real one is here, its address needs adding to the list.</div>
           ${d.skippedSenders.slice(0,SHOW_SENDERS).map(g=>`<div class="eng-line"><span>${storyEsc(g.sender)}<br><span class="eng-sub">e.g. ${storyEsc(g.example.subject||'no subject')} · <span class="maskable">${fmt(g.example.amount||0)}</span> · ${shortDate(g.example.ts)}</span></span><span>${g.n}</span></div>`).join('')}
           ${d.skippedSenders.length>SHOW_SENDERS ? `<div class="eng-sub" style="padding-top:10px;">Showing ${SHOW_SENDERS} of ${d.skippedSenders.length} senders. The copied report lists every mail.</div>` : ''}</div>`
-      : `<div class="card"><div class="empty" style="padding:6px 0;">Nothing set aside in this period.</div></div>`);
+      : `<div class="card"><div class="empty" style="padding:6px 0;">Nothing skipped in this period.</div></div>`);
   const SHOW = 40;
   const notRealHtml = d.notReal.length
     ? `<div class="card">${d.notReal.slice(0,SHOW).map(e=>`<div class="eng-line"><span>${storyEsc(e.payee||'Unknown')}<br><span class="eng-sub">${shortDate(e.ts)} · ${e.type==='income'?'credit':'debit'} · ${storyEsc(e.inbox)}${e.sender ? ' · from '+storyEsc(e.sender) : ''}${e.subject ? ' · “'+storyEsc(e.subject)+'”' : ''}${e.why ? ' · '+(WHY_LABEL[e.why]||e.why) : ''}</span></span><span class="maskable">${fmt(e.amount||0)}</span></div>`).join('')}
@@ -6587,18 +6569,18 @@ function renderEngineReport(){
   const repeatsHtml = d.repeats.length
     ? `<div class="divider-label">Rejected more than once — same name each time</div><div class="card">${d.repeats.slice(0,12).map(r=>`<div class="eng-line"><span>${storyEsc(r.payee)}</span><span>${r.n} times</span></div>`).join('')}</div>` : '';
   document.getElementById('engine-body').innerHTML =
-    `<div class="divider-label" style="margin-top:14px;">Sender rule</div>${ruleHtml}
+    `<div class="divider-label" style="margin-top:14px;">Read bank alerts only</div>${ruleHtml}
      <div class="divider-label">Read right without checking — ${periodName}</div>${scoreCard}
      <div class="divider-label">By inbox — ${periodName} (${d.total} found)</div>${inboxCards}
      ${skippedHtml}
-     <div class="divider-label">Marked not a real transaction by you — ${d.notReal.length}</div>${notRealHtml}
+     <div class="divider-label">Marked not a transaction by you — ${d.notReal.length}</div>${notRealHtml}
      ${repeatsHtml}
      <div class="divider-label">What the reader has learned so far</div>${learnedHtml}`;
   document.querySelectorAll('#engine-period button').forEach(b=> b.classList.toggle('on', String(enginePeriod)===b.dataset.v));
   document.querySelectorAll('#engine-rule-seg button').forEach(b=> b.addEventListener('click', ()=>{
     const on = b.dataset.v==='on';
     if(on === engineRuleOn) return;
-    if(!on && !confirm('Switch the sender rule off? From the next fetch every mail is read again, including the ones set aside so far, so the old junk comes back into the review queue.')) return;
+    if(!on && !confirm('Switch this off? From the next check every mail is read again, including the ones skipped so far, so the old junk comes back to review.')) return;
     setSenderRule(on);
   }));
   applyMaskUI();
@@ -6661,7 +6643,7 @@ document.getElementById('engine-copy-btn').addEventListener('click', async ()=>{
   box.value = text;
   box.classList.toggle('hide', ok);
   if(!ok){ box.focus(); box.select(); }
-  showToast(ok ? 'Report copied — paste it into the chat' : 'Select all the text in the box and copy it', 3500);
+  showToast(ok ? 'Report copied' : 'Select all the text in the box and copy it', 3500);
 });
 // ================= END GMAIL AUTO-IMPORT =================
 
