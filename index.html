@@ -443,6 +443,7 @@
       </div>
       <div class="pace" id="trend-chart-wrap"></div>
       <div style="margin-top:18px;">
+        <div id="signin-card-wrap"></div>
         <div id="heads-up-wrap"></div>
         <div id="pending-review-wrap"></div>
         <div id="learning-match-wrap"></div>
@@ -977,7 +978,10 @@
     <h2>Settings</h2>
   </div>
   <div class="fs-body">
-    <div class="divider-label" style="margin-top:6px;">Appearance</div>
+    <div class="divider-label" style="margin-top:6px;">Account</div>
+    <div class="card" id="account-box" style="margin-bottom:6px;"></div>
+
+    <div class="divider-label">Appearance</div>
     <div class="seg" id="theme-seg" style="margin-bottom:6px;">
       <button data-v="dark">Dark</button>
       <button data-v="light">Light</button>
@@ -999,7 +1003,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-07 · v67-plain-words</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-07 · v68-sign-in</p>
   </div>
 </div>
 
@@ -1050,6 +1054,7 @@
 <div id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -1464,6 +1469,85 @@ const firebaseConfig = {
 };
 let db = null;
 let cloudReady = false;
+
+// ---- SIGN-IN ----
+// Google sign-in says who is using the app; the database rules decide who is let in. While the
+// rules are still open the app works signed out exactly as before. Once they are closed, a
+// device that is signed out (or signed in with an account that is not on the list) is refused
+// by the database: it keeps its own copy and its unsent changes, and sends them after sign-in.
+let authUser = null;     // the signed-in Google account, or null
+let authReady = false;   // true once a saved sign-in (if any) has been read back
+let cloudDenied = false; // the database refused this device
+function authAvailable(){ return !!(window.firebase && firebase.auth); }
+function isDeniedError(e){ return !!e && (e.code==='permission-denied' || /insufficient permissions/i.test(e.message||'')); }
+function waitForAuthReady(){
+  return new Promise(resolve=>{
+    if(!authAvailable()){ authReady = true; resolve(null); return; }
+    let settled = false;
+    const finish = ()=>{ if(settled) return; settled = true; authReady = true; resolve(authUser); };
+    const timer = setTimeout(finish, 5000); // never hold the app up if the saved sign-in can't be read
+    try{
+      firebase.auth().onAuthStateChanged(u=>{ authUser = u || null; clearTimeout(timer); finish(); renderAccountUI(); },
+        e=>{ console.error('Sign-in state unavailable', e); clearTimeout(timer); finish(); });
+    }catch(e){ console.error('Sign-in unavailable', e); clearTimeout(timer); finish(); }
+  });
+}
+function noteCloudDenied(){
+  cloudDenied = true; cloudReady = false;
+  setSyncStatus(authUser ? 'This account is not allowed' : 'Sign in to sync', false);
+  renderAccountUI();
+}
+async function signInWithGoogle(){
+  if(!authAvailable()){ showToast('Sign-in could not load. Check your connection and reopen the app.', 4000); return; }
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({prompt:'select_account'});
+  try{
+    await firebase.auth().signInWithPopup(provider);
+  }catch(e){
+    const code = (e && e.code) || '';
+    if(code==='auth/popup-closed-by-user' || code==='auth/cancelled-popup-request') return;
+    if(code==='auth/popup-blocked' || code==='auth/operation-not-supported-in-this-environment'){
+      try{ await firebase.auth().signInWithRedirect(provider); return; }catch(e2){ console.error('Redirect sign-in failed', e2); }
+    }
+    console.error('Sign-in failed', e);
+    showToast(code==='auth/unauthorized-domain' ? 'This site is not yet allowed for sign-in.' : 'Sign-in did not complete. Try again.', 4000);
+    return;
+  }
+  // A device the database had refused needs a clean start to connect with the new sign-in.
+  if(!cloudReady){ location.reload(); return; }
+  renderAccountUI();
+  showToast('Signed in');
+}
+async function signOutOfGoogle(){
+  if(!authAvailable() || !authUser) return;
+  if(!confirm('Sign out on this device? Your data stays here, but it stops syncing until you sign in again.')) return;
+  try{ await firebase.auth().signOut(); }catch(e){ console.error('Sign-out failed', e); showToast('Could not sign out. Try again.'); return; }
+  location.reload();
+}
+function renderAccountUI(){
+  const box = document.getElementById('account-box');
+  const card = document.getElementById('signin-card-wrap');
+  if(!box || !card) return;
+  if(!authAvailable()){
+    box.innerHTML = '<div class="eng-sub">Sign-in could not load. Check your connection and reopen the app.</div>';
+    card.innerHTML = ''; return;
+  }
+  if(!authReady){ box.innerHTML = '<div class="eng-sub">Checking…</div>'; card.innerHTML = ''; return; }
+  if(authUser){
+    const email = storyEsc(authUser.email || 'Google account');
+    box.innerHTML = `<div class="row" style="padding:0; border:none;"><div style="min-width:0;"><div class="name" style="overflow-wrap:anywhere;">${email}</div><div class="sub" style="${cloudDenied?'color:var(--debt);':''}">${cloudDenied ? 'This account is not allowed to open this household. Sign out and use another.' : 'Signed in'}</div></div><button class="link-btn" id="account-signout-btn" style="flex-shrink:0;">Sign out</button></div>`;
+    card.innerHTML = cloudDenied
+      ? `<div class="heads-up-card" id="signin-card" style="cursor:pointer;"><div class="hu-icon">${ICON.user}</div><div class="hu-body"><div class="hu-title">This account is not allowed</div><div class="hu-sub">${email} cannot open this household. Changes stay on this device.</div></div><div class="hu-tag">Sign out</div></div>`
+      : '';
+    const c = document.getElementById('signin-card'); if(c) c.addEventListener('click', signOutOfGoogle);
+    document.getElementById('account-signout-btn').addEventListener('click', signOutOfGoogle);
+  } else {
+    box.innerHTML = `<div class="eng-sub" style="margin-bottom:10px;">${cloudDenied ? 'Sign in to sync this device again. Changes made meanwhile are kept and sent after you sign in.' : 'Sign in so that only your household can open this data.'}</div><button class="btn-primary" id="account-signin-btn" style="margin-top:0;">Sign in with Google</button>`;
+    card.innerHTML = `<div class="heads-up-card" id="signin-card" style="cursor:pointer;"><div class="hu-icon">${ICON.user}</div><div class="hu-body"><div class="hu-title">${cloudDenied ? 'Sign in to sync' : 'Sign in to protect your data'}</div><div class="hu-sub">${cloudDenied ? 'Changes stay on this device until you sign in.' : 'One tap with your Google account.'}</div></div><div class="hu-tag">Sign in</div></div>`;
+    document.getElementById('signin-card').addEventListener('click', signInWithGoogle);
+    document.getElementById('account-signin-btn').addEventListener('click', signInWithGoogle);
+  }
+}
 const SYNC_LABEL_ID = 'sync-status';
 const COLLECTION_FIELDS = {
   transactions: 'transaction',
@@ -1553,7 +1637,7 @@ function attachAllListeners(){
       saveLocalOnly();
       render();
     }
-  }, err=> console.error('meta listener error', err));
+  }, err=>{ console.error('meta listener error', err); if(isDeniedError(err)) noteCloudDenied(); });
 
   const firstSnapshotDone = {};
   Object.entries(COLLECTION_FIELDS).forEach(([field, type])=>{
@@ -1596,7 +1680,7 @@ function attachAllListeners(){
       previousArrays[field] = JSON.parse(JSON.stringify(remoteItems));
       saveLocalOnly();
       render();
-    }, err=> console.error(field+' listener error', err));
+    }, err=>{ console.error(field+' listener error', err); if(isDeniedError(err)) noteCloudDenied(); });
   });
 }
 
@@ -1604,6 +1688,7 @@ async function initCloudSync(onFirstData){
   try{
     if(!window.firebase) throw new Error('Firebase SDK did not load');
     firebase.initializeApp(firebaseConfig);
+    await waitForAuthReady(); // so the very first request already carries the sign-in
     db = firebase.firestore();
     try{ await db.enablePersistence({synchronizeTabs:true}); }catch(e){ /* fine if this fails, sync still works online */ }
 
@@ -1642,8 +1727,10 @@ async function initCloudSync(onFirstData){
     setSyncStatus('Synced ✓', true);
   }catch(e){
     console.error('Cloud sync unavailable', e);
-    setSyncStatus('Offline — saving on this device only', false);
+    if(isDeniedError(e)) noteCloudDenied();
+    else setSyncStatus('Offline — saving on this device only', false);
   }finally{
+    renderAccountUI();
     if(onFirstData) onFirstData();
   }
 }
@@ -1707,7 +1794,8 @@ async function saveState(){
     setSyncStatus('Synced ✓', true);
   }catch(e){
     console.error('Cloud save failed', e);
-    setSyncStatus('Offline — will retry', false);
+    if(isDeniedError(e)) noteCloudDenied();
+    else setSyncStatus('Offline — will retry', false);
   }
 }
 
