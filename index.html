@@ -741,10 +741,10 @@
     </div>
 
     <div class="field" id="ri-transfer-field">
-      <label>To</label>
+      <label id="ri-transfer-label">To</label>
       <div class="pick-summary" id="ri-transfer-summary"></div>
       <div class="pick-list hide" id="ri-transfer-row"></div>
-      <p class="section-sub">Added as a transfer, not spending. Your budget is not affected.</p>
+      <p class="section-sub" id="ri-transfer-sub">Added as a transfer, not spending. Your budget is not affected.</p>
     </div>
 
     <div class="field" id="ri-person-field">
@@ -793,6 +793,7 @@
       <div class="pick-summary" id="edit-acct-summary"></div>
       <div class="pick-list hide" id="edit-acct-row"></div>
       <div class="field"><label id="edit-payee-label">Paid to</label><input id="edit-payee" placeholder=""></div>
+      <button class="link-btn" id="edit-make-transfer" type="button" style="margin:-4px 0 12px; text-align:left;">Moved between your own accounts? Make it a transfer</button>
     </div>
     <div id="edit-transfer-fields" class="hide">
       <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">From</label>
@@ -894,6 +895,10 @@
     <h3 id="catedit-title">Edit category</h3>
     <div class="field"><label>Category name</label><input id="catedit-name" maxlength="60" placeholder="e.g. Office commute"></div>
     <div class="field"><label id="catedit-budget-label">Monthly budget (₹)</label><input id="catedit-budget" type="number" inputmode="numeric" min="0" placeholder="0"></div>
+    <label id="catedit-lumpy-row" style="display:flex; gap:10px; align-items:flex-start; font-size:13px; color:var(--ink); margin:0 0 12px; cursor:pointer;">
+      <input type="checkbox" id="catedit-lumpy" style="margin-top:3px; width:18px; height:18px; accent-color:var(--peri);">
+      <span>Lumpy annual bills<br><span style="font-size:12px; color:var(--ink-soft);" id="catedit-lumpy-sub"></span></span>
+    </label>
     <p class="section-sub" id="catedit-note"></p>
     <button class="btn-primary" id="catedit-save">Save</button>
     <button class="btn-ghost" id="catedit-delete" style="color:var(--debt); border-color:var(--debt);">Delete this category</button>
@@ -1025,7 +1030,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-08 · v75-sender-first</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-08 · v76-transfers-lumpy</p>
   </div>
 </div>
 
@@ -1226,6 +1231,7 @@ const STARTER = {
   emailAccountHistory: {},
   profilePhoto: null,
   dismissedPatternPrompts: [],
+  transferPairDeclined: [],
   lastBudgetReviewMonth: null,
   lastFetchSummary: null,
   lastGmailFetch: null
@@ -1291,6 +1297,7 @@ function readStateForCurrentHousehold(){
 function normalizeState(){
   if(!Array.isArray(state.budgetMonths)) state.budgetMonths = [];
   if(!Array.isArray(state.importOutcomes)) state.importOutcomes = [];
+  if(!Array.isArray(state.transferPairDeclined)) state.transferPairDeclined = [];
   // A device that starts from the empty starting set must not treat that set as its own new
   // work: only what is added from here on is sent to the cloud.
   if(!stateFromStorage && typeof previousArrays !== 'undefined'){
@@ -2043,7 +2050,7 @@ const COLLECTION_FIELDS = {
   // correction, rejected, already logged) — the score sheet for the email reader.
   importOutcomes: 'importOutcome'
 };
-const META_FIELDS = ['budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','lastBudgetReviewMonth','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts'];
+const META_FIELDS = ['budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','lastBudgetReviewMonth','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts','transferPairDeclined'];
 let previousArrays = { transactions:[], personLedger:[], pendingImports:[], dismissedImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[], budgetMonths:[], importOutcomes:[] };
 
 // ---- Outbox for cloud writes that haven't been confirmed yet ----
@@ -2457,8 +2464,9 @@ function openBudgetDetail(cat){
   iconEl.style.color = meta.tint;
   iconEl.innerHTML = meta.em;
   document.getElementById('budgetdetail-title').textContent = b.cat;
-  document.getElementById('budgetdetail-sub').innerHTML =
-    `<span class="maskable">${fmt(b.actual)}</span> of <span class="maskable">${fmt(b.budget)}</span> budgeted this month${over?' — over budget':''}`;
+  document.getElementById('budgetdetail-sub').innerHTML = isLumpyCat(b.cat)
+    ? `<span class="maskable">${fmt(b.actual)}</span> paid this month · monthly average <span class="maskable">${fmt(b.budget)}</span>${b.budget>0 && b.actual>0 ? ' · '+lumpyGapText(b.budget, b.actual) : ''}`
+    : `<span class="maskable">${fmt(b.actual)}</span> of <span class="maskable">${fmt(b.budget)}</span> budgeted this month${over?' — over budget':''}`;
   const bar = document.getElementById('budgetdetail-bar');
   bar.style.width = pct+'%';
   bar.className = 'bar-fill' + (over?' over':'');
@@ -2507,6 +2515,32 @@ budgetdetailBackdrop.addEventListener('click', e=>{ if(e.target===budgetdetailBa
 // from a category's detail sheet) ----
 // Rule: a category with a budget allotted is a regular monthly expense. Only a category
 // with no budget is "tracked separately" (a trip or one-off event), outside the monthly total.
+// ---- LUMPY ANNUAL BILLS ----
+// Maintenance, insurance, LIC and the like are paid a few times a year but added as expenses
+// in one category when they are paid. In the budget that category is worth the monthly
+// average of the bills list (Bills & goals), so a month with a big bill shows how much it
+// is above that average instead of looking like overspending.
+function billMonthlyAmount(c){
+  const f = String(c.freq||'');
+  if(f.startsWith('Monthly')) return c.amount||0;
+  if(f.startsWith('Quarterly')) return (c.amount||0)/3;
+  if(f.startsWith('Half-Yearly')) return (c.amount||0)/6;
+  return (c.amount||0)/12;
+}
+function lumpyBillsMonthly(){ return Math.round((state.commitments||[]).reduce((s,c)=> s + billMonthlyAmount(c), 0)); }
+const LUMPY_NAME_RE = /lumpy|annual bill|yearly bill|sinking/i;
+// A category counts when it is marked as the lumpy-bills one, or, until it is marked either
+// way, when its name says so. Only one category plays this part.
+function lumpyCatRow(){
+  const exp = state.budget.filter(b=> !b.income);
+  return exp.find(b=> b.lumpy===true) || exp.find(b=> b.lumpy===undefined && LUMPY_NAME_RE.test(b.cat)) || null;
+}
+function isLumpyCat(cat){ const r = lumpyCatRow(); return !!r && r.cat===cat; }
+function lumpyGapText(budget, actual){
+  const d = actual - budget;
+  if(Math.abs(d) < 0.5) return 'same as the monthly average';
+  return d>0 ? `<span class="over"><span class="maskable">${fmt(d)}</span> above the monthly average</span>` : `<b><span class="maskable">${fmt(-d)}</span> below the monthly average</b>`;
+}
 function normalizeBudgetFlags(){
   state.budget.forEach(b=>{ if(b.special && b.budget>0) b.special = false; });
 }
@@ -2566,6 +2600,13 @@ function openCategorySheet(catName, opts){
     : income ? ''
     : 'With a budget, it counts as a regular monthly expense. Left at 0, it is only tracked separately (for a trip or one-time event) and stays outside the monthly budget.';
   document.getElementById('catedit-delete').style.display = (b && !locked) ? 'block' : 'none';
+  const lumpyRow = document.getElementById('catedit-lumpy-row');
+  lumpyRow.style.display = (income || locked) ? 'none' : 'flex';
+  document.getElementById('catedit-lumpy').checked = !!b && isLumpyCat(b.cat);
+  const avg = lumpyBillsMonthly();
+  document.getElementById('catedit-lumpy-sub').textContent = (state.commitments||[]).length
+    ? `Its budget is the monthly average of your ${state.commitments.length} bills: ${fmt(avg)}. A month with a big bill shows how much it is above that.`
+    : 'Its budget is the monthly average of your bills. Add them under Budget → Bills & goals.';
   cateditBackdrop.classList.add('open');
   if(!b) setTimeout(()=> nameEl.focus(), 50);
 }
@@ -2575,7 +2616,10 @@ document.getElementById('catedit-save').addEventListener('click', async ()=>{
   if(!cateditCtx) return;
   const btn = document.getElementById('catedit-save');
   const newName = document.getElementById('catedit-name').value.trim().replace(/\s+/g,' ');
-  const newBudget = Math.max(0, parseFloat(document.getElementById('catedit-budget').value) || 0);
+  let newBudget = Math.max(0, parseFloat(document.getElementById('catedit-budget').value) || 0);
+  const markLumpy = !cateditCtx.income && document.getElementById('catedit-lumpy').checked;
+  // Marked as lumpy with no amount typed: the monthly average of the bills becomes its budget.
+  if(markLumpy && !(newBudget>0) && lumpyBillsMonthly()>0) newBudget = lumpyBillsMonthly();
   if(!newName){ alert('Give the category a name.'); return; }
   const oldName = cateditCtx.cat;
   const clash = state.budget.find(x=> x.cat.toLowerCase()===newName.toLowerCase() && x.cat!==oldName);
@@ -2599,6 +2643,11 @@ document.getElementById('catedit-save').addEventListener('click', async ()=>{
         renameCategoryEverywhere(oldName, newName);
       }
       b.budget = newBudget;
+    }
+    if(!cateditCtx.income){
+      const row = state.budget.find(x=> x.cat===newName);
+      if(row && markLumpy){ state.budget.forEach(x=>{ if(x!==row && !x.income) x.lumpy = false; }); row.lumpy = true; }
+      else if(row && (row.lumpy===true || LUMPY_NAME_RE.test(row.cat))) row.lumpy = false;
     }
     normalizeBudgetFlags();
     recomputeBudgetActuals();
@@ -3080,6 +3129,9 @@ function buildTrendChartSVG(){
   const remaining = totalBudget - totalSpent;
   const overBudget = remaining < 0;
   const hasSpecial = specialRunning > 0;
+  const lumpyRow = lumpyCatRow();
+  const lumpyExtra = (lumpyRow && !lumpyRow.special && lumpyRow.budget>0)
+    ? Math.max(0, monthExpenses.filter(t=> findBudgetRowForCategory(t.category)===lumpyRow).reduce((s,t)=>s+t.amount,0) - lumpyRow.budget) : 0;
 
   // Chart: the whole month left to right. The glowing line is what has been spent so far
   // (it stops at today); the dashed line is the budget spread evenly over the month, so
@@ -3129,7 +3181,7 @@ function buildTrendChartSVG(){
   const headHtml = `<div class="pace-head"><b>Budget this month</b><span>${totalBudget>0 ? `<span class="${overBudget?'neg-t':'acc'}">${pct}%</span> of budget` : 'no budget set'}</span></div>
     ${totalBudget>0 ? `<div class="pace-bar"><div style="width:${Math.min(100,pct)}%; ${overBudget?'background:var(--debt);':''}"></div></div>` : ''}
     <div class="pace-legend">
-      <span>${totalBudget>0 ? `<span class="maskable ${overBudget?'neg-t':'pos-t'}">${overBudget ? fmt(Math.abs(remaining))+' over budget' : fmt(remaining)+' left'}</span>${hasSpecial?' · regular spending':''}` : ''}</span>
+      <span>${totalBudget>0 ? `<span class="maskable ${overBudget?'neg-t':'pos-t'}">${overBudget ? fmt(Math.abs(remaining))+' over budget' : fmt(remaining)+' left'}</span>${hasSpecial?' · regular spending':''}${overBudget && lumpyExtra>=1 ? ` · <span class="maskable">${fmt(Math.min(lumpyExtra, Math.abs(remaining)))}</span> of it is lumpy bills above their monthly average` : ''}` : ''}</span>
       ${hasSpecial ? `<span><span class="acc">●</span> Total <span class="maskable">${fmt(grandTotalSpent)}</span> · <span style="color:var(--gold);">●</span> excluding one-time <span class="maskable">${fmt(totalSpent)}</span></span>` : ''}
     </div>`;
   return svg + headHtml;
@@ -3353,13 +3405,11 @@ function render(){
   }));
 
   // Bills & goals (shown on the Budget page)
-  const monthlyNeed = state.commitments.reduce((s,c)=>{
-    if(c.freq.startsWith('Quarterly')) return s + c.amount/3;
-    if(c.freq.startsWith('Half-Yearly')) return s + c.amount/6;
-    return s + c.amount/12;
-  },0);
+  const monthlyNeed = lumpyBillsMonthly();
+  const lumpyRowNow = lumpyCatRow();
   document.getElementById('sink-summary-line').textContent =
-    `${state.commitments.length} bill${state.commitments.length===1?'':'s'} · Set aside: ${fmt(t.sink)} · ${fmt(monthlyNeed)} a month needed`;
+    `${state.commitments.length} bill${state.commitments.length===1?'':'s'} · ${state.accounts.some(a=>a.id==='sinking_fund') ? 'Set aside: '+fmt(t.sink)+' · ' : ''}${fmt(monthlyNeed)} a month on average`
+    + (lumpyRowNow && state.commitments.length ? `. This average is the monthly budget for "${storyCatLabel(lumpyRowNow.cat)}".` : '');
   document.getElementById('sink-list').innerHTML = state.commitments.length ? state.commitments.map((c,i)=>`
     <div class="row" data-editcommit="${i}" style="cursor:pointer;"><div><div class="name">${c.name}</div><div class="sub">${c.freq} · due ${c.due}</div></div><div class="amt">${fmt(c.amount)}</div></div>
   `).join('') : '<div class="empty" style="padding:10px 0;">No bills added yet.</div>';
@@ -3915,6 +3965,7 @@ let editCatPickerOpen = false, editAcctPickerOpen = false;
 // Sending it through the expense fields below would save those as blanks and break the entry.
 let editFrom = null, editTo = null;
 let editFromPickerOpen = false, editToPickerOpen = false;
+let editConvert = false; // an expense or income being turned into a transfer
 function localDateStr(d){ const pad = n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 function renderEditTransferPickers(){
   const fromOptions = state.accounts;
@@ -3940,8 +3991,11 @@ function renderEditTransferPickers(){
 }
 function renderEditChips(){
   if(!editingTx) return;
-  const isTransfer = editingTx.type==='transfer';
-  document.getElementById('edittx-heading').textContent = isTransfer ? 'Edit transfer' : 'Edit transaction';
+  const isTransfer = editingTx.type==='transfer' || editConvert;
+  document.getElementById('edittx-heading').textContent = editConvert ? 'Make it a transfer' : isTransfer ? 'Edit transfer' : 'Edit transaction';
+  // A card spend cannot be a transfer out (a card never sends money to an account).
+  document.getElementById('edit-make-transfer').classList.toggle('hide',
+    isTransfer || !((editingTx.type==='expense' && isBankAccountId(editingTx.account)) || editingTx.type==='income'));
   document.getElementById('edit-payee-label').textContent = editingTx.type==='income' ? 'Received from' : 'Paid to';
   document.getElementById('edit-regular-fields').classList.toggle('hide', isTransfer);
   document.getElementById('edit-transfer-fields').classList.toggle('hide', !isTransfer);
@@ -3989,6 +4043,7 @@ function openEditTx(tx){
   editCatPickerOpen = false; editAcctPickerOpen = false;
   editFrom = tx.from || null; editTo = tx.to || null;
   editFromPickerOpen = false; editToPickerOpen = false;
+  editConvert = false;
   document.getElementById('edit-payee').value = tx.payee || '';
   document.getElementById('edit-transfer-note').value = tx.remarks || '';
   document.getElementById('edit-amount').value = tx.amount;
@@ -3996,6 +4051,15 @@ function openEditTx(tx){
   renderEditChips();
   edittxBackdrop.classList.add('open');
 }
+document.getElementById('edit-make-transfer').addEventListener('click', ()=>{
+  if(!editingTx) return;
+  editConvert = true;
+  if(editingTx.type==='expense'){ editFrom = editingTx.account; editTo = null; }
+  else { editTo = editingTx.account; editFrom = null; }
+  if(editingTx.type==='expense') editToPickerOpen = true; else editFromPickerOpen = true;
+  document.getElementById('edit-transfer-note').value = document.getElementById('edit-payee').value.trim() || editingTx.payee || '';
+  renderEditChips();
+});
 document.getElementById('edittx-cancel').addEventListener('click', ()=> edittxBackdrop.classList.remove('open'));
 edittxBackdrop.addEventListener('click', e=>{ if(e.target===edittxBackdrop) edittxBackdrop.classList.remove('open'); });
 document.getElementById('edittx-save').addEventListener('click', async ()=>{
@@ -4013,6 +4077,26 @@ document.getElementById('edittx-save').addEventListener('click', async ()=>{
     const nowD = new Date();
     if(moved > nowD && dateVal !== localDateStr(nowD)){ alert('The date cannot be in the future.'); return; }
     newTs = (moved > nowD ? nowD : moved).toISOString();
+  }
+  if(editConvert){
+    if(!editFrom || !editTo){ alert('Choose both the From and the To account.'); return; }
+    if(editFrom===editTo){ alert('Choose two different accounts.'); return; }
+    editingTx.amount = amount;
+    if(newTs) editingTx.ts = newTs;
+    const half = findOtherHalfTx(editingTx, editFrom, editTo);
+    convertTxToTransfer(editingTx, editFrom, editTo, document.getElementById('edit-transfer-note').value.trim());
+    let removedHalf = false;
+    if(half && confirm(`You also added ${fmt(half.amount)} ${half.type==='income' ? 'received in' : 'paid from'} ${targetName(half.account)} on ${new Date(half.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} as ${half.type==='income' ? 'income' : 'an expense'}. That is the other side of this transfer. Remove it, so the money is not counted twice?`)){
+      state.transactions = state.transactions.filter(x=> x!==half);
+      removedHalf = true;
+    }
+    editConvert = false;
+    recomputeBudgetActuals();
+    await saveState();
+    render();
+    edittxBackdrop.classList.remove('open');
+    showToast(removedHalf ? 'Made into a transfer. The double entry was removed.' : 'Made into a transfer');
+    return;
   }
   if(editingTx.type==='transfer'){
     if(!editFrom || !editTo){ alert('Choose both the From and the To account.'); return; }
@@ -4732,6 +4816,9 @@ function budgetSuggestions(){
     const avg = months.length ? stats.reduce((s,x)=>s+x.recurring,0)/months.length : 0;
     const oneOff = stats.reduce((s,x)=>s+(x.oneOffTotal||0),0);
     byCat[b.cat] = avg>0 ? {value:roundUpBudget(avg), fromSpend:true, oneOff} : {value:b.budget||0, fromSpend:false, oneOff};
+    // Lumpy annual bills: the suggestion is the monthly average of the bills list, not
+    // what happened to be paid in the last few months.
+    if(isLumpyCat(b.cat) && (state.commitments||[]).length) byCat[b.cat] = {value:lumpyBillsMonthly(), fromSpend:true, oneOff:0, lumpy:true};
   });
   return {months, byCat};
 }
@@ -4739,7 +4826,7 @@ function budgetMonthSummary(d){
   const key = monthKeyOf(d);
   const amounts = budgetAmountsForMonth(key);
   const actuals = budgetActualsForMonth(d.getFullYear(), d.getMonth());
-  const rows = state.budget.filter(b=>!b.income && !b.special).map(b=>({cat:b.cat, budget:amounts[b.cat]||0, actual:actuals[b.cat]||0}));
+  const rows = state.budget.filter(b=>!b.income && !b.special).map(b=>({cat:b.cat, budget:amounts[b.cat]||0, actual:actuals[b.cat]||0, lumpy:isLumpyCat(b.cat)}));
   const special = state.budget.filter(b=>b.special).reduce((s,b)=> s+(actuals[b.cat]||0), 0);
   return {key, rows, special, budget:rows.reduce((s,r)=>s+r.budget,0), actual:rows.reduce((s,r)=>s+r.actual,0)};
 }
@@ -4747,14 +4834,15 @@ function budgetMonthSummary(d){
 function budgetMonthTableHtml(sm){
   const rows = sm.rows.filter(r=> r.budget>0 || r.actual>0);
   if(!rows.length) return '';
-  const diffCell = (budget, actual)=>{
+  const diffCell = (budget, actual, lumpy)=>{
     if(!(budget>0)) return `<td class="d">no budget</td>`;
+    if(lumpy){ const g = actual-budget; if(Math.abs(g)<0.5) return `<td class="d">average</td>`; return g>0 ? `<td class="d over"><span class="maskable">${fmt(g)}</span> above average</td>` : `<td class="d"><span class="maskable">${fmt(-g)}</span> below average</td>`; }
     const d = budget - actual;
     if(Math.abs(d) < 0.5) return `<td class="d">on budget</td>`;
     return d<0 ? `<td class="d over"><span class="maskable">${fmt(-d)}</span> over</td>` : `<td class="d"><span class="maskable">${fmt(d)}</span> under</td>`;
   };
   return `<table class="bva"><thead><tr><th>Category</th><th>Budget</th><th>Spent</th><th>Difference</th></tr></thead><tbody>${
-    rows.map(r=>`<tr><td>${storyEsc(storyCatLabel(r.cat))}</td><td class="maskable">${r.budget>0 ? fmt(r.budget) : '—'}</td><td class="maskable">${fmt(r.actual)}</td>${diffCell(r.budget, r.actual)}</tr>`).join('')
+    rows.map(r=>`<tr><td>${storyEsc(storyCatLabel(r.cat))}</td><td class="maskable">${r.budget>0 ? fmt(r.budget) : '—'}</td><td class="maskable">${fmt(r.actual)}</td>${diffCell(r.budget, r.actual, r.lumpy)}</tr>`).join('')
   }<tr class="tot"><td>Total</td><td class="maskable">${fmt(sm.budget)}</td><td class="maskable">${fmt(sm.actual)}</td>${diffCell(sm.budget, sm.actual)}</tr></tbody></table>`;
 }
 let bpOpenMonth = null; // an older month opened from the budget record list
@@ -4795,7 +4883,8 @@ function renderBudgetPage(keepTypedValues, change){
   if(hasPrev){
     prev = budgetMonthSummary(prevDate);
     const diff = prev.budget - prev.actual;
-    const overRows = prev.rows.filter(r=> r.budget>0 && r.actual>r.budget).sort((a,b)=> (b.actual-b.budget)-(a.actual-a.budget));
+    const overRows = prev.rows.filter(r=> !r.lumpy && r.budget>0 && r.actual>r.budget).sort((a,b)=> (b.actual-b.budget)-(a.actual-a.budget));
+    const lumpyPrev = prev.rows.find(r=> r.lumpy && r.budget>0 && r.actual-r.budget>=0.5);
     const pct = prev.budget>0 ? Math.min(100, prev.actual/prev.budget*100) : (prev.actual>0?100:0);
     lastEl.innerHTML = `<div class="divider-label" style="margin-top:6px;">Last month — ${prevLong}: budget vs spent</div>
       <div class="card">
@@ -4809,7 +4898,7 @@ function renderBudgetPage(keepTypedValues, change){
           overRows.length
             ? `Over budget in ${overRows.length} categor${overRows.length===1?'y':'ies'}: ` + overRows.slice(0,3).map(r=>`${storyEsc(storyCatLabel(r.cat))} <span style="color:var(--debt); font-weight:700; white-space:nowrap;" class="maskable">+${fmt(r.actual-r.budget)}</span>`).join(', ') + (overRows.length>3?` and ${overRows.length-3} more`:'') + '.'
             : 'Every category stayed within its budget.'
-        }${prev.special>0 ? ` One-time spending of <span class="maskable">${fmt(prev.special)}</span> is tracked separately, outside this budget.` : ''}</div>
+        }${lumpyPrev ? ` Lumpy annual bills: <span style="color:var(--debt); font-weight:700; white-space:nowrap;" class="maskable">${fmt(lumpyPrev.actual-lumpyPrev.budget)}</span> above the monthly average.` : ''}${prev.special>0 ? ` One-time spending of <span class="maskable">${fmt(prev.special)}</span> is tracked separately, outside this budget.` : ''}</div>
         ${budgetMonthTableHtml(prev)}
       </div>`;
   } else {
@@ -4865,7 +4954,12 @@ function renderBudgetPage(keepTypedValues, change){
     let lastHtml = '';
     // A category with no budget and no spending last month has nothing to compare — just the amount box.
     const quietRow = pr && !pr.budget && !pr.actual;
-    if(pr && !quietRow){
+    const lumpy = isLumpyCat(b.cat);
+    if(lumpy && pr && !quietRow){
+      const pct = pr.budget>0 ? Math.min(100, pr.actual/pr.budget*100) : (pr.actual>0?100:0);
+      lastHtml = `<div class="bp-last">${prevShort}: paid <b class="maskable">${fmt(pr.actual)}</b>${pr.budget>0 ? ` · ${lumpyGapText(pr.budget, pr.actual)}` : ''}</div>
+        <div class="bar-track"><div class="bar-fill ${pr.actual>pr.budget && pr.budget>0?'over':''}" style="width:${pct}%"></div></div>`;
+    } else if(pr && !quietRow){
       const over = pr.budget>0 && pr.actual>pr.budget;
       const pct = pr.budget>0 ? Math.min(100, pr.actual/pr.budget*100) : (pr.actual>0?100:0);
       const gap = pr.budget - pr.actual;
@@ -4874,7 +4968,14 @@ function renderBudgetPage(keepTypedValues, change){
         <div class="bar-track"><div class="bar-fill ${over?'over':''}" style="width:${pct}%"></div></div>`;
     }
     let suggHtml = '';
-    if(sg && sugg.months.length && !(quietRow && !sg.fromSpend && !sg.oneOff)){
+    if(lumpy){
+      const nBills = (state.commitments||[]).length;
+      const avg = lumpyBillsMonthly();
+      const thisMonth = (b.budget>0 && b.actual>0) ? ` This month: paid <b class="maskable">${fmt(b.actual)}</b> · ${lumpyGapText(b.budget, b.actual)}.` : '';
+      suggHtml = nBills
+        ? `<div class="bp-sugg">Lumpy annual bills. Monthly average of your ${nBills} bill${nBills>1?'s':''}: <b class="maskable" style="color:var(--ink);">${fmt(avg)}</b>${avg !== (b.budget||0) ? ` · <button class="bp-use" data-bpuse="${i}" data-bpval="${avg}">Use</button>` : ' — same as your budget'}.${thisMonth}</div>`
+        : `<div class="bp-sugg">Lumpy annual bills. Add your bills under Bills &amp; goals to get the monthly average.${thisMonth}</div>`;
+    } else if(sg && sugg.months.length && !(quietRow && !sg.fromSpend && !sg.oneOff)){
       const oneOffNote = sg.oneOff>0 ? ` <span class="maskable">(one-off ${fmt(sg.oneOff)} left out)</span>` : '';
       if(sg.fromSpend && sg.value !== (b.budget||0)){
         suggHtml = `<div class="bp-sugg">Suggested <b class="maskable" style="color:var(--ink);">${fmt(sg.value)}</b>${oneOffNote} · <button class="bp-use" data-bpuse="${i}" data-bpval="${sg.value}">Use</button></div>`;
@@ -6473,6 +6574,141 @@ function renderLastFetchSummary(){
   });
 }
 
+// ---- TRANSFERS BETWEEN YOUR OWN ACCOUNTS ----
+// Money moved from one of your accounts to another sends two emails: the debit from one and
+// the credit into the other. Added one by one they became an expense and an income, a double
+// entry. Pairs are found here and only suggested: nothing is joined until you tap to confirm.
+const TRANSFER_PAIR_DAYS = 3; // a bank transfer or card payment can take a day or two to show on the other side
+function importAccount(p){ return validatedAccountId(p.accountId, p.sourceEmail); }
+function isBankAccountId(id){ return !!id && state.accounts.some(a=>a.id===id); }
+function isOwnTargetId(id){ return !!id && [...state.accounts, ...state.cards].some(a=>a.id===id); }
+function pairKey(a,b){ return [a,b].sort().join('|'); }
+function withinPairWindow(a,b){ return Math.abs(new Date(a)-new Date(b)) <= TRANSFER_PAIR_DAYS*86400000; }
+function earlierTs(a,b){ return new Date(a) <= new Date(b) ? a : b; }
+function nearestTo(list, ts){ return list.slice().sort((x,y)=> Math.abs(new Date(x.ts)-new Date(ts)) - Math.abs(new Date(y.ts)-new Date(ts)))[0] || null; }
+// kind 'both'     : the debit email and the credit email are both waiting
+// kind 'transfer' : one email waiting; the transfer it belongs to is already added
+// kind 'half'     : one email waiting; the other side was added as an expense or an income
+function findTransferPairs(){
+  const declined = new Set(state.transferPairDeclined||[]);
+  const pending = (state.pendingImports||[]).filter(p=> !p.possible && p.amount>0 && (p.type==='expense'||p.type==='income') && isOwnTargetId(importAccount(p)));
+  const used = new Set(), usedTx = new Set(), pairs = [];
+  pending.filter(p=> p.type==='expense' && isBankAccountId(importAccount(p)))
+    .sort((a,b)=> new Date(a.ts)-new Date(b.ts))
+    .forEach(d=>{
+      const from = importAccount(d);
+      const c = nearestTo(pending.filter(c=> c.type==='income' && !used.has(c.id) && importAccount(c)!==from
+        && Math.abs(c.amount-d.amount)<1 && withinPairWindow(c.ts, d.ts) && !declined.has(pairKey(d.id, c.id))), d.ts);
+      if(!c) return;
+      used.add(d.id); used.add(c.id);
+      pairs.push({kind:'both', key:pairKey(d.id,c.id), out:d, inn:c, from, to:importAccount(c), amount:d.amount, ts:earlierTs(d.ts, c.ts)});
+    });
+  pending.forEach(p=>{
+    if(used.has(p.id)) return;
+    const acct = importAccount(p), isOut = p.type==='expense';
+    const near = state.transactions.filter(t=> !usedTx.has(t.id) && Math.abs((t.amount||0)-p.amount)<1 && withinPairWindow(t.ts, p.ts) && !declined.has(pairKey(p.id, t.id)));
+    const tr = nearestTo(near.filter(t=> t.type==='transfer' && (isOut ? t.from===acct : t.to===acct)), p.ts);
+    if(tr){
+      used.add(p.id); usedTx.add(tr.id);
+      pairs.push({kind:'transfer', key:pairKey(p.id,tr.id), imp:p, tx:tr, from:tr.from, to:tr.to, amount:tr.amount, ts:tr.ts});
+      return;
+    }
+    const other = nearestTo(near.filter(t=> isOut
+      ? (t.type==='income' && t.account!==acct && isOwnTargetId(t.account) && isBankAccountId(acct))
+      : (t.type==='expense' && t.account!==acct && isBankAccountId(t.account))), p.ts);
+    if(other){
+      used.add(p.id); usedTx.add(other.id);
+      pairs.push({kind:'half', key:pairKey(p.id,other.id), imp:p, tx:other, from: isOut ? acct : other.account, to: isOut ? other.account : acct, amount:p.amount, ts:earlierTs(p.ts, other.ts)});
+    }
+  });
+  return pairs.sort((a,b)=> new Date(b.ts)-new Date(a.ts));
+}
+function pairedImportIds(pairs){
+  const ids = new Set();
+  pairs.forEach(pr=>{ if(pr.kind==='both'){ ids.add(pr.out.id); ids.add(pr.inn.id); } else ids.add(pr.imp.id); });
+  return ids;
+}
+// An email that was real and is now part of a transfer: taken off the review list and
+// counted as added, never as rejected.
+function settleImportAsTransfer(imp, savedId){
+  recordImportOutcome(imp, 'added', {type:imp.type, amount:imp.amount, payee:imp.payee||'', accountId:importAccount(imp), category:null}, 'transfer', null, savedId);
+  if(imp.sourceEmail && importAccount(imp)) recordEmailAccountMatch(imp.sourceEmail, importAccount(imp));
+  state.pendingImports = state.pendingImports.filter(p=> p.id!==imp.id);
+}
+// Turns an expense or income already added into a transfer between two of your accounts.
+function convertTxToTransfer(t, from, to, note, ts){
+  const keepNote = (note!==undefined && note!==null) ? note : (t.payee || t.remarks || '');
+  t.type = 'transfer'; t.from = from; t.to = to; t.remarks = keepNote;
+  if(ts) t.ts = ts;
+  delete t.account; delete t.payee; delete t.category; delete t.household;
+}
+// The other half of a transfer that may already be on record: the opposite entry on the
+// other account, same amount, a few days either side.
+function findOtherHalfTx(t, from, to){
+  const otherAcct = t.type==='expense' ? to : from;
+  const wantType = t.type==='expense' ? 'income' : 'expense';
+  return nearestTo(state.transactions.filter(x=> x!==t && x.type===wantType && x.account===otherAcct
+    && Math.abs((x.amount||0)-t.amount)<1 && withinPairWindow(x.ts, t.ts)), t.ts);
+}
+async function acceptTransferPair(pr){
+  let msg = 'Transfer added';
+  if(pr.kind==='both'){
+    const tx = {id:genId('tx'), ts:pr.ts, type:'transfer', from:pr.from, to:pr.to, amount:pr.amount, remarks:(pr.out.payee || '').trim()};
+    state.transactions.push(tx);
+    settleImportAsTransfer(pr.out, tx.id);
+    settleImportAsTransfer(pr.inn, tx.id);
+    msg = 'Added as one transfer';
+  } else if(pr.kind==='transfer'){
+    dismissImportItem(pr.imp, 'already_logged');
+    msg = 'Matched to the transfer already added';
+  } else {
+    convertTxToTransfer(pr.tx, pr.from, pr.to, null, pr.ts);
+    settleImportAsTransfer(pr.imp, pr.tx.id);
+    msg = 'Made into one transfer';
+  }
+  recomputeBudgetActuals();
+  await saveState();
+  render();
+  showToast(msg);
+}
+async function declineTransferPair(pr){
+  if(!Array.isArray(state.transferPairDeclined)) state.transferPairDeclined = [];
+  state.transferPairDeclined.push(pr.key);
+  if(state.transferPairDeclined.length > 300) state.transferPairDeclined = state.transferPairDeclined.slice(-300);
+  await saveState();
+  render();
+}
+function transferPairsHtml(pairs){
+  if(!pairs.length) return '';
+  const when = ts=> new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  const line = pr=>{
+    if(pr.kind==='both') return `Two emails: it left ${storyEsc(targetName(pr.from))} on ${when(pr.out.ts)} and reached ${storyEsc(targetName(pr.to))} on ${when(pr.inn.ts)}.`;
+    if(pr.kind==='transfer') return `This email from ${storyEsc(targetName(pr.imp.type==='expense'?pr.from:pr.to))} matches the transfer you added on ${when(pr.tx.ts)}.`;
+    return pr.tx.type==='income'
+      ? `You added ${fmt(pr.tx.amount)} received in ${storyEsc(targetName(pr.to))} as income. This email shows it left ${storyEsc(targetName(pr.from))}.`
+      : `You added ${fmt(pr.tx.amount)} paid from ${storyEsc(targetName(pr.from))} as an expense. This email shows it reached ${storyEsc(targetName(pr.to))}.`;
+  };
+  const yes = pr=> pr.kind==='both' ? 'Add as transfer' : pr.kind==='transfer' ? 'Same transfer' : 'Make it a transfer';
+  return `<div class="card queue-card" id="transfer-pairs" style="margin-bottom:16px;">
+    <div class="row"><div><div class="name"><span class="q-dot" style="background:var(--peri);"></span>${pairs.length} transfer${pairs.length>1?'s':''} between your accounts?</div><div class="sub">Same amount out of one account and into another. A transfer is not spending.</div></div></div>
+    ${pairs.map((pr,i)=>`<div class="row" style="align-items:flex-start; gap:10px;">
+      <div style="min-width:0; flex:1;">
+        <div class="name">${storyEsc(targetName(pr.from))} → ${storyEsc(targetName(pr.to))}</div>
+        <div class="sub" style="overflow-wrap:anywhere;">${line(pr)}</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end; flex-shrink:0;">
+        <div class="amt maskable">${fmt(pr.amount)}</div>
+        <button class="link-btn" data-pair-yes="${i}">${yes(pr)}</button>
+        <button class="link-btn" style="color:var(--ink-soft);" data-pair-no="${i}">Not a transfer</button>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+function wireTransferPairs(wrap, pairs){
+  wrap.querySelectorAll('[data-pair-yes]').forEach(el=> el.addEventListener('click', async e=>{ e.stopPropagation(); el.disabled = true; await acceptTransferPair(pairs[parseInt(el.dataset.pairYes)]); }));
+  wrap.querySelectorAll('[data-pair-no]').forEach(el=> el.addEventListener('click', async e=>{ e.stopPropagation(); el.disabled = true; await declineTransferPair(pairs[parseInt(el.dataset.pairNo)]); }));
+}
+
 let possibleOpen = false;
 function renderPendingReview(){
   const wrap = document.getElementById('pending-review-wrap');
@@ -6480,13 +6716,17 @@ function renderPendingReview(){
   // "possible": from an address that does not look like a bank, card, lender or payment app;
   // read only because its subject looked like a transaction. Kept apart, never mixed in.
   const possibles = all.filter(i=> i.possible);
-  const items = all.filter(i=> !i.possible);
+  const pairs = findTransferPairs();
+  const pairedIds = pairedImportIds(pairs);
+  const pairsHtml = transferPairsHtml(pairs);
+  const items = all.filter(i=> !i.possible && !pairedIds.has(i.id));
   const possibleHtml = possibles.length ? `<div class="card queue-card" style="margin-bottom:16px;">
     <div class="row" id="possible-toggle" style="cursor:pointer;"><div><div class="name">${possibles.length} possible transaction${possibles.length>1?'s':''} from other senders</div><div class="sub">Not from a bank, card or payment app address. Add one only if it is real.</div></div><span class="link-btn">${possibleOpen ? 'Hide' : 'Show'}</span></div>
     ${possibleOpen ? possibles.map(it=> `<div class="row" data-reviewimport="${it.id}" style="cursor:pointer;"><div style="min-width:0;"><div class="name">${storyEsc(it.payee)}</div><div class="sub" style="overflow-wrap:anywhere;">${new Date(it.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${storyEsc(it.sender||'')}</div></div><div style="text-align:right;"><div class="amt ${it.type==='income'?'pos':'neg'}">${fmt(it.amount)}</div><div class="sub" style="font-size:10.5px; color:var(--peri);">to check</div></div></div>`).join('') : ''}
   </div>` : '';
   if(!items.length){
-    wrap.innerHTML = possibleHtml;
+    wrap.innerHTML = pairsHtml + possibleHtml;
+    wireTransferPairs(wrap, pairs);
     const tg = document.getElementById('possible-toggle'); if(tg) tg.addEventListener('click', ()=>{ possibleOpen = !possibleOpen; renderPendingReview(); });
     wrap.querySelectorAll('[data-reviewimport]').forEach(el=> el.addEventListener('click', ()=> openReviewImport(el.getAttribute('data-reviewimport'))));
     return;
@@ -6517,9 +6757,12 @@ function renderPendingReview(){
       </div>`;
     }).join('')}
   </div>` + possibleHtml;
+  wrap.innerHTML = pairsHtml + wrap.innerHTML;
+  wireTransferPairs(wrap, pairs);
   const tg = document.getElementById('possible-toggle'); if(tg) tg.addEventListener('click', ()=>{ possibleOpen = !possibleOpen; renderPendingReview(); });
   document.getElementById('clear-all-pending-btn').addEventListener('click', async ()=>{
-    if(!confirm(`Clear all ${items.length} items to review? Nothing is added. You can check email again later.`)) return;
+    const clearing = state.pendingImports.filter(p=> !p.possible).length;
+    if(!confirm(`Clear all ${clearing} items to review? Nothing is added. You can check email again later.`)) return;
     state.pendingImports = state.pendingImports.filter(p=> p.possible);
     state.processedGmailIds = [];
     await saveState();
@@ -6558,9 +6801,8 @@ function renderReviewChips(imp){
   // "Paid off a card" only makes sense for money leaving your account — hide it for a
   // credit, and silently fall back to Regular if it was somehow left selected from a
   // previous item.
-  const transferBtn = document.getElementById('ri-mode-transfer-btn');
-  if(transferBtn) transferBtn.classList.toggle('hide', isCredit);
-  const effectiveMode = (isCredit && mode==='transfer') ? 'regular' : mode;
+  // A credit can be a transfer too: money arriving from another of your own accounts.
+  const effectiveMode = mode;
   document.getElementById('ri-cat-field').classList.toggle('hide', effectiveMode==='person' || effectiveMode==='transfer');
   document.getElementById('ri-transfer-field').classList.toggle('hide', effectiveMode!=='transfer');
   document.getElementById('ri-person-field').classList.toggle('hide', effectiveMode!=='person');
@@ -6572,8 +6814,13 @@ function renderReviewChips(imp){
     // reliable, and it just wasn't (a bank-to-card payment email got its own card picked as
     // the source instead of the actual bank account, which then hid that very card from
     // this list). Simpler and more robust: show all of them, always.
-    const targets = [...state.cards, ...state.accounts];
+    // Money arriving: it came from one of your bank accounts (a card never sends money out).
+    const targets = isCredit ? state.accounts.filter(a=> a.id!==riSelectedAccount) : [...state.cards, ...state.accounts];
     if(!targets.find(a=>a.id===riTransferTarget)) riTransferTarget = targets[0] ? targets[0].id : null;
+    document.getElementById('ri-transfer-label').textContent = isCredit ? 'From' : 'To';
+    const halfWaiting = riOtherHalf(imp);
+    document.getElementById('ri-transfer-sub').textContent = 'Added as a transfer, not spending. Your budget is not affected.'
+      + (halfWaiting ? ` The email for the other side (${fmt(halfWaiting.amount)} ${isCredit ? 'out of' : 'into'} ${targetName(importAccount(halfWaiting))}) is cleared with it.` : '');
     document.getElementById('ri-transfer-row').innerHTML = targets.map(a=>
       `<div class="pli ${a.id===riTransferTarget?'on':''}" data-ritransfer="${a.id}"><div class="pli-icon">${acctGlyph(a)}</div><div class="pli-name">${a.name}</div><div class="pli-check">✓</div></div>`
     ).join('');
@@ -6583,7 +6830,7 @@ function renderReviewChips(imp){
     const targetSel = targets.find(a=>a.id===riTransferTarget);
     document.getElementById('ri-transfer-summary').innerHTML = targetSel
       ? `<div class="ps-icon" style="background:var(--paper-dim);">${acctGlyph(targetSel)}</div><div class="ps-name">${targetSel.name}</div><div class="ps-change">${riTransferPickerOpen?'Cancel':'Change'}</div>`
-      : `<div class="ps-icon" style="background:var(--paper-dim); color:var(--debt);">?</div><div class="ps-name" style="color:var(--debt);">Choose a card or account</div><div class="ps-change">Change</div>`;
+      : `<div class="ps-icon" style="background:var(--paper-dim); color:var(--debt);">?</div><div class="ps-name" style="color:var(--debt);">${isCredit ? 'Choose the account it came from' : 'Choose a card or account'}</div><div class="ps-change">Change</div>`;
     document.getElementById('ri-transfer-summary').onclick = ()=>{ riTransferPickerOpen = !riTransferPickerOpen; renderReviewChips(imp); };
     document.getElementById('ri-transfer-row').classList.toggle('hide', !riTransferPickerOpen);
   }
@@ -6663,7 +6910,7 @@ function renderReviewChips(imp){
         : "Choose a category to count this as spending (only when they paid for you).";
   }
 
-  const targets = riSelectedType==='expense' ? [...state.accounts, ...state.cards] : state.accounts;
+  const targets = (riSelectedType==='expense' || effectiveMode==='transfer') ? [...state.accounts, ...state.cards] : state.accounts;
   const validImpAccountId = validatedAccountId(imp.accountId, imp.sourceEmail);
   const detected = validImpAccountId && targets.find(a=>a.id===validImpAccountId);
   if(!targets.find(a=>a.id===riSelectedAccount)) riSelectedAccount = detected ? validImpAccountId : null;
@@ -6682,6 +6929,15 @@ function renderReviewChips(imp){
   const acctNote = document.getElementById('ri-acct-note');
   if(acctNote) acctNote.textContent = riSelectedAccount ? '' : "⚠️ Couldn't auto-detect the account from this email — please choose one.";
 }
+// The email for the other side of the transfer being added, if it is waiting too.
+function riOtherHalf(imp){
+  const isIn = riSelectedType==='income';
+  const otherAcct = riTransferTarget;
+  const wantType = isIn ? 'expense' : 'income';
+  if(!otherAcct) return null;
+  return nearestTo((state.pendingImports||[]).filter(p=> p.id!==imp.id && p.type===wantType && importAccount(p)===otherAcct
+    && Math.abs(p.amount - (parseFloat(document.getElementById('ri-amount').value)||imp.amount))<1 && withinPairWindow(p.ts, imp.ts)), imp.ts);
+}
 wireSeg('ri-mode', ()=>{
   const imp = state.pendingImports.find(p=>p.id===activeImportId);
   if(imp) renderReviewChips(imp);
@@ -6697,6 +6953,8 @@ function openReviewImport(id){
   riCatPickerOpen = false; riAcctPickerOpen = false;
   riPersonSelectedCat = null; riPersonCatPickerOpen = false;
   riTransferTarget = null; riTransferPickerOpen = false;
+  { const pr = findTransferPairs().find(x=> x.kind==='both' && (x.out.id===imp.id || x.inn.id===imp.id));
+    if(pr) riTransferTarget = imp.type==='income' ? pr.from : pr.to; }
   document.getElementById('ri-mode').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v==='regular'));
   document.getElementById('ri-person-dir').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v === (imp.type==='income' ? 'received' : 'gave')));
   const sourceLine = 'From ' + (imp.sourceEmail||'your email') + ' · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + (imp.sender ? ' · sent by ' + imp.sender : '') + (imp.subject ? ' · “' + imp.subject + '”' : '');
@@ -6742,20 +7000,31 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
     // bill. That's money moving between two things you own, not spending — it belongs as a
     // transfer (which already correctly reduces the card's outstanding due, same as paying
     // it off any other way), never as a category expense that would inflate your budget.
-    if(!riTransferTarget){ alert('Choose the account or card it went to.'); return; }
+    const isIn = riSelectedType==='income';
+    if(!riTransferTarget){ alert(isIn ? 'Choose the account it came from.' : 'Choose the account or card it went to.'); return; }
     if(riTransferTarget===riSelectedAccount){ alert('Choose two different accounts.'); return; }
-    const tx = {
-      id: genId('tx'), ts: imp.ts, type: 'transfer',
-      from: riSelectedAccount, to: riTransferTarget, amount, remarks: payee || 'Imported from email'
-    };
+    const from = isIn ? riTransferTarget : riSelectedAccount, to = isIn ? riSelectedAccount : riTransferTarget;
+    const half = riOtherHalf(imp);
+    const tx = { id: genId('tx'), ts: half ? earlierTs(imp.ts, half.ts) : imp.ts, type: 'transfer', from, to, amount, remarks: payee || '' };
     state.transactions.push(tx);
-    recordImportOutcome(imp, 'added', {type:'expense', amount, payee, accountId:riSelectedAccount, category:null}, 'transfer', null, tx.id);
+    recordImportOutcome(imp, 'added', {type:riSelectedType, amount, payee, accountId:riSelectedAccount, category:null}, 'transfer', null, tx.id);
     if(imp.sourceEmail) recordEmailAccountMatch(imp.sourceEmail, riSelectedAccount);
     state.pendingImports = state.pendingImports.filter(p=>p.id!==activeImportId);
+    // The other side's email, when it is waiting too, belongs to this same transfer.
+    if(half) settleImportAsTransfer(half, tx.id);
+    // The other side added earlier as an income or an expense would count the money twice.
+    const halfTx = nearestTo(state.transactions.filter(x=> x!==tx && x.type===(isIn?'expense':'income') && x.account===riTransferTarget
+      && Math.abs((x.amount||0)-amount)<1 && withinPairWindow(x.ts, imp.ts)), imp.ts);
+    let removedHalf = false;
+    if(halfTx && confirm(`You also added ${fmt(halfTx.amount)} ${isIn ? 'paid from' : 'received in'} ${targetName(halfTx.account)} on ${new Date(halfTx.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} as ${isIn ? 'an expense' : 'income'}. That is the other side of this transfer. Remove it, so the money is not counted twice?`)){
+      state.transactions = state.transactions.filter(x=> x!==halfTx);
+      removedHalf = true;
+    }
+    recomputeBudgetActuals();
     await saveState();
     render();
     reviewImportBackdrop.classList.remove('open');
-    showToast('Transfer added');
+    showToast(half ? 'Transfer added. The email for the other side was cleared too.' : removedHalf ? 'Transfer added. The double entry was removed.' : 'Transfer added');
     return;
   }
 
@@ -6782,15 +7051,19 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
 // auto-reject next time; "already logged" just means it was real but redundant, which should
 // never train the system to start rejecting genuinely new transactions that happen to look
 // similar.
-async function dismissImport(reason, why){
-  const imp = state.pendingImports.find(p=>p.id===activeImportId);
+function dismissImportItem(imp, reason, why){
   if(imp){
     if(!state.dismissedImports) state.dismissedImports = [];
     // No undefined values in anything that syncs — the cloud rejects the whole write.
     state.dismissedImports.push({id:genId('di'), ts:imp.ts||null, amount:imp.amount||0, type:imp.type||null, accountId:imp.accountId||null, payee:imp.payee||'', sourceEmail:imp.sourceEmail||null, gmailMessageId:imp.gmailMessageId||null, sender:imp.sender||null, subject:imp.subject||null, reason, why:why||null, scored:true});
     recordImportOutcome(imp, reason, null, null, why||null, null);
     if(state.dismissedImports.length > 200) state.dismissedImports = state.dismissedImports.slice(-200);
+    state.pendingImports = state.pendingImports.filter(p=>p.id!==imp.id);
   }
+}
+async function dismissImport(reason, why){
+  const imp = state.pendingImports.find(p=>p.id===activeImportId);
+  dismissImportItem(imp, reason, why);
   state.pendingImports = state.pendingImports.filter(p=>p.id!==activeImportId);
   await saveState();
   render();
