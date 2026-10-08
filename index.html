@@ -191,6 +191,7 @@
   .cat-entries .chip-icon{width:34px; height:34px;}
   .cat-entries .chip-icon svg{width:15px; height:15px;}
   #engine-page{z-index:66;} /* opens on top of Settings & tools */
+  #catedit-backdrop{z-index:75;} /* a new category can be made from inside the Add, Review and Edit sheets */
   .eng-score{display:flex; align-items:baseline; gap:10px; margin-bottom:4px;}
   .eng-score .big{font-size:34px; font-weight:600; color:var(--ink); line-height:1;}
   .eng-score .of{font-size:12.5px; color:var(--ink-soft);}
@@ -1030,7 +1031,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-08 · v76-transfers-lumpy</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-08 · v78-nothing-unseen</p>
   </div>
 </div>
 
@@ -1940,7 +1941,15 @@ function renderReaderUI(force){
   const lr = readerStatus && readerStatus.lastRun;
   const lastRun = lr ? ` Last check: ${lr.opened} opened, ${lr.notOpened} left unopened${(lr.notices||lr.offers) ? `, ${[lr.notices ? lr.notices+' due reminder'+(lr.notices===1?'':'s') : '', lr.offers ? lr.offers+' offer'+(lr.offers===1?'':'s') : ''].filter(Boolean).join(' and ')} from banks not shown` : ''}.` : '';
   const how = 'A mail is opened only when its sender looks like a bank, card, lender or payment app. Any other mail is opened only if its subject reads like a transaction, and is then shown apart for you to check. Offers, loan pitches and due reminders are left out unless they say money actually moved. Checked at 8 am and 8 pm, and whenever you tap Check on the Accounts tab.' + lastRun;
-  let extra = '';
+  // Every mail from a bank-like address that was opened but did not become an entry, with
+  // the reason, so that nothing is left out without you seeing it.
+  const dropped = (lr && Array.isArray(lr.dropped)) ? lr.dropped : [];
+  const droppedHtml = (lr && (dropped.length || lr.alreadyRead!==undefined))
+    ? `<div class="eng-sub" style="margin:16px 0 4px; color:var(--ink);">Opened, not added — last check</div>
+       <div class="eng-sub" style="margin-bottom:6px;">${dropped.length ? 'Mails from bank addresses the reader opened but did not add, and why. If one is a real transaction, add it with the + button.' : 'Every mail opened from a bank address became an entry.'}${lr.alreadyRead ? ` ${lr.alreadyRead} mail${lr.alreadyRead===1?' was':'s were'} already read before and not read again.` : ''}</div>` +
+      dropped.map(x=> `<div class="eng-line"><span style="overflow-wrap:anywhere; min-width:0;">${storyEsc(x.subject || 'No subject')}<br><span class="eng-sub">${x.ts ? new Date(x.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+' · ' : ''}${storyEsc(x.sender || '')} · ${storyEsc(x.inbox || '')}</span><br><span class="eng-sub" style="color:var(--peri);">${storyEsc(x.reason || '')}</span></span>${x.amount ? `<span class="maskable" style="white-space:nowrap;">${fmt(x.amount)}</span>` : ''}</div>`).join('')
+    : '';
+  let extra = droppedHtml;
   if(inboxes.length){
     const taught = readerSenders || {};
     const sugs = addressSuggestions();
@@ -1969,7 +1978,7 @@ function renderReaderUI(force){
       : '';
     const taughtRows = Object.keys(taught).sort().map(addr=> `<div class="eng-line"><span style="overflow-wrap:anywhere; min-width:0;">${storyEsc(addr)}<br><span class="eng-sub">${storyEsc(targetName((taught[addr]||[])[0]))}</span></span><button class="link-btn" data-senderremove="${storyEsc(addr)}" style="color:var(--ink-soft);">Remove</button></div>`).join('');
     const built = (readerLearned && readerLearned.builtAt) ? `Last looked on ${new Date(readerLearned.builtAt).toLocaleDateString('en-IN',{day:'numeric', month:'short'})}: ${readerLearned.mailsOpened||0} past mails${readerLearned.mailsLeft ? ', '+readerLearned.mailsLeft+' still to look at' : ''}.` : 'Not looked at yet.';
-    extra = suggestHtml + unmatchedHtml + ignoredHtml +
+    extra = droppedHtml + suggestHtml + unmatchedHtml + ignoredHtml +
       `<div class="eng-sub" style="margin:16px 0 4px; color:var(--ink);">Tie an alert address to an account</div>
        <div class="eng-sub" style="margin-bottom:8px;">Entries from that address then go to the account you choose, without asking.</div>
        ${taughtRows}
@@ -2582,6 +2591,14 @@ async function deleteBudgetCategory(catName){
   return true;
 }
 const cateditBackdrop = document.getElementById('catedit-backdrop');
+// "+ New" at the end of a category grid: makes a category without leaving the sheet, and
+// selects it when saved.
+function newCatChipHtml(){ return `<div class="cat-chip" data-newcat="1" role="button" aria-label="New category"><div class="em" style="background:var(--paper-dim); color:var(--peri); font-size:20px;">＋</div><div class="lb">New</div></div>`; }
+function wireNewCatChip(gridId, income, onCreated){
+  const el = document.querySelector('#'+gridId+' [data-newcat]');
+  if(!el) return;
+  el.addEventListener('click', ()=> openCategorySheet(null, {income, onDone: r=>{ if(r && r.newName && !r.deleted) onCreated(r.newName); }}));
+}
 let cateditCtx = null; // {cat: existing name or null for a new one, income, onDone}
 function openCategorySheet(catName, opts){
   const b = catName ? state.budget.find(x=>x.cat===catName) : null;
@@ -3518,10 +3535,11 @@ function renderTxFormLists(){
       if(m) short = `${short} (${m[1].split(' ')[0].split(',')[0]})`;
     }
     return `<div class="cat-chip ${c===txSelectedCat?'on':''}" data-cat="${c}"><div class="em" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="lb">${short}</div></div>`;
-  }).join('');
-  document.querySelectorAll('#cat-grid .cat-chip').forEach(el=>{
+  }).join('') + newCatChipHtml();
+  document.querySelectorAll('#cat-grid .cat-chip[data-cat]').forEach(el=>{
     el.addEventListener('click', ()=>{ txSelectedCat = el.dataset.cat; userTouchedCategory = true; catPickerOpen = false; renderTxFormLists(); });
   });
+  wireNewCatChip('cat-grid', type==='income', name=>{ txSelectedCat = name; userTouchedCategory = true; catPickerOpen = false; renderTxFormLists(); });
   // Collapsed summary: shows the suggested/current category as one line, with a Change
   // link that opens the full grid above. Keeps the screen to a handful of lines when the
   // suggestion is already right, per the "clean 4-5 line" ask.
@@ -4012,8 +4030,9 @@ function renderEditChips(){
       if(m) short = `${short} (${m[1].split(' ')[0].split(',')[0]})`;
     }
     return `<div class="cat-chip ${c===editSelectedCat?'on':''}" data-editcat="${c}"><div class="em" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="lb">${short}</div></div>`;
-  }).join('');
-  document.querySelectorAll('#edit-cat-grid .cat-chip').forEach(el=>{
+  }).join('') + newCatChipHtml();
+  wireNewCatChip('edit-cat-grid', editingTx.type==='income', name=>{ editSelectedCat = name; editCatPickerOpen = false; renderEditChips(); });
+  document.querySelectorAll('#edit-cat-grid .cat-chip[data-editcat]').forEach(el=>{
     el.addEventListener('click', ()=>{ editSelectedCat = el.dataset.editcat; editCatPickerOpen = false; renderEditChips(); });
   });
   const editCatMeta = catMeta(editSelectedCat);
@@ -6847,8 +6866,9 @@ function renderReviewChips(imp){
       if(m) short = `${short} (${m[1].split(' ')[0].split(',')[0]})`;
     }
     return `<div class="cat-chip ${c===riSelectedCat?'on':''}" data-ricat="${c}"><div class="em" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="lb">${short}</div></div>`;
-  }).join('');
-  document.querySelectorAll('#ri-cat-grid .cat-chip').forEach(el=>{
+  }).join('') + newCatChipHtml();
+  wireNewCatChip('ri-cat-grid', riSelectedType==='income', name=>{ riSelectedCat = name; riCatPickerOpen = false; renderReviewChips(imp); });
+  document.querySelectorAll('#ri-cat-grid .cat-chip[data-ricat]').forEach(el=>{
     el.addEventListener('click', ()=>{ riSelectedCat = el.dataset.ricat; riCatPickerOpen = false; renderReviewChips(imp); });
   });
   const riCatMeta = catMeta(riSelectedCat);
@@ -7161,7 +7181,21 @@ function engineReportData(days){
     scoredNotReal: scored.filter(e=>e.kind==='not_real').length, scoredAlready: scored.filter(e=>e.kind==='already_logged').length,
     notReal, whyCounts, repeats, memCount: Object.keys(mem).length, memTop, habits, skipped, skippedSenders,
     autoRejected: ev.filter(e=>e.kind==='auto').length,
+    autoList: (state.dismissedImports||[]).filter(x=> x.autoLearned && inPeriod(x.ts)).sort((a,b)=> new Date(b.ts)-new Date(a.ts)),
     rejectedRemembered: (state.dismissedImports||[]).length, pendingFields: [...new Set((state.pendingImports||[]).flatMap(p=>Object.keys(p)))].sort()};
+}
+// A mail the reader rejected by itself goes back to the review list on Home.
+async function putBackAutoRejected(id){
+  const d = (state.dismissedImports||[]).find(x=> x.id===id && x.autoLearned);
+  if(!d) return;
+  state.pendingImports.push({id:genId('imp'), gmailMessageId:d.gmailMessageId||null, sourceEmail:d.sourceEmail||null, ts:d.ts||new Date().toISOString(),
+    amount:d.amount||0, type:d.type||'expense', payee:d.payee||'Unknown', category:null, accountId:d.accountId||null,
+    sender:d.sender||null, subject:d.subject||null, status:'pending'});
+  state.dismissedImports = state.dismissedImports.filter(x=> x.id!==id);
+  await saveState();
+  render();
+  renderEngineReport();
+  showToast('Put back. It is on Home for review.');
 }
 let enginePeriod = 5;
 // The sender rule's own records live in the cloud only (written by the email reader, not by
@@ -7250,8 +7284,11 @@ function renderEngineReport(){
      <div class="divider-label">By inbox — ${periodName} (${d.total} found)</div>${inboxCards}
      ${skippedHtml}
      <div class="divider-label">Marked not a transaction by you — ${d.notReal.length}</div>${notRealHtml}
+     ${d.autoList.length ? `<div class="divider-label">Rejected by the reader itself — ${d.autoList.length}</div>
+       <div class="card"><div class="eng-sub" style="margin-bottom:4px;">From addresses not tied to any account: the same amount and name was rejected three times before. A bank address tied to an account is never rejected this way. If one is real, put it back for review.</div>${d.autoList.slice(0,SHOW).map(x=>`<div class="eng-line"><span style="overflow-wrap:anywhere; min-width:0;">${storyEsc(x.payee||'Unknown')}<br><span class="eng-sub">${shortDate(x.ts)} · ${x.type==='income'?'credit':'debit'} · ${storyEsc(x.sourceEmail||'')}${x.sender ? ' · from '+storyEsc(x.sender) : ''}</span></span><span style="text-align:right; white-space:nowrap;"><span class="maskable">${fmt(x.amount||0)}</span><br><button class="link-btn" data-putback="${storyEsc(x.id)}">Put back</button></span></div>`).join('')}</div>` : ''}
      ${repeatsHtml}
      <div class="divider-label">What the reader has learned so far</div>${learnedHtml}`;
+  document.querySelectorAll('#engine-body [data-putback]').forEach(b=> b.addEventListener('click', ()=> putBackAutoRejected(b.getAttribute('data-putback'))));
   document.querySelectorAll('#engine-period button').forEach(b=> b.classList.toggle('on', String(enginePeriod)===b.dataset.v));
   document.querySelectorAll('#engine-rule-seg button').forEach(b=> b.addEventListener('click', ()=>{
     const on = b.dataset.v==='on';
@@ -7282,6 +7319,12 @@ function engineReportText(){
     d.notReal.forEach(e=> lines.push(`  ${e.ts ? istStamp(e.ts) : '?'} | ${e.inbox} | ${e.type==='income'?'credit':'debit'} | ${e.amount} | ${e.payee||'Unknown'} | ${e.sender||'-'} | ${e.subject||'-'}`));
   });
   const all = engineReportData(0);
+  lines.push('', '== Rejected by the reader itself, all on record ==');
+  all.autoList.forEach(x=> lines.push(`  ${x.ts ? istStamp(x.ts) : '?'} | ${x.sourceEmail||'?'} | ${x.type==='income'?'credit':'debit'} | ${x.amount} | ${x.payee||'Unknown'} | ${x.sender||'-'} | ${x.subject||'-'}`));
+  const lrr = readerStatus && readerStatus.lastRun;
+  lines.push('', '== Opened, not added, last check ==');
+  ((lrr && lrr.dropped) || []).forEach(x=> lines.push(`  ${x.ts ? istStamp(x.ts) : '?'} | ${x.inbox||'?'} | ${x.sender||'-'} | ${x.reason||'-'} | ${x.amount||''} | ${x.subject||'-'}`));
+  if(lrr) lines.push(`  already read before: ${lrr.alreadyRead===undefined ? '?' : lrr.alreadyRead}`);
   lines.push('', '== Not real, all on record ==');
   all.notReal.forEach(e=> lines.push(`  ${e.ts ? istStamp(e.ts) : '?'} | ${e.inbox} | ${e.type==='income'?'credit':'debit'} | ${e.amount} | ${e.payee||'Unknown'} | ${e.sender||'-'} | ${e.subject||'-'}`));
   lines.push('', `== Sender rule: ${engineRuleOn===null ? 'state not loaded' : engineRuleOn ? 'ON' : 'OFF'} — set aside, all on record (${engineSkipped===null ? 'list not loaded' : all.skipped.length}) ==`);
