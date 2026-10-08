@@ -440,6 +440,7 @@
       <div class="pace" id="trend-chart-wrap"></div>
       <div style="margin-top:18px;">
         <div id="signin-card-wrap"></div>
+        <div id="reader-card-wrap"></div>
         <div id="heads-up-wrap"></div>
         <div id="pending-review-wrap"></div>
         <div id="learning-match-wrap"></div>
@@ -466,13 +467,14 @@
           <span data-breakdown="gap">With people: <b class="v maskable" id="hdr-gap">—</b></span>
         </div>
       </div>
-      <div class="card email-fetch legacy-only">
+      <div class="card email-fetch reader-only">
         <div class="ef-label">Check email</div>
         <input type="date" id="gmail-custom-date" required aria-label="Choose date to check from">
         <button class="btn-primary" id="gmail-custom-fetch-btn">Check</button>
         <span id="gmail-status-text" class="hide"></span>
       </div>
-      <div class="legacy-only" style="text-align:right; margin-top:6px;"><button class="link-btn" id="open-engine-report-btn">Email accuracy</button></div>
+      <div class="reader-only" style="text-align:right; margin-top:6px;"><button class="link-btn" id="open-engine-report-btn">Email accuracy</button></div>
+      <div id="connect-gmail-wrap"></div>
       <div class="panel">
         <div class="ph"><b>Accounts &amp; Cards</b></div>
         <div id="wallet-carousel"></div>
@@ -1003,10 +1005,9 @@
       <div class="card" id="household-box" style="margin-bottom:6px;"></div>
     </div>
 
-    <div class="legacy-only">
-      <div class="divider-label">Bank emails</div>
-      <button class="btn-ghost" id="tools-engine-report-btn" style="margin-top:0;">Email accuracy</button>
-    </div>
+    <div class="divider-label">Bank emails</div>
+    <div class="card" id="reader-box" style="margin-bottom:6px;"></div>
+    <button class="btn-ghost reader-only" id="tools-engine-report-btn" style="margin-top:0;">Email accuracy</button>
 
     <div class="divider-label">PDF reports</div>
     <div class="field" style="margin-bottom:6px;"><label>Name printed under the title (optional)</label><input id="pdf-name-input" maxlength="90" autocomplete="off" placeholder="e.g. Sharma family, Pune"></div>
@@ -1024,7 +1025,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-07 · v70-story-removed</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-08 · v75-sender-first</p>
   </div>
 </div>
 
@@ -1282,6 +1283,7 @@ function readStateForCurrentHousehold(){
   }
   if(!state) state = JSON.parse(JSON.stringify(STARTER));
   normalizeState();
+  loadReaderCache();
 }
 // Fields added after a device's data was first saved. Filled in on every load rather than
 // through a schemaVersion bump: a bump makes the first device to see it push its whole
@@ -1674,10 +1676,344 @@ async function cancelInvite(email){
   }catch(e){ console.error('Cancel failed', e); showToast('Could not cancel. Try again.', 3000); }
   await loadHouseholdDoc();
 }
-// Parts of the screen that only the first household uses for now (the email reader), and
-// the Household section that only the others use.
+// ---- BANK EMAILS: the inboxes read for this household ----
+// The server does the reading. It needs the person's sign-in with every request, and it
+// writes one document (readerStatus) saying which inboxes are connected and how they are
+// doing. This app only shows that, starts a connection, and asks for a check.
+const READER_BASE = 'https://us-central1-financial-assistant-141e8.cloudfunctions.net/';
+let readerStatus = null;     // from the server: inboxes, their state, bank addresses that fit no account
+let readerSenders = null;    // from this app: alert addresses the household has tied to an account
+let readerIgnored = [];      // from this app: addresses the household has marked "not a bank"
+let readerDeclined = [];     // from this app: suggestions the household answered "not now"
+let readerLearned = null;    // from the server: which account each address's saved entries went to
+let readerListeningFor = null;
+let gmailJustConnected = null;
+function readerCacheKey(){ return 'fa-reader-'+currentHid; }
+function loadReaderCache(){
+  readerStatus = null; readerSenders = null; readerIgnored = []; readerDeclined = []; readerLearned = null;
+  try{ if(currentHid) readerStatus = JSON.parse(localStorage.getItem(readerCacheKey())) || null; }catch(e){ readerStatus = null; }
+}
+function readerInboxes(){ return (readerStatus && Array.isArray(readerStatus.inboxes)) ? readerStatus.inboxes : []; }
+// The first household has had its inboxes connected all along; others once they connect one.
+function readerOn(){ return isLegacy() || readerInboxes().length > 0; }
+// First household only: which of its accounts each inbox can produce (sent by the server).
+function inboxAccountsMap(){ return (readerStatus && readerStatus.inboxAccounts) || {}; }
+function listenToReaderStatus(){
+  if(!db || !currentHid || readerListeningFor === currentHid) return;
+  readerListeningFor = currentHid;
+  const forHid = currentHid;
+  hh('readerStatus').onSnapshot(snap=>{
+    if(forHid !== currentHid) return;
+    readerStatus = snap.exists ? snap.data() : null;
+    try{
+      if(readerStatus) localStorage.setItem(readerCacheKey(), JSON.stringify(readerStatus));
+      else localStorage.removeItem(readerCacheKey());
+    }catch(e){}
+    applyHouseholdUI();
+  }, err=> console.error('reader status listener error', err));
+  loadReaderSenders();
+}
+// A request to the server, carrying the sign-in. -> {status, data}
+async function readerCall(name, opts){
+  opts = opts || {};
+  if(!authUser || !authUser.getIdToken) return {status:401, data:{ok:false}};
+  const token = await authUser.getIdToken();
+  const headers = {Authorization: 'Bearer ' + token};
+  if(opts.body) headers['Content-Type'] = 'application/json';
+  const res = await fetch(READER_BASE + name + (opts.query ? '?' + opts.query : ''), {method: opts.method || 'POST', headers, body: opts.body ? JSON.stringify(opts.body) : undefined});
+  let data = null;
+  try{ data = await res.json(); }catch(e){}
+  return {status: res.status, data: data || {ok:false}};
+}
+async function connectGmail(btn){
+  if(!authUser){ showToast('Sign in first.', 3000); return; }
+  const label = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Opening Google…'; }
+  try{
+    const r = await readerCall('gmailConnect', {body:{returnTo: location.origin + location.pathname}});
+    if(r.status===200 && r.data.ok && r.data.url){ location.href = r.data.url; return; }
+    showToast((r.status===401 || r.status===403) ? 'Sign out and in again, then try once more.' : 'Could not start. Try again in a moment.', 4000);
+  }catch(e){
+    console.error('Connect Gmail failed', e);
+    showToast('Could not connect just now. Try again later.', 4000);
+  }
+  if(btn){ btn.disabled = false; btn.textContent = label; }
+}
+async function disconnectInbox(email, btn){
+  if(!confirm(`Stop reading ${email}? Entries already added stay as they are.`)) return;
+  if(btn){ btn.disabled = true; btn.textContent = 'Disconnecting…'; }
+  try{
+    const r = await readerCall('gmailDisconnect', {body:{email}});
+    showToast(r.status===200 && r.data.ok ? 'Disconnected' : 'Could not disconnect. Try again.', 3500);
+  }catch(e){
+    console.error('Disconnect failed', e);
+    showToast('Could not disconnect just now. Try again later.', 3500);
+  }
+  renderReaderUI(true);
+}
+async function loadReaderSenders(){
+  if(!currentHid || !db || !cloudReady) return;
+  try{
+    const doc = await hh('readerSenders').get();
+    readerSenders = (doc.exists && doc.data().senders) || {};
+    readerIgnored = (doc.exists && Array.isArray(doc.data().ignored)) ? doc.data().ignored : [];
+    readerDeclined = (doc.exists && Array.isArray(doc.data().declined)) ? doc.data().declined : [];
+    const learned = await hh('readerLearned').get();
+    readerLearned = learned.exists ? learned.data() : null;
+  }catch(e){ console.error('Could not load the alert addresses', e); }
+  renderReaderUI(true);
+}
+// Which account the entries from each address were saved to. Two sources added together:
+// the server's count from past entries (as it stood at builtAt), and the decisions made
+// since then that this device holds. Only a count: nothing here ties anything.
+function addressTally(){
+  const out = {};
+  const row = a => (out[a] = out[a] || {sender:a, accounts:{}, total:0, known:false, bankLike:false});
+  const L = readerLearned;
+  if(L && L.senders) Object.keys(L.senders).forEach(a=>{
+    const src = L.senders[a], r = row(a);
+    r.known = !!src.known; r.bankLike = !!src.bankLike;
+    Object.keys(src.accounts||{}).forEach(id=>{ r.accounts[id] = (r.accounts[id]||0) + src.accounts[id]; r.total += src.accounts[id]; });
+  });
+  const since = (L && L.builtAt) ? new Date(L.builtAt).getTime() : 0;
+  (state.importOutcomes||[]).forEach(o=>{
+    if(o.outcome!=='added' || !o.sender || !o.final || !o.final.accountId) return;
+    if(new Date(o.at||0).getTime() <= since) return;
+    const r = row(String(o.sender).toLowerCase());
+    r.accounts[o.final.accountId] = (r.accounts[o.final.accountId]||0) + 1; r.total++;
+    if(o.unknownSender !== true) r.known = true; // the reader already knew this address
+    if(o.bankLike) r.bankLike = true;
+  });
+  return out;
+}
+// Addresses worth suggesting: not yet known to the reader, not tied, ignored or declined, and
+// saved to the same account at least twice (once is enough when the address itself looks like
+// a bank's). A second account is included only if it was used at least twice too.
+function addressSuggestions(){
+  if(readerSenders === null) return [];
+  const exists = id => [...state.accounts, ...state.cards].some(t=> t.id===id);
+  return Object.values(addressTally()).filter(r=> !r.known && !readerSenders[r.sender] && !readerIgnored.includes(r.sender) && !readerDeclined.includes(r.sender)).map(r=>{
+    const ranked = Object.entries(r.accounts).filter(([id])=> exists(id)).sort((a,b)=> b[1]-a[1]);
+    const picks = ranked.filter(([,n], i)=> i===0 ? n >= (r.bankLike ? 1 : 2) : n >= 2).slice(0, 3).map(([id,n])=>({id, n}));
+    return picks.length ? {sender:r.sender, picks, total:r.total, bankLike:r.bankLike} : null;
+  }).filter(Boolean).sort((a,b)=> b.total - a.total || (a.sender < b.sender ? -1 : 1));
+}
+async function confirmSuggestion(address){
+  const sug = addressSuggestions().find(x=> x.sender===address);
+  if(!sug) return;
+  if(!cloudReady || !db){ showToast('Go online and try again.', 3000); return; }
+  try{
+    await writeReaderSenders({...(readerSenders || {}), [address]: sug.picks.map(p=>p.id)}, readerIgnored);
+    showToast('Tied. Its entries go to ' + sug.picks.map(p=> targetName(p.id)).join(' or ') + ' from now on.', 4000);
+  }catch(e){ console.error('Could not save', e); showToast('Could not save. Try again.', 3000); }
+  renderReaderUI(true);
+}
+async function declineSuggestion(address){
+  if(!cloudReady || !db){ showToast('Go online and try again.', 3000); return; }
+  try{
+    readerDeclined = [...new Set([...readerDeclined, address])];
+    await writeReaderSenders({...(readerSenders || {})}, readerIgnored);
+    showToast('Left as it is.');
+  }catch(e){ console.error('Could not save', e); showToast('Could not save. Try again.', 3000); }
+  renderReaderUI(true);
+}
+// Asks the server to look at entries already saved from email and count which account each
+// address went to. Only the count comes back; suggestions are then shown for confirming.
+async function learnFromPastEntries(btn){
+  if(!authUser){ showToast('Sign in first.', 3000); return; }
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Looking at past entries…';
+  try{
+    const r = await readerCall('learnAddresses', {});
+    if(r.status===200 && r.data.ok){
+      await loadReaderSenders();
+      const n = addressSuggestions().length;
+      showToast(`Looked at ${r.data.opened} past mail${r.data.opened===1?'':'s'}. ${n ? n+' suggestion'+(n===1?'':'s')+' below.' : 'Nothing new to suggest.'}${r.data.left ? ' '+r.data.left+' more to look at: tap again.' : ''}`, 6000);
+    } else {
+      showToast((r.status===401 || r.status===403) ? 'Sign out and in again, then try once more.' : 'Could not finish. Try again in a moment.', 4000);
+    }
+  }catch(e){
+    console.error('Learning from past entries failed', e);
+    showToast('Could not reach the server just now. Try again later.', 4000);
+  }
+  const again = document.getElementById('reader-learn-btn');
+  if(again){ again.disabled = false; again.textContent = label; }
+}
+// Addresses that sent transaction-like mails but are tied to no account, and that nobody has
+// dealt with yet (not tied, not marked "not a bank"). Their entries are still offered on Home,
+// marked "new address"; this list is only for tidying up. Worked out from the entries waiting
+// and the decisions already made, over the last 60 days.
+function readerUnhandled(){
+  if(readerSenders === null) return [];
+  const since = Date.now() - 60*86400000;
+  const by = {};
+  const row = a => (by[a] = by[a] || {sender:a, waiting:0, added:0, rejected:0, count:0});
+  (state.pendingImports||[]).forEach(p=>{ if(p.unknownSender && p.sender){ const r = row(p.sender); r.waiting++; r.count++; } });
+  (state.importOutcomes||[]).forEach(o=>{
+    if(!o.unknownSender || !o.sender || new Date(o.at||0).getTime() < since) return;
+    const r = row(o.sender); r.count++;
+    if(o.outcome==='not_real') r.rejected++; else r.added++;
+  });
+  return Object.values(by).filter(u=> !readerSenders[u.sender] && !readerIgnored.includes(u.sender)).sort((a,b)=> b.count - a.count || (a.sender < b.sender ? -1 : 1));
+}
+async function writeReaderSenders(senders, ignored){
+  // a "not now" is forgotten once the address is tied or ignored
+  const declined = readerDeclined.filter(a=> !senders[a] && !ignored.includes(a));
+  await hh('readerSenders').set({_type:'readerSenders', senders, ignored, declined, updatedAt: new Date().toISOString()});
+  readerSenders = senders; readerIgnored = ignored; readerDeclined = declined;
+}
+async function ignoreReaderSender(address){
+  if(!cloudReady || !db){ showToast('Go online and try again.', 3000); return; }
+  try{
+    await writeReaderSenders({...(readerSenders || {})}, [...new Set([...readerIgnored, address])]);
+    showToast('Ignored. Its mails are set aside from now on.', 3000);
+  }catch(e){ console.error('Could not save', e); showToast('Could not save. Try again.', 3000); }
+  renderReaderUI(true);
+}
+// Ties an alert address to an account (accountId null removes it).
+async function saveReaderSender(address, accountId){
+  const addr = String(address||'').trim().toLowerCase();
+  if(!/^[^@\s<>]+@[^@\s<>]+\.[^@\s<>]+$/.test(addr)){ showToast('Enter the full address, like alerts@bank.com', 3500); return false; }
+  if(!cloudReady || !db){ showToast('Go online and try again.', 3000); return false; }
+  const next = {...(readerSenders || {})};
+  if(accountId) next[addr] = [accountId]; else delete next[addr];
+  try{
+    await writeReaderSenders(next, readerIgnored.filter(a=> a !== addr));
+    showToast(accountId ? 'Saved. Its entries go to this account from now on.' : 'Removed', accountId ? 3500 : 1800);
+  }catch(e){
+    console.error('Could not save the alert address', e);
+    showToast('Could not save. Try again.', 3000);
+    return false;
+  }
+  renderReaderUI(true);
+  return true;
+}
+function renderReaderUI(force){
+  const box = document.getElementById('reader-box');
+  if(!box) return;
+  const inboxes = readerInboxes();
+  const lapsed = inboxes.filter(i=> i.state==='reconnect');
+  const all = [...state.accounts, ...state.cards].filter(a=> a.id!=='cash_wallet' && a.id!=='sinking_fund');
+  const acctOptions = sel => all.map(a=> `<option value="${storyEsc(a.id)}" ${a.id===sel?'selected':''}>${storyEsc(a.name)}</option>`).join('');
+
+  // Home: an inbox whose permission has lapsed
+  const home = document.getElementById('reader-card-wrap');
+  if(home){
+    home.innerHTML = lapsed.length
+      ? `<div class="heads-up-card" id="reader-card" style="cursor:pointer;"><div class="hu-icon">${ICON.bolt}</div><div class="hu-body"><div class="hu-title">${lapsed.length===1 ? 'An inbox needs connecting again' : lapsed.length+' inboxes need connecting again'}</div><div class="hu-sub" style="overflow-wrap:anywhere;">${storyEsc(lapsed.map(i=>i.email).join(', '))} is not being read.</div></div><div class="hu-tag">Open</div></div>`
+      : '';
+    const sugs = addressSuggestions();
+    if(sugs.length){
+      const first = sugs[0];
+      home.innerHTML += `<div class="heads-up-card" id="reader-suggest-card" style="cursor:pointer;"><div class="hu-icon">${ICON.inbox}</div><div class="hu-body"><div class="hu-title">${sugs.length===1 ? 'An address can be tied to an account' : sugs.length+' addresses can be tied to accounts'}</div><div class="hu-sub" style="overflow-wrap:anywhere;">${storyEsc(first.sender)} → ${storyEsc(targetName(first.picks[0].id))}${sugs.length>1 ? ', and '+(sugs.length-1)+' more' : ''}. Confirm or leave it.</div></div><div class="hu-tag">Open</div></div>`;
+    }
+    // listeners go on after all the cards are in place
+    const c = document.getElementById('reader-card'); if(c) c.addEventListener('click', openSettingsPage);
+    const sc = document.getElementById('reader-suggest-card'); if(sc) sc.addEventListener('click', openSettingsPage);
+  }
+  // Accounts: an offer to connect, for a household that has no inbox yet
+  const offer = document.getElementById('connect-gmail-wrap');
+  if(offer){
+    offer.innerHTML = (currentHid && !isLegacy() && !inboxes.length && authUser)
+      ? `<div class="heads-up-card" id="connect-gmail-card" style="cursor:pointer; margin-top:10px;"><div class="hu-icon">${ICON.inbox}</div><div class="hu-body"><div class="hu-title">Add transactions from bank emails</div><div class="hu-sub">Connect the Gmail inbox where your bank's alerts arrive.</div></div><div class="hu-tag">Set up</div></div>`
+      : '';
+    const c = document.getElementById('connect-gmail-card'); if(c) c.addEventListener('click', openSettingsPage);
+  }
+
+  // Settings -> Bank emails
+  if(!currentHid){ box.innerHTML = ''; return; }
+  // never redraw under someone who is typing an address or choosing an account
+  const active = document.activeElement;
+  if(!force && active && box.contains(active) && active.tagName !== 'BUTTON') return;
+  if(!authUser){ box.innerHTML = '<div class="eng-sub">Sign in to see or connect inboxes.</div>'; return; }
+  const rows = inboxes.map(i=> `<div class="eng-line"><span style="overflow-wrap:anywhere; min-width:0;">${storyEsc(i.email)}<br><span class="eng-sub" style="${i.state==='reconnect'?'color:var(--debt);':''}">${i.state==='reconnect' ? 'Not being read. Permission has lapsed.' : i.error ? storyEsc(i.error) : 'Bank alerts are read'}</span></span><span style="white-space:nowrap;">${i.state==='reconnect' ? `<button class="link-btn" data-reconnect="1">Connect again</button> · ` : ''}<button class="link-btn" data-disconnect="${storyEsc(i.email)}" style="color:var(--ink-soft);">Disconnect</button></span></div>`).join('');
+  const none = isLegacy()
+    ? '<div class="eng-sub">The list of connected inboxes appears here after the next check.</div>'
+    : '<div class="eng-sub">No inbox connected yet. Connect the Gmail inbox where your bank\'s alerts arrive, and new transactions appear on Home for you to check and add.</div>';
+  const lr = readerStatus && readerStatus.lastRun;
+  const lastRun = lr ? ` Last check: ${lr.opened} opened, ${lr.notOpened} left unopened${(lr.notices||lr.offers) ? `, ${[lr.notices ? lr.notices+' due reminder'+(lr.notices===1?'':'s') : '', lr.offers ? lr.offers+' offer'+(lr.offers===1?'':'s') : ''].filter(Boolean).join(' and ')} from banks not shown` : ''}.` : '';
+  const how = 'A mail is opened only when its sender looks like a bank, card, lender or payment app. Any other mail is opened only if its subject reads like a transaction, and is then shown apart for you to check. Offers, loan pitches and due reminders are left out unless they say money actually moved. Checked at 8 am and 8 pm, and whenever you tap Check on the Accounts tab.' + lastRun;
+  let extra = '';
+  if(inboxes.length){
+    const taught = readerSenders || {};
+    const sugs = addressSuggestions();
+    const tallyNow = addressTally();
+    const likeliest = a => { const t = tallyNow[a]; return t ? (Object.entries(t.accounts).sort((x,y)=> y[1]-x[1])[0] || [])[0] : null; };
+    const times = n => n===1 ? 'once' : n===2 ? 'twice' : n+' times';
+    const suggestHtml = sugs.length
+      ? `<div class="eng-sub" style="margin:16px 0 4px; color:var(--ink);">Suggested</div>
+         <div class="eng-sub" style="margin-bottom:6px;">Worked out from entries you have already saved. Nothing is tied until you confirm.</div>` +
+        sugs.map(g=> `<div class="field" style="margin-bottom:12px;"><label style="overflow-wrap:anywhere; color:var(--ink);">${storyEsc(g.sender)}</label>
+          <div class="eng-sub" style="margin-bottom:8px;">Its entries were saved to ${g.picks.map(p=> storyEsc(targetName(p.id))+' '+times(p.n)).join(', and to ')}.${g.bankLike ? ' The address looks like a bank\'s.' : ''}</div>
+          <div style="display:flex; gap:8px; align-items:center;"><button class="btn-ghost" data-sugyes="${storyEsc(g.sender)}" style="flex:1; margin:0; padding:10px 12px; color:var(--peri); border-color:var(--peri);">Tie to ${g.picks.map(p=> storyEsc(targetName(p.id))).join(' and ')}</button><button class="link-btn" data-sugno="${storyEsc(g.sender)}" style="color:var(--ink-soft); white-space:nowrap;">Not now</button></div></div>`).join('')
+      : '';
+    const suggested = new Set(sugs.map(g=> g.sender));
+    const unmatched = readerUnhandled().filter(u=> !suggested.has(u.sender));
+    const tally = u => [u.waiting ? u.waiting+' waiting' : '', u.added ? u.added+' added' : '', u.rejected ? u.rejected+' rejected' : ''].filter(Boolean).join(', ');
+    const unmatchedHtml = unmatched.length
+      ? `<div class="eng-sub" style="margin:16px 0 4px; color:var(--ink);">New addresses</div>
+         <div class="eng-sub" style="margin-bottom:6px;">Their entries are still offered on Home, marked "new address". If one is your bank, choose its account so its entries go there. If it never sends real transactions, ignore it.</div>` +
+        unmatched.map((u,i)=> `<div class="field" style="margin-bottom:10px;"><label style="overflow-wrap:anywhere;">${storyEsc(u.sender)} · ${tally(u)}</label><div style="display:flex; gap:8px;"><select id="um-acct-${i}" style="flex:1; min-width:0;">${acctOptions(likeliest(u.sender))}</select><button class="btn-ghost" data-umsave="${i}" data-sender="${storyEsc(u.sender)}" style="width:auto; margin:0; padding:10px 14px;">Save</button></div><button class="link-btn" data-umignore="${storyEsc(u.sender)}" style="color:var(--ink-soft);">Not a bank, ignore</button></div>`).join('')
+      : '';
+    const ignoredHtml = readerIgnored.length
+      ? `<div class="eng-sub" style="margin:16px 0 4px; color:var(--ink);">Ignored addresses</div>
+         <div class="eng-sub" style="margin-bottom:4px;">Mails from these are set aside, because you marked them not a bank.</div>` +
+        [...readerIgnored].sort().map(a=> `<div class="eng-line"><span style="overflow-wrap:anywhere; min-width:0;">${storyEsc(a)}</span><button class="link-btn" data-unignore="${storyEsc(a)}" style="color:var(--ink-soft);">Stop ignoring</button></div>`).join('')
+      : '';
+    const taughtRows = Object.keys(taught).sort().map(addr=> `<div class="eng-line"><span style="overflow-wrap:anywhere; min-width:0;">${storyEsc(addr)}<br><span class="eng-sub">${storyEsc(targetName((taught[addr]||[])[0]))}</span></span><button class="link-btn" data-senderremove="${storyEsc(addr)}" style="color:var(--ink-soft);">Remove</button></div>`).join('');
+    const built = (readerLearned && readerLearned.builtAt) ? `Last looked on ${new Date(readerLearned.builtAt).toLocaleDateString('en-IN',{day:'numeric', month:'short'})}: ${readerLearned.mailsOpened||0} past mails${readerLearned.mailsLeft ? ', '+readerLearned.mailsLeft+' still to look at' : ''}.` : 'Not looked at yet.';
+    extra = suggestHtml + unmatchedHtml + ignoredHtml +
+      `<div class="eng-sub" style="margin:16px 0 4px; color:var(--ink);">Tie an alert address to an account</div>
+       <div class="eng-sub" style="margin-bottom:8px;">Entries from that address then go to the account you choose, without asking.</div>
+       ${taughtRows}
+       <button class="btn-ghost" id="reader-learn-btn" style="margin-top:10px;">Learn from past entries</button>
+       <div class="eng-sub" style="margin:6px 0 4px;">Looks at entries already saved from email and suggests which account each address belongs to. ${built}</div>
+       <div class="field" style="margin:10px 0 8px;"><input id="sender-add-addr" type="email" autocomplete="off" placeholder="alerts@yourbank.com"></div>
+       <div style="display:flex; gap:8px;"><select id="sender-add-acct" style="flex:1; min-width:0; padding:12px 13px; border:1px solid var(--line); border-radius:14px; background:var(--paper-dim); color:var(--ink); font-size:15px;">${acctOptions()}</select><button class="btn-ghost" id="sender-add-btn" style="width:auto; margin:0; padding:10px 14px;">Add</button></div>`;
+  }
+  box.innerHTML = (rows || none) +
+    `<button class="btn-ghost" id="reader-connect-btn" style="margin-top:12px;">${inboxes.length ? 'Connect another inbox' : 'Connect Gmail'}</button>
+     <div class="eng-sub" style="margin-top:8px;">${how}</div>${extra}`;
+  document.getElementById('reader-connect-btn').addEventListener('click', e=> connectGmail(e.currentTarget));
+  box.querySelectorAll('[data-reconnect]').forEach(b=> b.addEventListener('click', ()=> connectGmail(b)));
+  box.querySelectorAll('[data-disconnect]').forEach(b=> b.addEventListener('click', ()=> disconnectInbox(b.getAttribute('data-disconnect'), b)));
+  box.querySelectorAll('[data-umsave]').forEach(b=> b.addEventListener('click', ()=>{
+    const sel = document.getElementById('um-acct-' + b.getAttribute('data-umsave'));
+    if(sel && sel.value) saveReaderSender(b.getAttribute('data-sender'), sel.value);
+  }));
+  box.querySelectorAll('[data-sugyes]').forEach(b=> b.addEventListener('click', ()=> confirmSuggestion(b.getAttribute('data-sugyes'))));
+  box.querySelectorAll('[data-sugno]').forEach(b=> b.addEventListener('click', ()=> declineSuggestion(b.getAttribute('data-sugno'))));
+  const learnBtn = document.getElementById('reader-learn-btn');
+  if(learnBtn) learnBtn.addEventListener('click', ()=> learnFromPastEntries(learnBtn));
+  box.querySelectorAll('[data-unignore]').forEach(b=> b.addEventListener('click', async ()=>{
+    if(!cloudReady || !db){ showToast('Go online and try again.', 3000); return; }
+    try{
+      await writeReaderSenders({...(readerSenders || {})}, readerIgnored.filter(a=> a !== b.getAttribute('data-unignore')));
+      showToast('No longer ignored. Mails set aside come back at the next check.', 4000);
+    }catch(e){ console.error('Could not save', e); showToast('Could not save. Try again.', 3000); }
+    renderReaderUI(true);
+  }));
+  box.querySelectorAll('[data-umignore]').forEach(b=> b.addEventListener('click', ()=> ignoreReaderSender(b.getAttribute('data-umignore'))));
+  box.querySelectorAll('[data-senderremove]').forEach(b=> b.addEventListener('click', ()=> saveReaderSender(b.getAttribute('data-senderremove'), null)));
+  const add = document.getElementById('sender-add-btn');
+  if(add) add.addEventListener('click', async ()=>{
+    const sel = document.getElementById('sender-add-acct');
+    if(!sel || !sel.value){ showToast('Add the account first, on the Accounts tab.', 3500); return; }
+    await saveReaderSender(document.getElementById('sender-add-addr').value, sel.value);
+  });
+}
+function openSettingsPage(){
+  document.querySelector('#tools-page .fs-body').scrollTop = 0;
+  applyHouseholdUI();
+  loadHouseholdDoc();
+  loadReaderSenders();
+  openFullscreen('tools-page');
+}
+// Parts of the screen that show only once a household has an inbox connected, and the
+// Household section that every household but the first uses.
 function applyHouseholdUI(){
-  document.querySelectorAll('.legacy-only').forEach(el=> el.classList.toggle('hide', !isLegacy()));
+  document.querySelectorAll('.reader-only').forEach(el=> el.classList.toggle('hide', !readerOn()));
+  renderReaderUI();
   renderHouseholdUI();
   const inp = document.getElementById('pdf-name-input');
   if(inp && document.activeElement !== inp) inp.value = pdfNameStored();
@@ -1861,6 +2197,7 @@ async function connectHousehold(){
 
     cloudReady = true; cloudDenied = false;
     setSyncStatus('Synced ✓', true);
+    listenToReaderStatus();
   }catch(e){
     console.error('Cloud sync unavailable', e);
     if(isDeniedError(e)) noteCloudDenied();
@@ -2426,7 +2763,7 @@ function accountInUse(id){
       || state.personLedger.some(e=> e.account===id)
       || (state.balanceAdjustments||[]).some(a=> a.targetId===id)
       || (state.pendingImports||[]).some(p=> p.accountId===id)
-      || Object.values(EMAIL_ACCOUNT_MAP).some(ids=> ids.includes(id));
+      || Object.values(inboxAccountsMap()).some(ids=> ids.includes(id));
 }
 function openAccountSheet(id, isCard){
   acctEditId = id || null; acctEditIsCard = !!isCard;
@@ -3214,10 +3551,9 @@ function guessCategory(clean, payee, type){
   return null;
 }
 
-// Definitive mapping of which bank/card notifications arrive at which inbox, as confirmed
-// directly. This is a hard constraint, not a hint — an email from one address can NEVER be
-// matched to an account outside its list, regardless of what digits appear in the body. This
-// is what prevents an alert being matched to an account that belongs to a different inbox.
+// Which accounts each inbox can produce is a hard constraint, not a hint: an email from one
+// inbox can never be matched to an account outside its list. For the first household that
+// table is sent by the server (inboxAccountsMap()); it is not kept in this code.
 // Bump this whenever a meaningful change lands in parseBankSMS, looksLikePromotional, or the
 // account-matching logic — every email already marked "seen" at an older version becomes
 // eligible for a fresh read on the next sweep, rather than being permanently stuck with
@@ -3235,11 +3571,6 @@ function guessCategory(clean, payee, type){
 // transactions with an ad banner attached), added UPI/P2M/ merchant payee parsing, and gave
 // stripHtml a real field-boundary marker at table cell/row endings.
 const PARSING_LOGIC_VERSION = 6;
-const EMAIL_ACCOUNT_MAP = {
-  'divya9477@gmail.com': ['divya_indusind', 'divya_icici', 'divya_axis'],
-  'praveshyadav3835@gmail.com': ['pravesh_axis', 'sib', 'sbi_card', 'pravesh_sbi'],
-  'pravesh35yadav@gmail.com': ['idfc_card', 'cousin', 'mil', 'pravesh_idfc']
-};
 function parseBankSMS(text, sourceEmail){
   const result = {amount:null, type:'expense', payee:'', accountId:null, category:null, preciseTs:null};
   const clean = text.replace(/\s+/g,' ').trim();
@@ -3304,7 +3635,7 @@ function parseBankSMS(text, sourceEmail){
     const acctMatch = clean.match(/(?:a\/c|acct|account|card)[^\d]{0,15}?(\d{3,6})\b/i);
     if(acctMatch) smsDigits = acctMatch[1];
   }
-  const allowedIds = sourceEmail && EMAIL_ACCOUNT_MAP[sourceEmail] ? EMAIL_ACCOUNT_MAP[sourceEmail] : null;
+  const allowedIds = sourceEmail && inboxAccountsMap()[sourceEmail] ? inboxAccountsMap()[sourceEmail] : null;
   if(smsDigits){
     const allTargets = [...state.accounts, ...state.cards].filter(t=> !allowedIds || allowedIds.includes(t.id));
     const found = allTargets.find(t=>{
@@ -4682,12 +5013,7 @@ document.getElementById('bp-save').addEventListener('click', async ()=>{
 });
 
 // ---- Settings & tools page (gear button in Home's header) ----
-document.getElementById('open-tools-btn').addEventListener('click', ()=>{
-  document.querySelector('#tools-page .fs-body').scrollTop = 0;
-  applyHouseholdUI();
-  loadHouseholdDoc();
-  openFullscreen('tools-page');
-});
+document.getElementById('open-tools-btn').addEventListener('click', openSettingsPage);
 document.getElementById('pdf-name-input').addEventListener('change', e=>{
   try{ if(currentHid) localStorage.setItem(pdfNameKey(), e.target.value.trim()); }catch(err){}
   showToast('Saved');
@@ -5821,15 +6147,17 @@ document.getElementById('gmail-custom-fetch-btn').addEventListener('click', asyn
   if(!dateVal){ showToast('Choose a date first', 2500); document.getElementById('gmail-custom-date').focus(); return; }
   const btn = document.getElementById('gmail-custom-fetch-btn');
   const statusEl = document.getElementById('gmail-status-text');
+  if(!authUser){ showToast('Sign in to check email.', 3500); return; }
   btn.disabled = true; btn.textContent = 'Checking…';
   statusEl.textContent = 'Checking…';
   try{
-    const res = await fetch(`https://us-central1-financial-assistant-141e8.cloudfunctions.net/manualFetch?after=${dateVal}`);
-    const data = await res.json();
+    const r = await readerCall('manualFetch', {method:'GET', query:'after=' + encodeURIComponent(dateVal)});
+    if(r.status===401 || r.status===403){ showToast('Sign out and in again, then check once more.', 4000); statusEl.textContent = 'Checked every 12 hours'; return; }
+    const data = r.data;
     if(!data.ok) throw new Error(data.error || 'Unknown error');
-    const dismissedNote = (data.totalAutoDismissed ? ` · ${data.totalAutoDismissed} ignored automatically` : '') + (data.totalSkippedBySender ? ` · ${data.totalSkippedBySender} skipped, not from a bank` : '');
+    const dismissedNote = (data.totalAutoDismissed ? ` · ${data.totalAutoDismissed} ignored automatically` : '') + (data.totalSkippedBySender ? ` · ${data.totalSkippedBySender} set aside, from addresses you ignore` : '');
     statusEl.textContent = `Checked every 12 hours · last check found ${data.totalFound} across ${data.inboxCount} inbox(es)${dismissedNote}`;
-    showToast((data.totalFound ? `Found ${data.totalFound} transaction(s). See Home.` : 'Nothing new from that date') + (data.totalSkippedBySender ? ` · ${data.totalSkippedBySender} skipped, not from a bank` : ''), 4000);
+    showToast((data.totalFound ? `Found ${data.totalFound} transaction(s). See Home.` : 'Nothing new from that date') + (data.totalSkippedBySender ? ` · ${data.totalSkippedBySender} set aside, from addresses you ignore` : ''), 4000);
   }catch(e){
     console.error('Manual fetch failed', e);
     statusEl.textContent = 'Checked every 12 hours';
@@ -5878,14 +6206,14 @@ function mostLikelyAccountForEmail(email, allowedIds){
   candidates.sort((a,b)=> b[1]-a[1]);
   return candidates[0][0];
 }
-// Re-validates an accountId against EMAIL_ACCOUNT_MAP at the point of USE, not just at the
+// Re-validates an accountId against the inbox's allowed accounts at the point of USE, not just at the
 // point the pending import was first created. This is what makes a wrong-inbox match
 // self-heal for anything already sitting in the review queue from before that
 // map existed or before it covered a given inbox — the display simply refuses to trust an
 // accountId outside its source inbox's allowed list, regardless of how it got there.
 function validatedAccountId(accountId, sourceEmail){
   if(!accountId) return null;
-  const allowed = sourceEmail && EMAIL_ACCOUNT_MAP[sourceEmail];
+  const allowed = sourceEmail && inboxAccountsMap()[sourceEmail];
   if(allowed && !allowed.includes(accountId)) return null;
   return accountId;
 }
@@ -6145,10 +6473,24 @@ function renderLastFetchSummary(){
   });
 }
 
+let possibleOpen = false;
 function renderPendingReview(){
   const wrap = document.getElementById('pending-review-wrap');
-  if(!state.pendingImports || !state.pendingImports.length){ wrap.innerHTML=''; return; }
-  const items = [...state.pendingImports].sort((a,b)=> new Date(b.ts)-new Date(a.ts));
+  const all = [...(state.pendingImports||[])].sort((a,b)=> new Date(b.ts)-new Date(a.ts));
+  // "possible": from an address that does not look like a bank, card, lender or payment app;
+  // read only because its subject looked like a transaction. Kept apart, never mixed in.
+  const possibles = all.filter(i=> i.possible);
+  const items = all.filter(i=> !i.possible);
+  const possibleHtml = possibles.length ? `<div class="card queue-card" style="margin-bottom:16px;">
+    <div class="row" id="possible-toggle" style="cursor:pointer;"><div><div class="name">${possibles.length} possible transaction${possibles.length>1?'s':''} from other senders</div><div class="sub">Not from a bank, card or payment app address. Add one only if it is real.</div></div><span class="link-btn">${possibleOpen ? 'Hide' : 'Show'}</span></div>
+    ${possibleOpen ? possibles.map(it=> `<div class="row" data-reviewimport="${it.id}" style="cursor:pointer;"><div style="min-width:0;"><div class="name">${storyEsc(it.payee)}</div><div class="sub" style="overflow-wrap:anywhere;">${new Date(it.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${storyEsc(it.sender||'')}</div></div><div style="text-align:right;"><div class="amt ${it.type==='income'?'pos':'neg'}">${fmt(it.amount)}</div><div class="sub" style="font-size:10.5px; color:var(--peri);">to check</div></div></div>`).join('') : ''}
+  </div>` : '';
+  if(!items.length){
+    wrap.innerHTML = possibleHtml;
+    const tg = document.getElementById('possible-toggle'); if(tg) tg.addEventListener('click', ()=>{ possibleOpen = !possibleOpen; renderPendingReview(); });
+    wrap.querySelectorAll('[data-reviewimport]').forEach(el=> el.addEventListener('click', ()=> openReviewImport(el.getAttribute('data-reviewimport'))));
+    return;
+  }
   const newCount = items.filter(i=>i.status==='pending').length;
   const dupCount = items.filter(i=>i.status==='duplicate').length;
   wrap.innerHTML = `<div class="card queue-card" style="margin-bottom:16px;">
@@ -6174,10 +6516,11 @@ function renderPendingReview(){
         </div>
       </div>`;
     }).join('')}
-  </div>`;
+  </div>` + possibleHtml;
+  const tg = document.getElementById('possible-toggle'); if(tg) tg.addEventListener('click', ()=>{ possibleOpen = !possibleOpen; renderPendingReview(); });
   document.getElementById('clear-all-pending-btn').addEventListener('click', async ()=>{
     if(!confirm(`Clear all ${items.length} items to review? Nothing is added. You can check email again later.`)) return;
-    state.pendingImports = [];
+    state.pendingImports = state.pendingImports.filter(p=> p.possible);
     state.processedGmailIds = [];
     await saveState();
     render();
@@ -6357,9 +6700,8 @@ function openReviewImport(id){
   document.getElementById('ri-mode').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v==='regular'));
   document.getElementById('ri-person-dir').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v === (imp.type==='income' ? 'received' : 'gave')));
   const sourceLine = 'From ' + (imp.sourceEmail||'your email') + ' · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + (imp.sender ? ' · sent by ' + imp.sender : '') + (imp.subject ? ' · “' + imp.subject + '”' : '');
-  document.getElementById('ri-source-note').textContent = imp.status==='duplicate'
-    ? 'Possible duplicate. Check before adding. ' + sourceLine
-    : sourceLine;
+  document.getElementById('ri-source-note').textContent = (imp.status==='duplicate' ? 'Possible duplicate. Check before adding. ' : '')
+    + (imp.possible ? 'From an address that does not look like a bank, card or payment app. Add it only if it is a real transaction. ' : imp.unknownSender ? (imp.bankLike ? 'New address that looks like a bank. Check the account. ' : 'New address, not tied to any account. Check the account. ') : '') + sourceLine;
   document.getElementById('ri-payee').value = imp.payee;
   document.getElementById('ri-amount').value = imp.amount;
   document.querySelectorAll('#ri-household button').forEach(b=> b.classList.toggle('on', b.dataset.v==='no'));
@@ -6489,12 +6831,12 @@ function recordImportOutcome(imp, outcome, final, mode, why, savedId){
   state.importOutcomes.push({
     id: genId('io'), at: new Date().toISOString(), emailTs: imp.ts||null, sourceEmail: imp.sourceEmail||null,
     gmailMessageId: imp.gmailMessageId||null, sender: imp.sender||null, subject: imp.subject||null, outcome, mode: mode||null, why: why||null,
-    flaggedDuplicate: imp.status==='duplicate', parsed, final: final||null, changed, savedId: savedId||null
+    flaggedDuplicate: imp.status==='duplicate', unknownSender: !!imp.unknownSender, bankLike: !!imp.bankLike, parsed, final: final||null, changed, savedId: savedId||null
   });
   if(state.importOutcomes.length > 600) state.importOutcomes = state.importOutcomes.slice(-600);
 }
 function inboxForAccount(accountId){
-  const hit = Object.entries(EMAIL_ACCOUNT_MAP).find(([,ids])=> ids.includes(accountId));
+  const hit = Object.entries(inboxAccountsMap()).find(([,ids])=> ids.includes(accountId));
   return hit ? hit[0] : null;
 }
 const WHY_LABEL = {promo:'Promotion or offer', notice:'Bill, reminder or statement', failed:'Failed, declined or reversed', other:'Something else'};
@@ -6515,7 +6857,8 @@ function engineReportData(days){
   const waiting = (state.pendingImports||[]).filter(p=>inPeriod(p.ts));
   const inboxes = {};
   const box = k => (inboxes[k] = inboxes[k] || {inbox:k, added:0, notReal:0, alreadyLogged:0, auto:0, waiting:0, setAside:0});
-  Object.keys(EMAIL_ACCOUNT_MAP).forEach(box);
+  const knownInboxes = [...new Set([...Object.keys(inboxAccountsMap()), ...readerInboxes().map(i=>i.email)])];
+  knownInboxes.forEach(box);
   ev.forEach(e=>{ const b = box(e.inbox); if(e.kind==='added') b.added++; else if(e.kind==='not_real') b.notReal++; else if(e.kind==='already_logged') b.alreadyLogged++; else b.auto++; });
   waiting.forEach(p=> box(p.sourceEmail||'Unknown inbox').waiting++);
   // Mails the sender rule set aside (loaded from the cloud when the report opens). Not part of
@@ -6525,7 +6868,7 @@ function engineReportData(days){
   const bySender = {};
   skipped.forEach(k=>{ const key = (k.sender||'unknown sender'); const g = (bySender[key] = bySender[key] || {sender:key, n:0, example:k}); g.n++; });
   const skippedSenders = Object.values(bySender).sort((a,b)=>b.n-a.n);
-  const rows = Object.values(inboxes).map(b=>({...b, found:b.added+b.notReal+b.alreadyLogged+b.auto+b.waiting})).filter(b=> b.found>0 || EMAIL_ACCOUNT_MAP[b.inbox]);
+  const rows = Object.values(inboxes).map(b=>({...b, found:b.added+b.notReal+b.alreadyLogged+b.auto+b.waiting})).filter(b=> b.found>0 || knownInboxes.includes(b.inbox));
   const scored = ev.filter(e=>e.scored);
   const exact = scored.filter(e=>e.kind==='added' && !e.changed.length).length;
   const corrected = scored.filter(e=>e.kind==='added' && e.changed.length);
@@ -6570,7 +6913,7 @@ async function setSenderRule(on){
   try{
     await hh('readerSettings').set({_type:'readerSettings', senderRule: !!on, updatedAt: new Date().toISOString(), updatedBy: whoami||null});
     engineRuleOn = !!on;
-    showToast(on ? 'On: only bank alert addresses are read' : 'Off: the next check reads every mail again', 4000);
+    showToast(on ? 'On: a bank\'s address decides the account' : 'Off: the account is read from the mail\'s text', 4000);
   }catch(e){
     console.error('Could not save the sender rule switch', e);
     showToast('Could not save — try again', 3000);
@@ -6596,23 +6939,25 @@ function renderEngineReport(){
         <div class="cell ${r.notReal?'bad':''}"><div class="l">Not real</div><div class="v">${r.notReal}</div></div>
         <div class="cell"><div class="l">Already in</div><div class="v">${r.alreadyLogged}</div></div>
         <div class="cell"><div class="l">Waiting</div><div class="v">${r.waiting}</div></div>
-      </div>${r.auto ? `<div class="eng-sub" style="margin-top:8px;">${r.auto} more rejected automatically by the reader</div>` : ''}${r.setAside ? `<div class="eng-sub" style="margin-top:8px;">${r.setAside} skipped, not from a bank</div>` : ''}
+      </div>${r.auto ? `<div class="eng-sub" style="margin-top:8px;">${r.auto} more rejected automatically by the reader</div>` : ''}${r.setAside ? `<div class="eng-sub" style="margin-top:8px;">${r.setAside} set aside, from addresses you ignore</div>` : ''}
     </div>`).join('');
-  const ruleHtml = `<div class="card">
-      <div class="eng-sub" style="margin-bottom:10px;">On: only mail from your banks' own alert addresses is read, and the address decides the account. Off: every mail is read, as before.</div>
+  const ruleHtml = !isLegacy()
+    ? `<div class="card"><div class="eng-sub">First the sender: a mail is opened when its address looks like a bank, card, lender or payment app (or you have tied it to an account). Then the mail itself: it becomes an entry only if it says money moved. Any other mail is opened only if its subject reads like a transaction, and is shown apart as possible.</div></div>`
+    : `<div class="card">
+      <div class="eng-sub" style="margin-bottom:10px;">On: first the sender, then the mail. A mail is opened when its address looks like a bank, card, lender or payment app, and a bank's own address decides the account. Any other mail is opened only if its subject reads like a transaction, and is shown apart as possible. Off: every mail is read and the account is worked out from its text, as before.</div>
       <div class="seg" id="engine-rule-seg">
         <button data-v="on" class="${engineRuleOn===true?'on':''}" ${engineRuleOn===null?'disabled':''}>On</button>
         <button data-v="off" class="${engineRuleOn===false?'on':''}" ${engineRuleOn===null?'disabled':''}>Off</button>
       </div>
-      ${engineRuleOn===null ? `<div class="eng-sub" style="margin-top:8px;">${engineCloudError ? 'Could not reach the cloud just now, so the switch and the skipped list are not shown.' : 'Loading…'}</div>` : ''}
+      ${engineRuleOn===null ? `<div class="eng-sub" style="margin-top:8px;">${engineCloudError ? 'Could not reach the cloud just now, so the switch and the set-aside list are not shown.' : 'Loading…'}</div>` : ''}
     </div>`;
   const SHOW_SENDERS = 20;
   const skippedHtml = engineSkipped===null ? ''
-    : `<div class="divider-label">Skipped, not from a bank — ${d.skipped.length}</div>` + (d.skipped.length
-      ? `<div class="card"><div class="eng-sub" style="margin-bottom:4px;">These looked like transactions but did not come from a bank alert address. If a real one is here, its address needs adding to the list.</div>
+    : `<div class="divider-label">Set aside, from addresses you ignore — ${d.skipped.length}</div>` + (d.skipped.length
+      ? `<div class="card"><div class="eng-sub" style="margin-bottom:4px;">These looked like transactions and came from addresses marked not a bank. To stop ignoring one, open Settings, Bank emails. Anything set aside by the earlier, stricter rule is brought back at the next check.</div>
           ${d.skippedSenders.slice(0,SHOW_SENDERS).map(g=>`<div class="eng-line"><span>${storyEsc(g.sender)}<br><span class="eng-sub">e.g. ${storyEsc(g.example.subject||'no subject')} · <span class="maskable">${fmt(g.example.amount||0)}</span> · ${shortDate(g.example.ts)}</span></span><span>${g.n}</span></div>`).join('')}
           ${d.skippedSenders.length>SHOW_SENDERS ? `<div class="eng-sub" style="padding-top:10px;">Showing ${SHOW_SENDERS} of ${d.skippedSenders.length} senders. The copied report lists every mail.</div>` : ''}</div>`
-      : `<div class="card"><div class="empty" style="padding:6px 0;">Nothing skipped in this period.</div></div>`);
+      : `<div class="card"><div class="empty" style="padding:6px 0;">Nothing set aside in this period.</div></div>`);
   const SHOW = 40;
   const notRealHtml = d.notReal.length
     ? `<div class="card">${d.notReal.slice(0,SHOW).map(e=>`<div class="eng-line"><span>${storyEsc(e.payee||'Unknown')}<br><span class="eng-sub">${shortDate(e.ts)} · ${e.type==='income'?'credit':'debit'} · ${storyEsc(e.inbox)}${e.sender ? ' · from '+storyEsc(e.sender) : ''}${e.subject ? ' · “'+storyEsc(e.subject)+'”' : ''}${e.why ? ' · '+(WHY_LABEL[e.why]||e.why) : ''}</span></span><span class="maskable">${fmt(e.amount||0)}</span></div>`).join('')}
@@ -6627,7 +6972,7 @@ function renderEngineReport(){
   const repeatsHtml = d.repeats.length
     ? `<div class="divider-label">Rejected more than once — same name each time</div><div class="card">${d.repeats.slice(0,12).map(r=>`<div class="eng-line"><span>${storyEsc(r.payee)}</span><span>${r.n} times</span></div>`).join('')}</div>` : '';
   document.getElementById('engine-body').innerHTML =
-    `<div class="divider-label" style="margin-top:14px;">Read bank alerts only</div>${ruleHtml}
+    `<div class="divider-label" style="margin-top:14px;">How the account is decided</div>${ruleHtml}
      <div class="divider-label">Read right without checking — ${periodName}</div>${scoreCard}
      <div class="divider-label">By inbox — ${periodName} (${d.total} found)</div>${inboxCards}
      ${skippedHtml}
@@ -6638,7 +6983,7 @@ function renderEngineReport(){
   document.querySelectorAll('#engine-rule-seg button').forEach(b=> b.addEventListener('click', ()=>{
     const on = b.dataset.v==='on';
     if(on === engineRuleOn) return;
-    if(!on && !confirm('Switch this off? From the next check every mail is read again, including the ones skipped so far, so the old junk comes back to review.')) return;
+    if(!on && !confirm('Switch this off? From the next check a bank\'s address no longer decides the account. It is worked out from each mail\'s own text, as it was before.')) return;
     setSenderRule(on);
   }));
   applyMaskUI();
@@ -6751,6 +7096,10 @@ document.getElementById('engine-copy-btn').addEventListener('click', async ()=>{
 
 
 (async function init(){
+  try{
+    const q = new URLSearchParams(location.search);
+    if(q.get('gmail')==='connected'){ gmailJustConnected = q.get('inbox') || 'Inbox'; history.replaceState(null, '', location.pathname); }
+  }catch(e){}
   await loadTheme();
   loadMaskPref();
   await loadState();
@@ -6759,6 +7108,7 @@ document.getElementById('engine-copy-btn').addEventListener('click', async ()=>{
   renderGreeting();
   render();
   initCloudSync(()=>{ render(); });
+  if(gmailJustConnected) showToast(gmailJustConnected + ' connected. Its bank alerts are read from now on.', 5000);
 
   // Google Identity Services loads async — retry init briefly if not ready yet
   let gmailInitAttempts = 0;
