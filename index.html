@@ -476,6 +476,7 @@
       </div>
       <div class="reader-only" style="text-align:right; margin-top:6px;"><button class="link-btn" id="open-engine-report-btn">Email accuracy</button></div>
       <div id="connect-gmail-wrap"></div>
+      <div id="no-email-wrap"></div>
       <div class="panel">
         <div class="ph"><b>Accounts &amp; Cards</b></div>
         <div id="wallet-carousel"></div>
@@ -627,6 +628,19 @@
 
     <button class="btn-primary" id="tx-save">Add</button>
     <button class="btn-ghost" id="tx-cancel">Cancel</button>
+    <button class="link-btn" id="tx-paste-sms" type="button" style="display:block; margin:10px auto 0;">Paste a bank SMS instead</button>
+  </div>
+</div>
+
+<!-- PASTE AN SMS SHEET: for banks that send some alerts only by SMS (SBI's UPI payments) -->
+<div class="sheet-backdrop" id="sms-backdrop">
+  <div class="sheet">
+    <h3>Paste a bank SMS</h3>
+    <p class="section-sub">Copy the bank's SMS (long-press it in Messages, then Copy) and paste it here. The app never reads your messages by itself.</p>
+    <div class="field"><textarea id="sms-text" rows="5" style="width:100%; padding:12px 13px; border:1px solid var(--line); border-radius:14px; background:var(--paper-dim); color:var(--ink); font-size:14px; font-family:inherit; resize:vertical;" placeholder="Dear UPI user A/C X1234 debited by 250.0 on date 07Oct26 trf to SWIGGY Refno 123456789 -SBI"></textarea></div>
+    <div class="section-sub" id="sms-note" style="color:var(--debt);"></div>
+    <button class="btn-primary" id="sms-read">Read it</button>
+    <button class="btn-ghost" id="sms-cancel">Cancel</button>
   </div>
 </div>
 
@@ -1031,7 +1045,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-08 · v78-nothing-unseen</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-08 · v80-paste-sms</p>
   </div>
 </div>
 
@@ -1233,6 +1247,7 @@ const STARTER = {
   profilePhoto: null,
   dismissedPatternPrompts: [],
   transferPairDeclined: [],
+  noEmailOk: [],
   lastBudgetReviewMonth: null,
   lastFetchSummary: null,
   lastGmailFetch: null
@@ -1299,6 +1314,7 @@ function normalizeState(){
   if(!Array.isArray(state.budgetMonths)) state.budgetMonths = [];
   if(!Array.isArray(state.importOutcomes)) state.importOutcomes = [];
   if(!Array.isArray(state.transferPairDeclined)) state.transferPairDeclined = [];
+  if(!Array.isArray(state.noEmailOk)) state.noEmailOk = [];
   // A device that starts from the empty starting set must not treat that set as its own new
   // work: only what is added from here on is sent to the cloud.
   if(!stateFromStorage && typeof previousArrays !== 'undefined'){
@@ -1939,8 +1955,8 @@ function renderReaderUI(force){
     ? '<div class="eng-sub">The list of connected inboxes appears here after the next check.</div>'
     : '<div class="eng-sub">No inbox connected yet. Connect the Gmail inbox where your bank\'s alerts arrive, and new transactions appear on Home for you to check and add.</div>';
   const lr = readerStatus && readerStatus.lastRun;
-  const lastRun = lr ? ` Last check: ${lr.opened} opened, ${lr.notOpened} left unopened${(lr.notices||lr.offers) ? `, ${[lr.notices ? lr.notices+' due reminder'+(lr.notices===1?'':'s') : '', lr.offers ? lr.offers+' offer'+(lr.offers===1?'':'s') : ''].filter(Boolean).join(' and ')} from banks not shown` : ''}.` : '';
-  const how = 'A mail is opened only when its sender looks like a bank, card, lender or payment app. Any other mail is opened only if its subject reads like a transaction, and is then shown apart for you to check. Offers, loan pitches and due reminders are left out unless they say money actually moved. Checked at 8 am and 8 pm, and whenever you tap Check on the Accounts tab.' + lastRun;
+  const lastRun = lr ? ` Last check${lr.full===true ? ' (full)' : lr.full===false ? ' (quick)' : ''}: ${lr.listed!==undefined ? lr.listed+' listed, ' : ''}${lr.opened} opened, ${lr.notOpened} left unopened${(lr.notices||lr.offers) ? `, ${[lr.notices ? lr.notices+' due reminder'+(lr.notices===1?'':'s') : '', lr.offers ? lr.offers+' offer'+(lr.offers===1?'':'s') : ''].filter(Boolean).join(' and ')} from banks not shown` : ''}.` : '';
+  const how = 'Checked at 8 am and 8 pm. Gmail is asked only for mails from bank addresses or with money words (debited, credited, UPI, spent and the like). Every Wednesday and Sunday at 8 pm, and whenever you tap Check on the Accounts tab, every mail is looked at, so nothing is missed. A mail is opened only when its sender looks like a bank, card, lender or payment app; any other is opened only if its subject reads like a transaction, and is shown apart for you to check. Offers, loan pitches and due reminders are left out unless they say money actually moved.' + lastRun;
   // Every mail from a bank-like address that was opened but did not become an entry, with
   // the reason, so that nothing is left out without you seeing it.
   const dropped = (lr && Array.isArray(lr.dropped)) ? lr.dropped : [];
@@ -1949,7 +1965,13 @@ function renderReaderUI(force){
        <div class="eng-sub" style="margin-bottom:6px;">${dropped.length ? 'Mails from bank addresses the reader opened but did not add, and why. If one is a real transaction, add it with the + button.' : 'Every mail opened from a bank address became an entry.'}${lr.alreadyRead ? ` ${lr.alreadyRead} mail${lr.alreadyRead===1?' was':'s were'} already read before and not read again.` : ''}</div>` +
       dropped.map(x=> `<div class="eng-line"><span style="overflow-wrap:anywhere; min-width:0;">${storyEsc(x.subject || 'No subject')}<br><span class="eng-sub">${x.ts ? new Date(x.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+' · ' : ''}${storyEsc(x.sender || '')} · ${storyEsc(x.inbox || '')}</span><br><span class="eng-sub" style="color:var(--peri);">${storyEsc(x.reason || '')}</span></span>${x.amount ? `<span class="maskable" style="white-space:nowrap;">${fmt(x.amount)}</span>` : ''}</div>`).join('')
     : '';
-  let extra = droppedHtml;
+  const fullOnly = (lr && Array.isArray(lr.fullOnlyList)) ? lr.fullOnlyList : [];
+  const fullOnlyHtml = fullOnly.length
+    ? `<div class="eng-sub" style="margin:16px 0 4px; color:var(--ink);">Found only by the full check</div>
+       <div class="eng-sub" style="margin-bottom:6px;">The quick search would have missed these; the full check found them and they are on Home. Their senders or words will be added to the search.</div>` +
+      fullOnly.map(x=> `<div class="eng-line"><span style="overflow-wrap:anywhere; min-width:0;">${storyEsc(x.subject || 'No subject')}<br><span class="eng-sub">${storyEsc(x.sender || '')} · ${storyEsc(x.inbox || '')}</span></span>${x.amount ? `<span class="maskable" style="white-space:nowrap;">${fmt(x.amount)}</span>` : ''}</div>`).join('')
+    : '';
+  let extra = fullOnlyHtml + droppedHtml;
   if(inboxes.length){
     const taught = readerSenders || {};
     const sugs = addressSuggestions();
@@ -1978,7 +2000,7 @@ function renderReaderUI(force){
       : '';
     const taughtRows = Object.keys(taught).sort().map(addr=> `<div class="eng-line"><span style="overflow-wrap:anywhere; min-width:0;">${storyEsc(addr)}<br><span class="eng-sub">${storyEsc(targetName((taught[addr]||[])[0]))}</span></span><button class="link-btn" data-senderremove="${storyEsc(addr)}" style="color:var(--ink-soft);">Remove</button></div>`).join('');
     const built = (readerLearned && readerLearned.builtAt) ? `Last looked on ${new Date(readerLearned.builtAt).toLocaleDateString('en-IN',{day:'numeric', month:'short'})}: ${readerLearned.mailsOpened||0} past mails${readerLearned.mailsLeft ? ', '+readerLearned.mailsLeft+' still to look at' : ''}.` : 'Not looked at yet.';
-    extra = droppedHtml + suggestHtml + unmatchedHtml + ignoredHtml +
+    extra = fullOnlyHtml + droppedHtml + suggestHtml + unmatchedHtml + ignoredHtml +
       `<div class="eng-sub" style="margin:16px 0 4px; color:var(--ink);">Tie an alert address to an account</div>
        <div class="eng-sub" style="margin-bottom:8px;">Entries from that address then go to the account you choose, without asking.</div>
        ${taughtRows}
@@ -2059,7 +2081,7 @@ const COLLECTION_FIELDS = {
   // correction, rejected, already logged) — the score sheet for the email reader.
   importOutcomes: 'importOutcome'
 };
-const META_FIELDS = ['budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','lastBudgetReviewMonth','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts','transferPairDeclined'];
+const META_FIELDS = ['budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','lastBudgetReviewMonth','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts','transferPairDeclined','noEmailOk'];
 let previousArrays = { transactions:[], personLedger:[], pendingImports:[], dismissedImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[], budgetMonths:[], importOutcomes:[] };
 
 // ---- Outbox for cloud writes that haven't been confirmed yet ----
@@ -3288,6 +3310,122 @@ function renderHomeBudget(){
   if(toggle) toggle.addEventListener('click', ()=>{ homeBudgetExpanded = !homeBudgetExpanded; renderHomeBudget(); applyMaskUI(); });
 }
 
+// ---- A PASTED BANK SMS ----
+// Read with the same rules as an alert email, plus the way SMS alerts write it ("debited by
+// 250.0" with no Rs or INR, "trf to NAME Refno"). It becomes an entry to review, never saved
+// straight away.
+const SMS_MONTHS = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+function parseSmsText(text, presetAccountId){
+  const clean = String(text||'').replace(/\s+/g,' ').trim();
+  const r = parseBankSMS(clean, null);
+  if(!r.amount){
+    const m = clean.match(/\b(debited|credited|debit|credit)\s+(?:by|with|for|of)\s+(?:rs\.?|inr|₹)?\s?([\d,]+(?:\.\d{1,2})?)/i);
+    if(m){ r.amount = parseFloat(m[2].replace(/,/g,'')); r.type = /^debit/i.test(m[1]) ? 'expense' : 'income'; }
+  }
+  if(!r.payee){
+    const p = clean.match(/\btrf\s+to\s+([A-Za-z0-9 .&'-]{2,40}?)\s+(?:ref|refno|upi|on)\b/i)
+      || clean.match(/\b(?:transfer|trf)\s+from\s+([A-Za-z0-9 .&'-]{2,40}?)\s+(?:ref|refno|upi|on)\b/i)
+      || clean.match(/\b(?:to|from)\s+([A-Z][A-Za-z0-9 .&'-]{1,30}?)\s+(?:ref|refno|upi)\b/);
+    if(p) r.payee = p[1].trim();
+  }
+  // the account, from the last digits in the message
+  let accountId = presetAccountId || null;
+  const dm = clean.match(/(?:a\/c|acct|account|card)\s*(?:no\.?\s*)?[x*.\s-]*(\d{3,6})\b/i) || clean.match(/[x*]{1,}(\d{3,6})\b/i);
+  if(dm){
+    const hit = [...state.accounts, ...state.cards].find(a=>{ const t = String(a.tag||'').replace(/\D/g,''); return t && (t.endsWith(dm[1]) || dm[1].endsWith(t.slice(-4))); });
+    if(hit) accountId = hit.id;
+  }
+  // the date the bank wrote ("on 07Oct26", "on date 07-Oct-2026", "07/10/26")
+  let ts = r.preciseTs || null;
+  if(!ts){
+    const d1 = clean.match(/\bon\s+(?:date\s+)?(\d{1,2})[- ]?([A-Za-z]{3})[a-z]*[- ]?(\d{2,4})\b/i);
+    const d2 = clean.match(/\b(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})\b/);
+    let d = null;
+    if(d1 && SMS_MONTHS[d1[2].toLowerCase()] !== undefined){ const y = +d1[3]; d = new Date(y<100 ? 2000+y : y, SMS_MONTHS[d1[2].toLowerCase()], +d1[1]); }
+    else if(d2){ const y = +d2[3]; d = new Date(y<100 ? 2000+y : y, +d2[2]-1, +d2[1]); }
+    if(d && !isNaN(d)){
+      const nowD = new Date();
+      if(d.toDateString() === nowD.toDateString()) ts = nowD.toISOString();
+      else if(d < nowD){ d.setHours(12, 0, 0, 0); ts = d.toISOString(); }
+    }
+  }
+  return {amount: r.amount, type: r.type, payee: r.payee || '', accountId, ts: ts || new Date().toISOString(), category: r.category || null};
+}
+const smsBackdrop = document.getElementById('sms-backdrop');
+let smsPresetAccount = null;
+function openSmsSheet(presetAccountId){
+  smsPresetAccount = presetAccountId || null;
+  document.getElementById('sms-text').value = '';
+  document.getElementById('sms-note').textContent = '';
+  smsBackdrop.classList.add('open');
+  setTimeout(()=> document.getElementById('sms-text').focus(), 50);
+}
+document.getElementById('sms-cancel').addEventListener('click', ()=> smsBackdrop.classList.remove('open'));
+smsBackdrop.addEventListener('click', e=>{ if(e.target===smsBackdrop) smsBackdrop.classList.remove('open'); });
+document.getElementById('tx-paste-sms').addEventListener('click', ()=>{
+  const preset = (typeof txSelectedAccount !== 'undefined' && txSelectedAccount) ? txSelectedAccount : null;
+  document.getElementById('tx-backdrop').classList.remove('open');
+  openSmsSheet(preset);
+});
+document.getElementById('sms-read').addEventListener('click', async ()=>{
+  const text = document.getElementById('sms-text').value.trim();
+  const note = document.getElementById('sms-note');
+  if(!text){ note.textContent = 'Paste the SMS first.'; return; }
+  const p = parseSmsText(text, smsPresetAccount);
+  if(!p.amount){ note.textContent = 'No amount debited or credited was found in this message. Check it is a transaction SMS, or add it with the + button.'; return; }
+  const cand = {id:genId('imp'), gmailMessageId:null, sourceEmail:null, ts:p.ts, amount:p.amount, type:p.type, payee:p.payee || 'Unknown',
+    category:p.category, accountId:p.accountId, sender:'SMS', subject:text.slice(0,140), status:'pending', fromSms:true};
+  const [classified] = classifyImportCandidates([cand], state.pendingImports||[]);
+  state.pendingImports.push(classified);
+  await saveState();
+  smsBackdrop.classList.remove('open');
+  render();
+  openReviewImport(classified.id);
+});
+
+// ---- ACCOUNTS WITH NO BANK EMAILS ----
+// Some banks (SBI's savings accounts, for one) alert only by SMS. An account that has entries
+// added by hand in the last 30 days but nothing from email is pointed out, so its gap is known
+// and its entries are added with the + button.
+const NO_EMAIL_DAYS = 30;
+function accountsWithoutEmail(){
+  if(!readerOn()) return [];
+  const since = Date.now() - NO_EMAIL_DAYS*86400000;
+  const recent = ts => ts && new Date(ts).getTime() >= since;
+  const fromEmail = new Set();
+  state.transactions.forEach(t=>{ if(t.remarks==='Imported from email' && recent(t.ts)){ if(t.account) fromEmail.add(t.account); } });
+  (state.importOutcomes||[]).forEach(o=>{ if(o.outcome==='added' && o.sender!=='SMS' && o.final && o.final.accountId && recent(o.emailTs || o.at)) fromEmail.add(o.final.accountId); });
+  (state.pendingImports||[]).forEach(p=>{ if(p.accountId && !p.fromSms && recent(p.ts)) fromEmail.add(p.accountId); });
+  if(!fromEmail.size) return []; // the reader has not brought anything in yet: nothing to compare with
+  const byHand = {};
+  state.transactions.forEach(t=>{
+    if(t.remarks==='Imported from email' || !recent(t.ts)) return; // pasted SMS entries count as added by hand here
+    if(t.type==='transfer'){ [t.from, t.to].forEach(id=>{ if(id) byHand[id] = (byHand[id]||0) + 1; }); return; }
+    if(t.account) byHand[t.account] = (byHand[t.account]||0) + 1;
+  });
+  const ok = new Set(state.noEmailOk||[]);
+  return [...state.accounts, ...state.cards].filter(a=> a.id!=='cash_wallet' && a.id!=='sinking_fund' && !ok.has(a.id) && !fromEmail.has(a.id) && (byHand[a.id]||0) >= 2)
+    .map(a=> ({id:a.id, name:a.name, n:byHand[a.id]}));
+}
+function renderNoEmailCard(){
+  const wrap = document.getElementById('no-email-wrap');
+  if(!wrap) return;
+  const list = accountsWithoutEmail();
+  if(!list.length){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `<div class="card" id="no-email-card" style="margin-top:14px;">
+    <div class="name" style="font-weight:600;">No bank emails for ${list.length===1 ? 'this account' : 'these accounts'}</div>
+    <div class="eng-sub" style="margin:4px 0 6px;">In the last ${NO_EMAIL_DAYS} days you added entries here yourself, but no alert email came. Some banks send alerts only by SMS (SBI emails salary, EMI, SIP and YONO transfers, not small UPI payments). Paste the bank's SMS, or add the entry with +.</div>
+    ${list.map(a=> `<div class="eng-line"><span style="min-width:0; overflow-wrap:anywhere;">${storyEsc(a.name)}<br><span class="eng-sub">${a.n} added by hand, none from email</span></span><span style="white-space:nowrap;"><button class="link-btn" data-noemail-sms="${storyEsc(a.id)}">Paste SMS</button> · <button class="link-btn" data-noemail-add="${storyEsc(a.id)}">Add</button> · <button class="link-btn" data-noemail-ok="${storyEsc(a.id)}" style="color:var(--ink-soft);">OK</button></span></div>`).join('')}
+  </div>`;
+  wrap.querySelectorAll('[data-noemail-add]').forEach(b=> b.addEventListener('click', ()=> openAddTxSheet(b.getAttribute('data-noemail-add'))));
+  wrap.querySelectorAll('[data-noemail-sms]').forEach(b=> b.addEventListener('click', ()=> openSmsSheet(b.getAttribute('data-noemail-sms'))));
+  wrap.querySelectorAll('[data-noemail-ok]').forEach(b=> b.addEventListener('click', async ()=>{
+    if(!Array.isArray(state.noEmailOk)) state.noEmailOk = [];
+    state.noEmailOk.push(b.getAttribute('data-noemail-ok'));
+    await saveState();
+    renderNoEmailCard();
+  }));
+}
 function render(){
   normalizeBudgetFlags(); // a category with a budget is a regular expense, never a "trip"
   normalizePeopleFlags();
@@ -3297,6 +3435,7 @@ function render(){
   renderPendingReview();
   renderLearningMatches();
   renderLastFetchSummary();
+  renderNoEmailCard();
   const t = totals();
   // Green for money you have, red for money you owe.
   document.getElementById('hdr-net').innerHTML = heroHtml(t.net);
@@ -6977,7 +7116,7 @@ function openReviewImport(id){
     if(pr) riTransferTarget = imp.type==='income' ? pr.from : pr.to; }
   document.getElementById('ri-mode').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v==='regular'));
   document.getElementById('ri-person-dir').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v === (imp.type==='income' ? 'received' : 'gave')));
-  const sourceLine = 'From ' + (imp.sourceEmail||'your email') + ' · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + (imp.sender ? ' · sent by ' + imp.sender : '') + (imp.subject ? ' · “' + imp.subject + '”' : '');
+  const sourceLine = imp.fromSms ? 'From a pasted SMS · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + ' · “' + (imp.subject||'') + '”' : 'From ' + (imp.sourceEmail||'your email') + ' · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + (imp.sender ? ' · sent by ' + imp.sender : '') + (imp.subject ? ' · “' + imp.subject + '”' : '');
   document.getElementById('ri-source-note').textContent = (imp.status==='duplicate' ? 'Possible duplicate. Check before adding. ' : '')
     + (imp.possible ? 'From an address that does not look like a bank, card or payment app. Add it only if it is a real transaction. ' : imp.unknownSender ? (imp.bankLike ? 'New address that looks like a bank. Check the account. ' : 'New address, not tied to any account. Check the account. ') : '') + sourceLine;
   document.getElementById('ri-payee').value = imp.payee;
@@ -7052,7 +7191,7 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
   const tx = {
     id: genId('tx'), ts: imp.ts, type: riSelectedType,
     account: riSelectedAccount, payee, category: riSelectedCat, amount,
-    household: riSelectedType==='expense' ? segValue('ri-household')==='yes' : false, remarks: 'Imported from email'
+    household: riSelectedType==='expense' ? segValue('ri-household')==='yes' : false, remarks: imp.fromSms ? 'Added from SMS' : 'Imported from email'
   };
   state.transactions.push(tx);
   recordImportOutcome(imp, 'added', {type:riSelectedType, amount, payee, accountId:riSelectedAccount, category:riSelectedCat}, 'regular', null, tx.id);
@@ -7324,7 +7463,9 @@ function engineReportText(){
   const lrr = readerStatus && readerStatus.lastRun;
   lines.push('', '== Opened, not added, last check ==');
   ((lrr && lrr.dropped) || []).forEach(x=> lines.push(`  ${x.ts ? istStamp(x.ts) : '?'} | ${x.inbox||'?'} | ${x.sender||'-'} | ${x.reason||'-'} | ${x.amount||''} | ${x.subject||'-'}`));
-  if(lrr) lines.push(`  already read before: ${lrr.alreadyRead===undefined ? '?' : lrr.alreadyRead}`);
+  if(lrr) lines.push(`  already read before: ${lrr.alreadyRead===undefined ? '?' : lrr.alreadyRead} | ${lrr.full ? 'full check' : 'quick check'} | listed ${lrr.listed===undefined ? '?' : lrr.listed} | not opened (blocked by shared learning) ${lrr.blockedShared||0}`);
+  lines.push('', '== Found only by the full check, last check ==');
+  ((lrr && lrr.fullOnlyList) || []).forEach(x=> lines.push(`  ${x.ts ? istStamp(x.ts) : '?'} | ${x.inbox||'?'} | ${x.sender||'-'} | ${x.amount||''} | ${x.subject||'-'}`));
   lines.push('', '== Not real, all on record ==');
   all.notReal.forEach(e=> lines.push(`  ${e.ts ? istStamp(e.ts) : '?'} | ${e.inbox} | ${e.type==='income'?'credit':'debit'} | ${e.amount} | ${e.payee||'Unknown'} | ${e.sender||'-'} | ${e.subject||'-'}`));
   lines.push('', `== Sender rule: ${engineRuleOn===null ? 'state not loaded' : engineRuleOn ? 'ON' : 'OFF'} — set aside, all on record (${engineSkipped===null ? 'list not loaded' : all.skipped.length}) ==`);
