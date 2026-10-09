@@ -298,9 +298,11 @@
   .acct-line .al-links{margin-top:1px; white-space:nowrap;}
   .acct-line .al-links button{background:none; border:none; padding:3px 0; font-size:11.5px; color:var(--peri); cursor:pointer;}
   .acct-line .al-links i{font-style:normal; color:var(--ink-soft); margin:0 3px; font-size:11.5px;}
-  .email-fetch{display:flex; align-items:center; gap:10px; margin:22px 0 0; padding:12px 14px;}
-  .email-fetch .ef-label{font-size:14.5px; font-weight:500; color:var(--ink); white-space:nowrap;}
-  .email-fetch input[type=date]{flex:1; min-width:0; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:none; color:var(--ink); font-size:13.5px; display:flex; align-items:center; height:42px;}
+  .email-fetch{display:flex; flex-wrap:wrap; align-items:flex-end; gap:10px; margin:22px 0 0; padding:12px 14px;}
+  .email-fetch .ef-label{font-size:14.5px; font-weight:500; color:var(--ink); white-space:nowrap; flex-basis:100%;}
+  .email-fetch .ef-date{display:flex; flex-direction:column; gap:4px; flex:1 1 120px; min-width:0;}
+  .email-fetch .ef-date span{font-size:11.5px; font-weight:600; color:var(--ink-soft); letter-spacing:.03em;}
+  .email-fetch input[type=date]{width:100%; min-width:0; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:none; color:var(--ink); font-size:13.5px; display:flex; align-items:center; height:42px;}
   /* Empty date shows "Choose date" instead of the browser's dd-mm-yyyy mask. */
   .email-fetch input[type=date]:invalid::-webkit-datetime-edit{display:none;}
   .email-fetch input[type=date]:invalid::before{content:'Choose date'; color:var(--ink-soft); flex:1; white-space:nowrap;}
@@ -470,7 +472,8 @@
       </div>
       <div class="card email-fetch reader-only">
         <div class="ef-label">Check email</div>
-        <input type="date" id="gmail-custom-date" required aria-label="Choose date to check from">
+        <label class="ef-date"><span>From</span><input type="date" id="gmail-custom-date" required aria-label="Check from this date"></label>
+        <label class="ef-date"><span>To</span><input type="date" id="gmail-custom-to" aria-label="Check up to this date (today if left empty)"></label>
         <button class="btn-primary" id="gmail-custom-fetch-btn">Check</button>
         <span id="gmail-status-text" class="hide"></span>
       </div>
@@ -1045,7 +1048,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-08 · v80-paste-sms</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-09 · v82-month-start</p>
   </div>
 </div>
 
@@ -1520,7 +1523,10 @@ function readAcctFields(p, existing){
   const taken = n => (existing||[]).some(x=> (x.name||'').trim().toLowerCase() === n.toLowerCase());
   if(taken(name) && last4) name += ' ' + last4;
   if(taken(name)) return {error:'An account with this name already exists. Add the last 4 digits to tell them apart.'};
-  const base = {id: genId(kind==='card' ? 'card' : 'acct'), name, tag: last4 ? '...'+last4 : '', em:'', bank, owner, ownerName};
+  // openedAt: the balance typed here is the balance at this moment. Entries dated before it
+  // (a check of this month's bank mails, for one) count as spending but are already inside
+  // this balance, so they do not move it again.
+  const base = {id: genId(kind==='card' ? 'card' : 'acct'), name, tag: last4 ? '...'+last4 : '', em:'', bank, owner, ownerName, openedAt: new Date().toISOString()};
   return kind==='card' ? {isCard:true, item:{...base, openingDue:amount}} : {isCard:false, item:{...base, opening:amount}};
 }
 
@@ -2750,9 +2756,13 @@ function showWhoamiPicker(){
 }
 document.getElementById('hdr-avatar').addEventListener('click', showWhoamiPicker);
 
+// An entry moves an account's balance only if it is dated after the balance was typed in.
+// Accounts made before this rule existed have no openedAt: every entry counts, as before.
+function inBalance(target, ts){ return !target || !target.openedAt || !ts || new Date(ts) >= new Date(target.openedAt); }
 function accountBalance(acc){
   let bal = acc.opening;
   state.transactions.forEach(t=>{
+    if(!inBalance(acc, t.ts)) return;
     if(t.type==='transfer'){
       if(t.from===acc.id) bal -= t.amount;
       if(t.to===acc.id) bal += t.amount;
@@ -2761,7 +2771,7 @@ function accountBalance(acc){
     }
   });
   state.personLedger.forEach(e=>{
-    if(e.account===acc.id){
+    if(e.account===acc.id && inBalance(acc, e.ts)){
       // 'gave' means cash left this account; 'received' means cash landed here
       // (the exact opposite sign of the person's own balance delta)
       bal += -e.delta;
@@ -2772,11 +2782,12 @@ function accountBalance(acc){
 function cardDue(card){
   let due = card.openingDue;
   state.transactions.forEach(t=>{
+    if(!inBalance(card, t.ts)) return;
     if(t.type==='expense' && t.account===card.id) due += t.amount;
     if(t.type==='transfer' && t.to===card.id) due -= t.amount;
   });
   state.personLedger.forEach(e=>{
-    if(e.account===card.id){
+    if(e.account===card.id && inBalance(card, e.ts)){
       // 'gave' means this card was charged on someone's behalf — increases the due, same
       // direction as a normal expense. 'received' (e.g. a refund landing on the card)
       // reduces it. Mirrors accountBalance()'s handling below, sign flipped because a
@@ -5657,6 +5668,7 @@ function statementEntries(target, isCard){
     // from a bank account, where the same entry decreases cash on hand.
     out.push({kind:'people', id:e.id, ts:e.ts, label:(e.type==='gave' ? 'Paid for ' : 'Repaid by ') + who, sub:'People Ledger' + (e.remarks ? ' · '+e.remarks : ''), delta: isCard ? e.delta : -e.delta});
   });
+  out.forEach(e=>{ if(!inBalance(target, e.ts)){ e.beforeOpening = true; e.sub = (e.sub ? e.sub + ' · ' : '') + 'before the opening balance, already in it'; } });
   return out;
 }
 function renderAcctStatement(targetId, isCard){
@@ -5682,7 +5694,7 @@ function renderAcctStatement(targetId, isCard){
   const adj = adjustments[0];
   const anchorTs = adj ? new Date(adj.ts) : null;
   const anchorVal = adj ? adj.newValue : (isCard ? target.openingDue : target.opening);
-  const running = entries.filter(e=> !anchorTs || new Date(e.ts)>=anchorTs).reduce((s,e)=> s+e.delta, anchorVal);
+  const running = entries.filter(e=> !e.beforeOpening && (!anchorTs || new Date(e.ts)>=anchorTs)).reduce((s,e)=> s+e.delta, anchorVal);
   // Diagnostic for when the numbers don't reconcile. Two kinds of gap, checked in order:
   //
   // 1. One-sided email evidence — a transaction the bank confirmed by email but that never
@@ -6401,22 +6413,32 @@ function initGmailAuth(){
 // reconnect links) — that's all gone now that the background job holds a permanent
 // connection. This button is the one thing kept: an on-demand trigger for that same backend
 // job, for when you don't want to wait for its normal 12-hour cycle.
+// From starts on the 1st of this month, so a new household can bring in the whole month.
+(function(){ const el = document.getElementById('gmail-custom-date'); if(el && !el.value){ const n = new Date(); el.value = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-01`; } })();
 document.getElementById('gmail-custom-fetch-btn').addEventListener('click', async ()=>{
   const dateVal = document.getElementById('gmail-custom-date').value;
-  if(!dateVal){ showToast('Choose a date first', 2500); document.getElementById('gmail-custom-date').focus(); return; }
+  if(!dateVal){ showToast('Choose a From date first', 2500); document.getElementById('gmail-custom-date').focus(); return; }
+  const toVal = document.getElementById('gmail-custom-to').value;
+  if(toVal && toVal < dateVal){ showToast('The To date is before the From date.', 3000); document.getElementById('gmail-custom-to').focus(); return; }
+  const dayLabel = v => new Date(v + 'T12:00:00').toLocaleDateString('en-IN',{day:'numeric', month:'short'});
+  const rangeLabel = dayLabel(dateVal) + ' to ' + (toVal ? dayLabel(toVal) : 'today');
   const btn = document.getElementById('gmail-custom-fetch-btn');
   const statusEl = document.getElementById('gmail-status-text');
   if(!authUser){ showToast('Sign in to check email.', 3500); return; }
   btn.disabled = true; btn.textContent = 'Checking…';
   statusEl.textContent = 'Checking…';
   try{
-    const r = await readerCall('manualFetch', {method:'GET', query:'after=' + encodeURIComponent(dateVal)});
+    const r = await readerCall('manualFetch', {method:'GET', query:'after=' + encodeURIComponent(dateVal) + (toVal ? '&to=' + encodeURIComponent(toVal) : '')});
     if(r.status===401 || r.status===403){ showToast('Sign out and in again, then check once more.', 4000); statusEl.textContent = 'Checked every 12 hours'; return; }
     const data = r.data;
     if(!data.ok) throw new Error(data.error || 'Unknown error');
     const dismissedNote = (data.totalAutoDismissed ? ` · ${data.totalAutoDismissed} ignored automatically` : '') + (data.totalSkippedBySender ? ` · ${data.totalSkippedBySender} set aside, from addresses you ignore` : '');
     statusEl.textContent = `Checked every 12 hours · last check found ${data.totalFound} across ${data.inboxCount} inbox(es)${dismissedNote}`;
-    showToast((data.totalFound ? `Found ${data.totalFound} transaction(s). See Home.` : 'Nothing new from that date') + (data.totalSkippedBySender ? ` · ${data.totalSkippedBySender} set aside, from addresses you ignore` : ''), 4000);
+    // A long range can be more mail than one check reads; it then says how far back it got.
+    const partial = data.stoppedEarly
+      ? ` Read back to ${data.reachedBack ? new Date(data.reachedBack).toLocaleDateString('en-IN',{day:'numeric', month:'short'}) : 'part of the range'} only. Tap Check again to carry on.`
+      : '';
+    showToast((data.totalFound ? `${rangeLabel}: found ${data.totalFound} transaction(s). See Home.` : `${rangeLabel}: nothing new.`) + partial + (data.totalSkippedBySender ? ` · ${data.totalSkippedBySender} set aside, from addresses you ignore` : ''), partial ? 7000 : 4500);
   }catch(e){
     console.error('Manual fetch failed', e);
     statusEl.textContent = 'Checked every 12 hours';
