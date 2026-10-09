@@ -335,6 +335,20 @@
   .hb-row .hb-figs b{color:var(--ink); font-weight:500;}
   .hb-row.over .hb-figs b{color:var(--debt);}
   .hb-row .bar-track{margin:7px 0 0; height:5px;}
+  .ins-row{display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-top:1px dashed var(--line); font-size:14px;}
+  .ins-row:first-of-type{border-top:none;}
+  .ins-row .l{color:var(--ink); min-width:0; overflow-wrap:anywhere;}
+  .ins-row .l small{display:block; color:var(--ink-soft); font-size:12px; margin-top:2px;}
+  .ins-row .r{text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; min-width:92px;}
+  .ins-row .r small{display:block; font-size:12px; margin-top:2px;}
+  .ins-bar{height:6px; border-radius:3px; background:var(--paper-dim); margin-top:6px; overflow:hidden;}
+  .ins-bar > div{height:100%; border-radius:3px; background:var(--peri);}
+  .ins-big{font-size:26px; font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums;}
+  .ins-note{font-size:12.5px; color:var(--ink-soft); margin-top:8px; line-height:1.5;}
+  .ins-trend svg{width:100%; height:auto; display:block;}
+  .ins-trend .bar{fill:var(--peri); opacity:.45; cursor:pointer;}
+  .ins-trend .bar.cur{opacity:1;}
+  .ins-trend .bar:focus-visible{outline:2px solid var(--peri);}
   .hb-edit{flex:0 0 auto; width:34px; height:34px; border-radius:50%; border:1px solid var(--line); background:none; color:var(--ink-soft); font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center;}
   .hb-edit:focus-visible{outline:2px solid var(--peri); outline-offset:2px;}
   .hb-sub{font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft); margin:16px 0 2px;}
@@ -548,6 +562,11 @@
         <div style="display:flex; justify-content:center; margin:6px 0 10px;"><svg id="analysis-donut" viewBox="0 0 170 170" width="200" height="200"></svg></div>
         <p class="section-sub" style="text-align:center; margin-bottom:6px;">Tap a category to see its transactions</p>
         <div id="analysis-cat-list"></div>
+
+        <div id="ins-savings"></div>
+        <div id="ins-vsusual"></div>
+        <div id="ins-trend"></div>
+        <div id="ins-payees"></div>
 
         <div class="ph" style="margin-top:30px;"><b>Month-end</b></div>
         <button class="btn-primary" id="gen-report-btn">Month-end report (PDF)</button>
@@ -918,6 +937,10 @@
     <h3 id="catedit-title">Edit category</h3>
     <div class="field"><label>Category name</label><input id="catedit-name" maxlength="60" placeholder="e.g. Office commute"></div>
     <div class="field"><label id="catedit-budget-label">Monthly budget (₹)</label><input id="catedit-budget" type="number" inputmode="numeric" min="0" placeholder="0"></div>
+    <label id="catedit-invest-row" style="display:flex; gap:10px; align-items:flex-start; font-size:13px; color:var(--ink); margin:0 0 12px; cursor:pointer;">
+      <input type="checkbox" id="catedit-invest" style="margin-top:3px; width:18px; height:18px; accent-color:var(--peri);">
+      <span>Investment<br><span style="font-size:12px; color:var(--ink-soft);">SIPs, mutual funds, deposits. Paid from savings, so Insights counts it as saved, not spent.</span></span>
+    </label>
     <label id="catedit-lumpy-row" style="display:flex; gap:10px; align-items:flex-start; font-size:13px; color:var(--ink); margin:0 0 12px; cursor:pointer;">
       <input type="checkbox" id="catedit-lumpy" style="margin-top:3px; width:18px; height:18px; accent-color:var(--peri);">
       <span>Lumpy annual bills<br><span style="font-size:12px; color:var(--ink-soft);" id="catedit-lumpy-sub"></span></span>
@@ -1053,7 +1076,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-09 · v83-budget-home</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-09 · v85-banks-first</p>
   </div>
 </div>
 
@@ -2650,6 +2673,8 @@ function openCategorySheet(catName, opts){
     : income ? ''
     : 'With a budget, it counts as a regular monthly expense. Left at 0, it is only tracked separately (for a trip or one-time event) and stays outside the monthly budget.';
   document.getElementById('catedit-delete').style.display = (b && !locked) ? 'block' : 'none';
+  document.getElementById('catedit-invest-row').style.display = (income || locked) ? 'none' : 'flex';
+  document.getElementById('catedit-invest').checked = !!b && isInvestmentCat(b.cat);
   const lumpyRow = document.getElementById('catedit-lumpy-row');
   lumpyRow.style.display = (income || locked) ? 'none' : 'flex';
   document.getElementById('catedit-lumpy').checked = !!b && isLumpyCat(b.cat);
@@ -2695,6 +2720,12 @@ document.getElementById('catedit-save').addEventListener('click', async ()=>{
       b.budget = newBudget;
     }
     if(!cateditCtx.income){
+      const irow = state.budget.find(x=> x.cat===newName);
+      if(irow){
+        const tickInvest = document.getElementById('catedit-invest').checked;
+        // stored only when it differs from what the name alone would say, or once it was set
+        if(irow.invest !== undefined || tickInvest !== INVEST_RE.test(irow.cat)) irow.invest = tickInvest;
+      }
       const row = state.budget.find(x=> x.cat===newName);
       if(row && markLumpy){ state.budget.forEach(x=>{ if(x!==row && !x.income) x.lumpy = false; }); row.lumpy = true; }
       else if(row && (row.lumpy===true || LUMPY_NAME_RE.test(row.cat))) row.lumpy = false;
@@ -4888,9 +4919,143 @@ function renderAnalysisPage(){
     el.addEventListener('click', ()=> openCatTx(el.getAttribute('data-analysiscat'), analysisCatMode, p));
   });
 
+  renderInsightsExtras(p);
   document.getElementById('analysis-download-btn').onclick = ()=> downloadTransactionsPDF({start:p.start, end:p.end, label:p.main});
   applyMaskUI(); // this redraws on its own (period arrows, tab switch), so hidden balances must be re-hidden here too
 }
+
+
+// ---- INSIGHTS: savings, against the usual, the last six months, top payees ----
+// Investments (SIPs, mutual funds, FDs…) are paid out of savings, so here they count as part
+// of what was saved, not as spending. A category counts as an investment when it is ticked as
+// one in its settings, or, until it is ticked either way, when its name says so.
+const INVEST_RE = /invest|\bsip|mutual|wealth|stock|equit|\bppf\b|\bnps\b|\belss\b|\bfd\b|\brd\b|fixed deposit|recurring deposit|gold bond|sgb/i;
+function isInvestmentCat(cat){
+  const b = state.budget.find(x=> x.cat===cat);
+  if(b && b.invest !== undefined) return !!b.invest;
+  return INVEST_RE.test(String(cat||''));
+}
+function monthBounds(y, m){ return {start:new Date(y, m, 1), end:new Date(y, m+1, 1)}; }
+function splitSpending(start, end){
+  const d = analysisData(start, end);
+  let invested = 0;
+  Object.entries(d.expCats).forEach(([cat, v])=>{ if(isInvestmentCat(cat)) invested += v; });
+  const spent = d.spending - invested;
+  return {income:d.income, spent, invested, saved:d.income - spent, expCats:d.expCats};
+}
+function goalsMonthlyNeed(){
+  return (state.savingsGoals||[]).reduce((sum, g)=>{
+    const monthsLeft = Math.max(1, Math.round((new Date(g.byDate) - new Date()) / (30*24*60*60*1000)));
+    return sum + Math.max(0, (g.target||0) - (g.saved||0)) / monthsLeft;
+  }, 0);
+}
+function renderInsightsExtras(p){
+  const anchor = new Date(analysisAnchor);
+  // 1. Savings, with investments shown as part of them
+  const sv = splitSpending(p.start, p.end);
+  const savEl = document.getElementById('ins-savings');
+  if(sv.income > 0 || sv.invested > 0){
+    const rate = sv.income > 0 ? Math.round(sv.saved / sv.income * 100) : null;
+    const savedPos = Math.max(0, sv.saved);
+    const kept = sv.saved - sv.invested;
+    const investShare = savedPos > 0 ? Math.min(100, sv.invested / savedPos * 100) : (sv.invested > 0 ? 100 : 0);
+    const need = goalsMonthlyNeed();
+    const goalsNote = (state.savingsGoals||[]).length && analysisMode==='month'
+      ? (sv.invested >= need - 0.5
+        ? `Your goals need about <span class="maskable">${fmt(need)}</span> a month; <span class="maskable">${fmt(sv.invested)}</span> was invested, so they are on track.`
+        : `Your goals need about <span class="maskable">${fmt(need)}</span> a month; <span class="maskable">${fmt(sv.invested)}</span> was invested, <span class="maskable">${fmt(need - sv.invested)}</span> short.`)
+      : '';
+    savEl.innerHTML = `<div class="ph" style="margin-top:30px;"><b>Savings</b></div>
+      <div class="ins-big maskable">${sv.saved < 0 ? '−' : ''}${fmt(Math.abs(sv.saved))}</div>
+      <div class="ins-note" style="margin-top:2px;">${rate===null ? 'No income in this period.' : sv.saved < 0 ? `Spent <span class="maskable">${fmt(-sv.saved)}</span> more than came in.` : `${rate}% of income saved`}</div>
+      ${rate!==null && sv.saved > 0 ? `<div class="ins-bar" role="img" aria-label="${rate}% of income saved"><div style="width:${Math.min(100, rate)}%"></div></div>` : ''}
+      <div style="margin-top:12px;">
+        <div class="ins-row"><span class="l">Income</span><span class="r maskable">${fmt(sv.income)}</span></div>
+        <div class="ins-row"><span class="l">Spent<small>Investments not counted</small></span><span class="r maskable">${fmt(sv.spent)}</span></div>
+        <div class="ins-row"><span class="l">Saved<small>Income minus spending</small></span><span class="r maskable">${sv.saved < 0 ? '−' : ''}${fmt(Math.abs(sv.saved))}</span></div>
+        <div class="ins-row"><span class="l">of it invested<small>SIPs, mutual funds, deposits</small><div class="ins-bar" role="img" aria-label="${Math.round(investShare)}% of savings invested"><div style="width:${investShare}%"></div></div></span><span class="r maskable">${fmt(sv.invested)}</span></div>
+        <div class="ins-row"><span class="l">kept in the bank</span><span class="r maskable">${kept < 0 ? '−' : ''}${fmt(Math.abs(kept))}</span></div>
+      </div>
+      ${kept < -0.5 && sv.saved >= 0 ? `<div class="ins-note"><span class="maskable">${fmt(-kept)}</span> more was invested than was saved in this period, from money saved earlier.</div>` : ''}
+      ${goalsNote ? `<div class="ins-note">${goalsNote}</div>` : ''}`;
+  } else savEl.innerHTML = '';
+
+  // 2. This month against the usual (the average of up to three earlier months)
+  const vsEl = document.getElementById('ins-vsusual');
+  vsEl.innerHTML = '';
+  if(analysisMode==='month'){
+    const first = firstTransactionMonth();
+    // only months that were really kept in the app (a few entries at least) count as usual
+    const prev = [1,2,3].map(k=> new Date(anchor.getFullYear(), anchor.getMonth()-k, 1)).filter(d=>{
+      if(!first || d < first) return false;
+      const mb = monthBounds(d.getFullYear(), d.getMonth());
+      return state.transactions.filter(t=> t.type==='expense' && new Date(t.ts)>=mb.start && new Date(t.ts)<mb.end).length >= 3;
+    });
+    if(prev.length){
+      const now = splitSpending(p.start, p.end).expCats;
+      const sums = {};
+      prev.forEach(d=>{ const mb = monthBounds(d.getFullYear(), d.getMonth()); Object.entries(splitSpending(mb.start, mb.end).expCats).forEach(([c,v])=> sums[c] = (sums[c]||0) + v); });
+      const cats = [...new Set([...Object.keys(now), ...Object.keys(sums)])].filter(c=> !isInvestmentCat(c));
+      const rows = cats.map(c=> ({cat:c, now:now[c]||0, usual:(sums[c]||0)/prev.length})).map(r=> ({...r, diff:r.now - r.usual}))
+        .filter(r=> Math.abs(r.diff) >= 1 && (r.now > 0 || r.usual > 0)).sort((a,b)=> Math.abs(b.diff) - Math.abs(a.diff)).slice(0, 6);
+      if(rows.length){
+        const monthName = anchor.toLocaleDateString('en-IN',{month:'long'});
+        vsEl.innerHTML = `<div class="ph" style="margin-top:30px;"><b>${monthName} against the usual</b></div>
+          <p class="section-sub" style="margin-top:-4px;">Usual = the average of the ${prev.length===1 ? 'month' : prev.length+' months'} before. Biggest changes first.</p>
+          ${rows.map(r=> `<div class="ins-row"><span class="l">${storyEsc(storyCatLabel(r.cat))}${isLumpyCat(r.cat) ? '<small>Lumpy annual bills</small>' : ''}<small>usual <span class="maskable">${fmt(r.usual)}</span></small></span>
+            <span class="r"><span class="maskable">${fmt(r.now)}</span><small style="color:${r.diff>0?'var(--debt)':'var(--sage)'};"><span class="maskable">${fmt(Math.abs(r.diff))}</span> ${r.diff>0?'more':'less'}</small></span></div>`).join('')}`;
+      }
+    }
+  }
+
+  // 3. The last six months (spending, investments not counted)
+  const trEl = document.getElementById('ins-trend');
+  const months = [5,4,3,2,1,0].map(k=> new Date(anchor.getFullYear(), anchor.getMonth()-k, 1));
+  const vals = months.map(d=>{ const mb = monthBounds(d.getFullYear(), d.getMonth()); return splitSpending(mb.start, mb.end).spent; });
+  if(vals.some(v=> v > 0)){
+    const W = 340, H = 150, padT = 22, padB = 26, gap = 14, bw = (W - gap*7) / 6;
+    const max = Math.max(...vals, 1);
+    const bars = months.map((d,i)=>{
+      const h = Math.max(vals[i] > 0 ? 2 : 0, (vals[i]/max) * (H - padT - padB));
+      const x = gap + i*(bw + gap), y = H - padB - h;
+      const lbl = d.toLocaleDateString('en-IN',{month:'short'});
+      const cur = i===5;
+      const top = h > 4 ? `M${x},${y+4} a4,4 0 0 1 4,-4 h${bw-8} a4,4 0 0 1 4,4 V${H-padB} H${x} Z` : `M${x},${y} h${bw} V${H-padB} H${x} Z`;
+      return `<path class="bar ${cur?'cur':''}" d="${h ? top : ''}" tabindex="0" data-trend="${i}"><title>${lbl}: ${fmt(vals[i])}</title></path>
+        <text x="${x+bw/2}" y="${H-8}" text-anchor="middle" style="font-size:11px; fill:var(--ink-soft); font-family:var(--font);">${lbl}</text>
+        ${cur || vals[i]===max ? `<text x="${x+bw/2}" y="${y-6}" text-anchor="middle" class="maskable" style="font-size:10.5px; font-weight:600; fill:var(--ink); font-family:var(--font);">${fmtShort(vals[i])}</text>` : ''}`;
+    }).join('');
+    const avg = vals.slice(0,5).filter(v=>v>0);
+    const avgTxt = avg.length ? `The ${avg.length} month${avg.length===1?'':'s'} before averaged <span class="maskable">${fmt(avg.reduce((a,b)=>a+b,0)/avg.length)}</span>.` : '';
+    trEl.innerHTML = `<div class="ph" style="margin-top:30px;"><b>Last six months</b></div>
+      <p class="section-sub" style="margin-top:-4px;">Spending each month, investments not counted. Tap a bar for its amount.</p>
+      <div class="ins-trend"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Spending in each of the last six months">
+        <line x1="0" x2="${W}" y1="${H-padB}" y2="${H-padB}" style="stroke:var(--line); stroke-width:1;"/>${bars}</svg></div>
+      <div class="ins-note" id="ins-trend-note">${avgTxt}</div>`;
+    trEl.querySelectorAll('[data-trend]').forEach(el=>{
+      const show = ()=>{ const i = +el.getAttribute('data-trend'); document.getElementById('ins-trend-note').innerHTML = `${months[i].toLocaleDateString('en-IN',{month:'long', year:'numeric'})}: <b class="maskable" style="color:var(--ink);">${fmt(vals[i])}</b> spent. ${avgTxt}`; applyMaskUI(); };
+      el.addEventListener('click', show); el.addEventListener('focus', show);
+    });
+  } else trEl.innerHTML = '';
+
+  // 4. Where the money went: top payees in this period
+  const pyEl = document.getElementById('ins-payees');
+  const groups = {};
+  state.transactions.filter(t=> t.type==='expense' && new Date(t.ts)>=p.start && new Date(t.ts)<p.end && !isInvestmentCat(analysisCatKey(t))).forEach(t=>{
+    const name = (t.payee||'').trim();
+    const key = normalizePayee(name) || 'no name';
+    const g = groups[key] = groups[key] || {name: (key==='no name' || /^unknown$/i.test(name)) ? 'No name on the entry' : name, total:0, n:0};
+    g.total += t.amount; g.n++;
+  });
+  const top = Object.values(groups).sort((a,b)=> b.total - a.total).slice(0, 8);
+  if(top.length){
+    const maxP = top[0].total;
+    pyEl.innerHTML = `<div class="ph" style="margin-top:30px;"><b>Where the money went</b></div>
+      <p class="section-sub" style="margin-top:-4px;">Who you paid most in ${storyEsc(p.main)}, investments not counted.</p>
+      ${top.map(g=> `<div class="ins-row"><span class="l" style="flex:1;">${storyEsc(g.name)}<small>${g.n} payment${g.n===1?'':'s'}</small><div class="ins-bar"><div style="width:${(g.total/maxP*100).toFixed(1)}%"></div></div></span><span class="r maskable">${fmt(g.total)}</span></div>`).join('')}`;
+  } else pyEl.innerHTML = '';
+}
+function fmtShort(v){ return v >= 1e5 ? '₹' + (v/1e5).toFixed(v >= 1e6 ? 0 : 1) + 'L' : v >= 1000 ? '₹' + Math.round(v/1000) + 'k' : fmt(v); }
 
 // ---- Category → its transactions (opened by tapping a category on Insights) ----
 let cattxCtx = null;
@@ -6448,7 +6613,7 @@ document.getElementById('gmail-custom-fetch-btn').addEventListener('click', asyn
     // A long range can be more mail than one check reads; it then says how far back it got.
     const partial = data.stoppedEarly
       ? ` Read back to ${data.reachedBack ? new Date(data.reachedBack).toLocaleDateString('en-IN',{day:'numeric', month:'short'}) : 'part of the range'} only. Tap Check again to carry on.`
-      : '';
+      : (data.unread ? ` ${data.unread} mail${data.unread===1?'':'s'} could not be read just now (Gmail was busy); the next check reads ${data.unread===1?'it':'them'}.` : '');
     showToast((data.totalFound ? `${rangeLabel}: found ${data.totalFound} transaction(s). See Home.` : `${rangeLabel}: nothing new.`) + partial + (data.totalSkippedBySender ? ` · ${data.totalSkippedBySender} set aside, from addresses you ignore` : ''), partial ? 7000 : 4500);
   }catch(e){
     console.error('Manual fetch failed', e);
