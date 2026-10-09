@@ -335,6 +335,8 @@
   .hb-row .hb-figs b{color:var(--ink); font-weight:500;}
   .hb-row.over .hb-figs b{color:var(--debt);}
   .hb-row .bar-track{margin:7px 0 0; height:5px;}
+  .hb-edit{flex:0 0 auto; width:34px; height:34px; border-radius:50%; border:1px solid var(--line); background:none; color:var(--ink-soft); font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center;}
+  .hb-edit:focus-visible{outline:2px solid var(--peri); outline-offset:2px;}
   .hb-sub{font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft); margin:16px 0 2px;}
   .bp-row{padding:13px 0; border-top:1px solid var(--line);}
   .bp-row:first-child{border-top:none; padding-top:2px;}
@@ -449,8 +451,16 @@
         <div id="learning-match-wrap"></div>
         <div id="last-fetch-summary-wrap"></div>
       </div>
+      <!-- This month's budget, on Home: each category's spending against its budget; ✎ edits or
+           deletes a category; Edit budget opens the full planner (last month, suggestions). -->
       <div class="panel">
-        <div class="ph"><b>Recent activity</b><button class="link-btn" id="see-all-month-btn">See all</button></div>
+        <div id="home-budget-panel">
+          <div class="ph"><b id="home-budget-title">Budget</b><button class="link-btn" id="home-budget-edit-btn" style="color:var(--peri);">Edit budget</button></div>
+          <div id="home-budget-nudge"></div>
+          <div id="home-budget-list"></div>
+          <button class="link-btn" id="home-budget-addcat" style="display:block; margin:10px 0 2px;">+ Add a category</button>
+        </div>
+        <div class="ph" style="margin-top:30px;"><b>Recent activity</b><button class="link-btn" id="see-all-month-btn">See all</button></div>
         <div class="list-plain" id="recent-list"></div>
       </div>
     </section>
@@ -538,11 +548,6 @@
         <div style="display:flex; justify-content:center; margin:6px 0 10px;"><svg id="analysis-donut" viewBox="0 0 170 170" width="200" height="200"></svg></div>
         <p class="section-sub" style="text-align:center; margin-bottom:6px;">Tap a category to see its transactions</p>
         <div id="analysis-cat-list"></div>
-
-        <!-- Budget categories live here (the spending-pace chart is on Home). The element ids keep their "home-" prefix. -->
-        <div class="ph" style="margin-top:30px;"><b id="home-budget-title">Budget</b><button class="link-btn" id="home-budget-edit-btn" style="color:var(--peri);">Edit budget</button></div>
-        <div id="home-budget-nudge"></div>
-        <div id="home-budget-list"></div>
 
         <div class="ph" style="margin-top:30px;"><b>Month-end</b></div>
         <button class="btn-primary" id="gen-report-btn">Month-end report (PDF)</button>
@@ -1048,7 +1053,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-09 · v82-month-start</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-09 · v83-budget-home</p>
   </div>
 </div>
 
@@ -3269,7 +3274,7 @@ function renderHomeBudget(){
   const now = new Date();
   document.getElementById('home-budget-title').textContent = 'Budget · ' + now.toLocaleDateString('en-IN',{month:'long', year:'numeric'});
   // A new month's budget hasn't been looked at yet — say so here, where the budget lives
-  // (the Insights tab), instead of the old pop-up that only appeared on opening the Budget tab.
+  // (Home, below the overview), instead of the old pop-up that only appeared on opening the Budget tab.
   const nudge = document.getElementById('home-budget-nudge');
   if(state.lastBudgetReviewMonth !== currentMonthKey() && completedBudgetMonths().length){
     const prevName = new Date(now.getFullYear(), now.getMonth()-1, 1).toLocaleDateString('en-IN',{month:'long'});
@@ -3295,6 +3300,7 @@ function renderHomeBudget(){
         <div class="hb-top"><span class="hb-name">${storyEsc(storyCatLabel(b.cat))}</span><span class="hb-figs">${figs}</span></div>
         <div class="bar-track"><div class="bar-fill ${over?'over':''}" style="width:${pct}%"></div></div>
       </div>
+      <button class="hb-edit" data-hbedit="${storyEsc(b.cat)}" aria-label="Edit or delete ${storyEsc(storyCatLabel(b.cat))}">✎</button>
     </div>`;
   };
   const regular = state.budget.filter(b=>!b.income && !b.special && (b.budget>0 || b.actual>0));
@@ -3316,6 +3322,10 @@ function renderHomeBudget(){
       : '');
   listEl.querySelectorAll('[data-opencat]').forEach(el=>{
     el.addEventListener('click', ()=> openBudgetDetail(el.getAttribute('data-opencat')));
+  });
+  // ✎ opens the category itself: rename, change its budget, or delete it.
+  listEl.querySelectorAll('[data-hbedit]').forEach(el=>{
+    el.addEventListener('click', e=>{ e.stopPropagation(); openCategorySheet(el.getAttribute('data-hbedit'), {onDone: ()=> render()}); });
   });
   const toggle = document.getElementById('home-budget-toggle');
   if(toggle) toggle.addEventListener('click', ()=>{ homeBudgetExpanded = !homeBudgetExpanded; renderHomeBudget(); applyMaskUI(); });
@@ -5237,6 +5247,7 @@ function openBudgetPage(){
 }
 document.querySelectorAll('#budget-page-tabs button').forEach(btn=> btn.addEventListener('click', ()=> setBudgetPageTab(btn.dataset.bptab)));
 document.getElementById('home-budget-edit-btn').addEventListener('click', openBudgetPage);
+document.getElementById('home-budget-addcat').addEventListener('click', ()=> openCategorySheet(null, {onDone: ()=> render()}));
 document.getElementById('budget-back-btn').addEventListener('click', ()=>{
   if(bpHasUnsavedChanges() && !confirm('You changed some budget amounts but have not saved them. Leave without saving?')) return;
   closeFullscreen('budget-page');
