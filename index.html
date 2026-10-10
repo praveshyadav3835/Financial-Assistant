@@ -466,20 +466,21 @@
         <div id="reader-card-wrap"></div>
         <div id="heads-up-wrap"></div>
         <div id="pending-review-wrap"></div>
+        <div id="hide-kind-wrap"></div>
         <div id="learning-match-wrap"></div>
         <div id="last-fetch-summary-wrap"></div>
       </div>
-      <!-- This month's budget, on Home: each category's spending against its budget; ✎ edits or
-           deletes a category; Edit budget opens the full planner (last month, suggestions). -->
+      <!-- Recent activity, then this month's budget below it: each category's spending against its
+           budget; ✎ edits or deletes a category; Edit budget opens the full planner. -->
       <div class="panel">
-        <div id="home-budget-panel">
+        <div class="ph"><b>Recent activity</b><button class="link-btn" id="see-all-month-btn">See all</button></div>
+        <div class="list-plain" id="recent-list"></div>
+        <div id="home-budget-panel" style="margin-top:30px;">
           <div class="ph"><b id="home-budget-title">Budget</b><button class="link-btn" id="home-budget-edit-btn" style="color:var(--peri);">Edit budget</button></div>
           <div id="home-budget-nudge"></div>
           <div id="home-budget-list"></div>
           <button class="link-btn" id="home-budget-addcat" style="display:block; margin:10px 0 2px;">+ Add a category</button>
         </div>
-        <div class="ph" style="margin-top:30px;"><b>Recent activity</b><button class="link-btn" id="see-all-month-btn">See all</button></div>
-        <div class="list-plain" id="recent-list"></div>
       </div>
     </section>
 
@@ -505,7 +506,7 @@
         <button class="btn-primary" id="gmail-custom-fetch-btn">Check</button>
         <span id="gmail-status-text" class="hide"></span>
       </div>
-      <div class="reader-only" style="text-align:right; margin-top:6px;"><button class="link-btn" id="open-engine-report-btn">Email accuracy</button></div>
+      <div class="admin-only hide" style="text-align:right; margin-top:6px;"><button class="link-btn" id="open-engine-report-btn">Email accuracy</button></div>
       <div id="connect-gmail-wrap"></div>
       <div id="no-email-wrap"></div>
       <div class="panel">
@@ -679,6 +680,7 @@
 <div class="sheet-backdrop" id="person-backdrop">
   <div class="sheet">
     <h3 id="person-title">Adjust balance</h3>
+    <button class="link-btn" id="person-rename-btn" type="button" style="margin:-6px 0 10px;">Edit name or note</button>
     <div class="field">
       <div class="seg" id="person-dir">
         <button data-v="gave" class="on">You gave</button>
@@ -740,6 +742,11 @@
   <div class="sheet">
     <h3 id="editpe-title">Edit</h3>
     <div class="field">
+      <label>Person</label>
+      <select id="editpe-person" style="width:100%;"></select>
+      <input id="editpe-newperson" class="hide" placeholder="New person's name" style="margin-top:8px;">
+    </div>
+    <div class="field">
       <div class="seg" id="editpe-dir">
         <button data-v="gave" class="on">You gave</button>
         <button data-v="received">You got</button>
@@ -758,6 +765,7 @@
     </div>
     <div class="field"><label>Notes</label><input id="editpe-remarks" placeholder=""></div>
     <button class="btn-primary" id="editpe-save">Save changes</button>
+    <button class="btn-ghost" id="editpe-convert">Not about a person: make it an expense</button>
     <button class="btn-ghost" id="editpe-delete" style="color:var(--debt); border-color:var(--debt);">Delete</button>
     <button class="btn-ghost" id="editpe-cancel">Cancel</button>
   </div>
@@ -1041,7 +1049,7 @@
     <div class="divider-label" style="margin-top:22px;">Reading cost</div>
     <div id="cost-body"></div>
     <div class="card" style="margin-top:8px;">
-      <div class="section-sub" style="margin:0 0 8px;">Count mails again from Gmail, day by day. This only lists mails; it opens none and changes nothing.</div>
+      <div class="section-sub" style="margin:0 0 8px;">Count mails again from Gmail, day by day, for every household. This only lists mails; it opens none and changes nothing.</div>
       <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         <label style="font-size:12px;">From <input type="date" id="cost-from" value="2026-09-01"></label>
         <label style="font-size:12px;">To <input type="date" id="cost-to"></label>
@@ -1075,7 +1083,7 @@
 
     <div class="divider-label">Bank emails</div>
     <div class="card" id="reader-box" style="margin-bottom:6px;"></div>
-    <button class="btn-ghost reader-only" id="tools-engine-report-btn" style="margin-top:0;">Email accuracy</button>
+    <button class="btn-ghost admin-only hide" id="tools-engine-report-btn" style="margin-top:0;">Email accuracy</button>
 
     <div class="divider-label">PDF reports</div>
     <div class="field" style="margin-bottom:6px;"><label>Name printed under the title (optional)</label><input id="pdf-name-input" maxlength="90" autocomplete="off" placeholder="e.g. Sharma family, Pune"></div>
@@ -1093,7 +1101,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-09 · v86-reading-cost</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-09 · v88-review-fixes</p>
   </div>
 </div>
 
@@ -1296,6 +1304,8 @@ const STARTER = {
   dismissedPatternPrompts: [],
   transferPairDeclined: [],
   noEmailOk: [],
+  hiddenMailKinds: [],   // {key, sender, subject, at}: mails of this kind are put away as not real, as you chose
+  hideKindDeclined: [],  // kinds you chose to keep seeing
   lastBudgetReviewMonth: null,
   lastFetchSummary: null,
   lastGmailFetch: null
@@ -1363,6 +1373,8 @@ function normalizeState(){
   if(!Array.isArray(state.importOutcomes)) state.importOutcomes = [];
   if(!Array.isArray(state.transferPairDeclined)) state.transferPairDeclined = [];
   if(!Array.isArray(state.noEmailOk)) state.noEmailOk = [];
+  if(!Array.isArray(state.hiddenMailKinds)) state.hiddenMailKinds = [];
+  if(!Array.isArray(state.hideKindDeclined)) state.hideKindDeclined = [];
   // A device that starts from the empty starting set must not treat that set as its own new
   // work: only what is added from here on is sent to the cloud.
   if(!stateFromStorage && typeof previousArrays !== 'undefined'){
@@ -1410,7 +1422,7 @@ function waitForAuthReady(){
     const finish = ()=>{ if(settled) return; settled = true; authReady = true; resolve(authUser); };
     const timer = setTimeout(finish, 5000); // never hold the app up if the saved sign-in can't be read
     try{
-      firebase.auth().onAuthStateChanged(u=>{ authUser = u || null; clearTimeout(timer); finish(); renderAccountUI(); if(!whoami && myFirstName()){ whoami = myFirstName(); renderGreeting(); } },
+      firebase.auth().onAuthStateChanged(u=>{ authUser = u || null; clearTimeout(timer); finish(); renderAccountUI(); checkOwner(); if(!whoami && myFirstName()){ whoami = myFirstName(); renderGreeting(); } },
         e=>{ console.error('Sign-in state unavailable', e); clearTimeout(timer); finish(); });
     }catch(e){ console.error('Sign-in unavailable', e); clearTimeout(timer); finish(); }
   });
@@ -2007,7 +2019,7 @@ function renderReaderUI(force){
     : '<div class="eng-sub">No inbox connected yet. Connect the Gmail inbox where your bank\'s alerts arrive, and new transactions appear on Home for you to check and add.</div>';
   const lr = readerStatus && readerStatus.lastRun;
   const lastRun = lr ? ` Last check${lr.full===true ? ' (full)' : lr.full===false ? ' (quick)' : ''}: ${lr.listed!==undefined ? lr.listed+' listed, ' : ''}${lr.opened} opened, ${lr.notOpened} left unopened${(lr.notices||lr.offers) ? `, ${[lr.notices ? lr.notices+' due reminder'+(lr.notices===1?'':'s') : '', lr.offers ? lr.offers+' offer'+(lr.offers===1?'':'s') : ''].filter(Boolean).join(' and ')} from banks not shown` : ''}.` : '';
-  const how = 'Checked at 8 am and 8 pm. Gmail is asked only for mails from bank addresses or with money words (debited, credited, UPI, spent and the like). Every Wednesday and Sunday at 8 pm, and whenever you tap Check on the Accounts tab, every mail is looked at, so nothing is missed. A mail is opened only when its sender looks like a bank, card, lender or payment app; any other is opened only if its subject reads like a transaction, and is shown apart for you to check. Offers, loan pitches and due reminders are left out unless they say money actually moved.' + lastRun;
+  const how = 'Checked at 8 am and 8 pm, reading mails from your banks’ addresses. On Sunday at 8 pm, and whenever you tap Check on the Accounts tab, Gmail is also asked for mails from other senders with money words (debited, credited, UPI, spent and the like), so a new bank or card is not missed. In the first 30 days every mail is looked at on Wednesday and Sunday. A mail is opened only when its sender looks like a bank, card, lender or payment app; any other is opened only if its subject reads like a transaction, and is shown apart for you to check. Offers, loan pitches and due reminders are left out unless they say money actually moved.' + lastRun;
   // Every mail from a bank-like address that was opened but did not become an entry, with
   // the reason, so that nothing is left out without you seeing it.
   const dropped = (lr && Array.isArray(lr.dropped)) ? lr.dropped : [];
@@ -2051,7 +2063,13 @@ function renderReaderUI(force){
       : '';
     const taughtRows = Object.keys(taught).sort().map(addr=> `<div class="eng-line"><span style="overflow-wrap:anywhere; min-width:0;">${storyEsc(addr)}<br><span class="eng-sub">${storyEsc(targetName((taught[addr]||[])[0]))}</span></span><button class="link-btn" data-senderremove="${storyEsc(addr)}" style="color:var(--ink-soft);">Remove</button></div>`).join('');
     const built = (readerLearned && readerLearned.builtAt) ? `Last looked on ${new Date(readerLearned.builtAt).toLocaleDateString('en-IN',{day:'numeric', month:'short'})}: ${readerLearned.mailsOpened||0} past mails${readerLearned.mailsLeft ? ', '+readerLearned.mailsLeft+' still to look at' : ''}.` : 'Not looked at yet.';
-    extra = fullOnlyHtml + droppedHtml + suggestHtml + unmatchedHtml + ignoredHtml +
+    const kinds = state.hiddenMailKinds || [];
+    const kindsHtml = kinds.length
+      ? `<div class="eng-sub" style="margin:16px 0 4px; color:var(--ink);">Mails put away</div>
+         <div class="eng-sub" style="margin-bottom:4px;">Mails from these addresses with these subjects are put away as not real, as you chose.</div>` +
+        kinds.map(k=> `<div class="eng-line"><span style="overflow-wrap:anywhere; min-width:0;">${storyEsc(k.sender)}<br><span class="eng-sub">"${storyEsc(k.subject)}"</span></span><button class="link-btn" data-unhidekind="${storyEsc(k.key)}" style="color:var(--ink-soft);">Show again</button></div>`).join('')
+      : '';
+    extra = fullOnlyHtml + droppedHtml + suggestHtml + unmatchedHtml + ignoredHtml + kindsHtml +
       `<div class="eng-sub" style="margin:16px 0 4px; color:var(--ink);">Tie an alert address to an account</div>
        <div class="eng-sub" style="margin-bottom:8px;">Entries from that address then go to the account you choose, without asking.</div>
        ${taughtRows}
@@ -2082,6 +2100,12 @@ function renderReaderUI(force){
     }catch(e){ console.error('Could not save', e); showToast('Could not save. Try again.', 3000); }
     renderReaderUI(true);
   }));
+  box.querySelectorAll('[data-unhidekind]').forEach(b=> b.addEventListener('click', async ()=>{
+    const key = b.getAttribute('data-unhidekind');
+    state.hiddenMailKinds = (state.hiddenMailKinds||[]).filter(k=> k.key !== key);
+    state.hideKindDeclined = [...new Set([...(state.hideKindDeclined||[]), key])];
+    await saveState(); renderReaderUI(true); showToast('Mails like these show again from the next check.', 3500);
+  }));
   box.querySelectorAll('[data-umignore]').forEach(b=> b.addEventListener('click', ()=> ignoreReaderSender(b.getAttribute('data-umignore'))));
   box.querySelectorAll('[data-senderremove]').forEach(b=> b.addEventListener('click', ()=> saveReaderSender(b.getAttribute('data-senderremove'), null)));
   const add = document.getElementById('sender-add-btn');
@@ -2100,8 +2124,23 @@ function openSettingsPage(){
 }
 // Parts of the screen that show only once a household has an inbox connected, and the
 // Household section that every household but the first uses.
+// Email accuracy and Reading cost are for the app's owner only. The server decides who that is
+// (the signed-in Google account); the answer is kept per account so the screen does not flicker.
+let ownerView = false;
+function adminKey(){ return 'fa-owner-' + (authUser && authUser.uid || ''); }
+function applyOwnerUI(){ document.querySelectorAll('.admin-only').forEach(el=> el.classList.toggle('hide', !ownerView)); }
+async function checkOwner(){
+  if(!authUser){ ownerView = false; applyOwnerUI(); return; }
+  try{ ownerView = localStorage.getItem(adminKey()) === '1'; }catch(e){}
+  applyOwnerUI();
+  try{
+    const r = await readerCall('readingCost', {method:'GET', query:'action=am-i'});
+    if(r.status === 200 && r.data.ok){ ownerView = !!r.data.admin; try{ localStorage.setItem(adminKey(), ownerView ? '1' : '0'); }catch(e){} applyOwnerUI(); }
+  }catch(e){ /* offline: keep the last answer */ }
+}
 function applyHouseholdUI(){
   document.querySelectorAll('.reader-only').forEach(el=> el.classList.toggle('hide', !readerOn()));
+  applyOwnerUI();
   renderReaderUI();
   renderHouseholdUI();
   const inp = document.getElementById('pdf-name-input');
@@ -2132,7 +2171,7 @@ const COLLECTION_FIELDS = {
   // correction, rejected, already logged) — the score sheet for the email reader.
   importOutcomes: 'importOutcome'
 };
-const META_FIELDS = ['budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','lastBudgetReviewMonth','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts','transferPairDeclined','noEmailOk'];
+const META_FIELDS = ['budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','lastBudgetReviewMonth','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts','transferPairDeclined','noEmailOk','hiddenMailKinds','hideKindDeclined'];
 let previousArrays = { transactions:[], personLedger:[], pendingImports:[], dismissedImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[], budgetMonths:[], importOutcomes:[] };
 
 // ---- Outbox for cloud writes that haven't been confirmed yet ----
@@ -3490,6 +3529,8 @@ function renderNoEmailCard(){
   wrap.querySelectorAll('[data-noemail-sms]').forEach(b=> b.addEventListener('click', ()=> openSmsSheet(b.getAttribute('data-noemail-sms'))));
   wrap.querySelectorAll('[data-noemail-ok]').forEach(b=> b.addEventListener('click', async ()=>{
     if(!Array.isArray(state.noEmailOk)) state.noEmailOk = [];
+  if(!Array.isArray(state.hiddenMailKinds)) state.hiddenMailKinds = [];
+  if(!Array.isArray(state.hideKindDeclined)) state.hideKindDeclined = [];
     state.noEmailOk.push(b.getAttribute('data-noemail-ok'));
     await saveState();
     renderNoEmailCard();
@@ -3882,7 +3923,9 @@ function parseBankSMS(text, sourceEmail){
   // being read as proof of income and winning the classification. "Credited" now only counts
   // as income evidence when it's your own account being credited, not a beneficiary's.
   const hasCreditVerb = /received|deposit(ed)?|refund|\bcredit\s+by\b|has\s+a\s+credit|credited\s+(to\s+|in\s+)?your\b|\bcredited\b(?!\s+to\b)/i.test(clean);
-  const hasDebitVerb = /debited|debit of|spent|used for|used to make|withdrawn|\btransferred\b|\bsent\b|\bpaid\b|payment.{0,15}(of|was|done|made|successful)|\bdebit\s+by\b|has\s+a\s+debit/i.test(clean);
+  // money sent to someone else ("Vendor payment to NAME of INR ... credited to the beneficiary's account")
+  const toBeneficiary = /credited\s+to\s+(the\s+)?beneficiar|\bbeneficiary'?s?\s+(a\/c|acct|account)|(vendor|bulk|fund)\s+(payment|transfer)\s+to\b|\bpayment\s+to\s+.{2,80}?\s+of\s+(inr|rs\.?|₹)/i.test(clean);
+  const hasDebitVerb = toBeneficiary || /debited|debit of|spent|used for|used to make|withdrawn|\btransferred\b|\bsent\b|\bpaid\b|payment.{0,15}(of|was|done|made|successful)|\bdebit\s+by\b|has\s+a\s+debit/i.test(clean);
   const hasFromAccount = /\bfrom\s+(your\s+)?(a\/c|acct|account)\b/i.test(clean);
   const hasToAccount = /\b(to|in)\s+(your\s+)?(a\/c|acct|account)\b|credited\s+to\s+your\b/i.test(clean);
 
@@ -3897,7 +3940,7 @@ function parseBankSMS(text, sourceEmail){
     return result;
   }
 
-  if(hasCreditVerb || (hasToAccount && !hasDebitVerb)) result.type = 'income';
+  if((hasCreditVerb && !toBeneficiary) || (hasToAccount && !hasDebitVerb)) result.type = 'income';
   if(hasDebitVerb || (hasFromAccount && !hasCreditVerb)) result.type = 'expense';
 
   // Try the universal masking pattern first (XX1234, XXXXXX1234, ****1234, xx-1234, etc.)
@@ -4422,6 +4465,7 @@ function openPersonSheet(id){
   personBackdrop.classList.add('open');
 }
 document.getElementById('person-cancel').addEventListener('click', ()=> personBackdrop.classList.remove('open'));
+document.getElementById('person-rename-btn').addEventListener('click', ()=>{ personBackdrop.classList.remove('open'); openEditPerson(activePerson); });
 personBackdrop.addEventListener('click', e=>{ if(e.target===personBackdrop) personBackdrop.classList.remove('open'); });
 document.getElementById('person-save').addEventListener('click', async ()=>{
   const amount = parseFloat(document.getElementById('person-amount').value);
@@ -4494,17 +4538,66 @@ function openEditPersonEntry(entry){
   editPeSelectedAccount = entry.account || null;
   editPeSelectedCat = entry.category || null;
   editPeCatPickerOpen = false;
+  const sel = document.getElementById('editpe-person');
+  const people = [...state.people].sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+  sel.innerHTML = people.map(p=> `<option value="${p.id}" ${p.id===entry.personId?'selected':''}>${storyEsc(p.name)}${isSettledPerson(p)?' (settled)':''}</option>`).join('') + '<option value="__new">+ New person…</option>';
+  document.getElementById('editpe-newperson').value = '';
+  document.getElementById('editpe-newperson').classList.add('hide');
   renderEditPeAcctChips();
   renderEditPeCatPicker();
+  renderEditPeConvert();
   editPersonEntryBackdrop.classList.add('open');
 }
-wireSeg('editpe-dir', ()=> renderEditPeCatPicker());
+function renderEditPeConvert(){
+  const btn = document.getElementById('editpe-convert');
+  const isOpening = editingPersonEntry && editingPersonEntry.type === 'opening';
+  btn.classList.toggle('hide', !!isOpening);
+  btn.textContent = segValue('editpe-dir')==='gave' ? 'Not about a person: make it an expense' : 'Not about a person: make it income';
+}
+document.getElementById('editpe-person').addEventListener('change', e=>{
+  document.getElementById('editpe-newperson').classList.toggle('hide', e.target.value !== '__new');
+  if(e.target.value === '__new') document.getElementById('editpe-newperson').focus();
+});
+wireSeg('editpe-dir', ()=>{ renderEditPeCatPicker(); renderEditPeConvert(); });
+// The person an entry belongs to, as chosen in the sheet (a new name makes a new person).
+function editPeChosenPerson(){
+  const v = document.getElementById('editpe-person').value;
+  if(v !== '__new') return state.people.find(p=> p.id === v) || null;
+  const name = document.getElementById('editpe-newperson').value.trim();
+  if(!name){ alert("Enter the new person's name."); return null; }
+  return addOrReopenPerson(name, '').person;
+}
+// An entry put in the People Ledger by mistake (a shop, a bill) becomes an ordinary expense
+// (money you gave) or income (money you got) in the same account, on the same date.
+document.getElementById('editpe-convert').addEventListener('click', async ()=>{
+  const e = editingPersonEntry;
+  if(!e) return;
+  const amount = parseFloat(document.getElementById('editpe-amount').value) || Math.abs(e.delta);
+  const isExpense = segValue('editpe-dir') === 'gave';
+  if(!editPeSelectedAccount){ alert('Choose the account the money went ' + (isExpense ? 'out of' : 'into') + ' first.'); return; }
+  const person = state.people.find(p=> p.id === e.personId);
+  const incomeCats = state.budget.filter(b=> b.income).map(b=> b.cat);
+  const category = isExpense ? (editPeSelectedCat || OTHER_EXPENSE_CAT) : (incomeCats.includes(editPeSelectedCat) ? editPeSelectedCat : (incomeCats[incomeCats.length-1] || 'Other income'));
+  if(!confirm(`Move this ${fmt(amount)} out of ${person ? person.name : 'the People Ledger'} and add it as ${isExpense ? 'an expense' : 'income'} (${category.split(' (')[0]}) in ${targetName(editPeSelectedAccount)}? The account balance stays the same.`)) return;
+  const tx = {id: genId('tx'), ts: e.ts, type: isExpense ? 'expense' : 'income', account: editPeSelectedAccount, payee: person ? person.name : '', category, amount,
+    household: isExpense, remarks: document.getElementById('editpe-remarks').value.trim() || 'Moved from People Ledger'};
+  state.transactions.push(tx);
+  state.personLedger = state.personLedger.filter(x=> x !== e);
+  recomputeBudgetActuals();
+  await saveState();
+  render();
+  editPersonEntryBackdrop.classList.remove('open');
+  showToast(`Added as ${isExpense ? 'an expense' : 'income'}. Tap it in Recent activity to change the category.`, 4000);
+});
 document.getElementById('editpe-cancel').addEventListener('click', ()=> editPersonEntryBackdrop.classList.remove('open'));
 editPersonEntryBackdrop.addEventListener('click', e=>{ if(e.target===editPersonEntryBackdrop) editPersonEntryBackdrop.classList.remove('open'); });
 document.getElementById('editpe-save').addEventListener('click', async ()=>{
   const amount = parseFloat(document.getElementById('editpe-amount').value);
   if(!amount || amount<=0){ alert('Enter a valid amount.'); return; }
   const dir = segValue('editpe-dir');
+  const toPerson = editPeChosenPerson();
+  if(!toPerson) return;
+  editingPersonEntry.personId = toPerson.id;
   editingPersonEntry.type = dir;
   editingPersonEntry.delta = dir==='gave' ? amount : -amount;
   editingPersonEntry.account = editPeSelectedAccount || undefined;
@@ -7083,7 +7176,96 @@ function wireTransferPairs(wrap, pairs){
 }
 
 let possibleOpen = false;
+// ---- WHAT THE READER LEARNS FROM YOUR REVIEW ----
+// Direction: when you tap "Wrong direction?" and save, the next mail from the same address with
+// the same kind of subject is shown the way you corrected it (marked "as you corrected before").
+// The last entry saved from that address and subject decides; tapping it back undoes the lesson.
+function subjectShape(subj){ return String(subj||'').toLowerCase().replace(/\d+/g,'#').replace(/[^a-z#]+/g,' ').trim(); }
+function directionLessons(){
+  const out = {};
+  (state.importOutcomes||[]).forEach(o=>{
+    if(o.outcome !== 'added' || !o.sender || !o.final || !o.final.type || o.sender === 'SMS') return;
+    if(o.final.type !== 'income' && o.final.type !== 'expense') return;
+    const key = String(o.sender).toLowerCase() + '|' + subjectShape(o.subject);
+    out[key] = ((o.changed||[]).includes('direction') || o.learnedDir) ? o.final.type : null;
+  });
+  return out;
+}
+// A kind of mail (same address, same kind of subject) you rejected as not real 3 times or
+// more and never added: Home asks once whether to put such mails away. Only by subject, not
+// the whole address, so a real debit from the same bank with a different subject still shows.
+const HIDE_KIND_AFTER = 3;
+function mailKindKey(sender, subject){ return String(sender||'').toLowerCase() + '|' + subjectShape(subject); }
+function rejectedKinds(){
+  const by = {};
+  (state.importOutcomes||[]).forEach(o=>{
+    if(!o.sender || o.sender === 'SMS') return;
+    const k = mailKindKey(o.sender, o.subject);
+    const r = by[k] = by[k] || {key:k, sender:String(o.sender).toLowerCase(), subject:o.subject||'', notReal:0, added:0, amounts:[]};
+    if(o.outcome === 'not_real'){ r.notReal++; r.amounts.push(o.parsed && o.parsed.amount || 0); }
+    if(o.outcome === 'added') r.added++;
+  });
+  const hidden = new Set((state.hiddenMailKinds||[]).map(h=> h.key)), declined = new Set(state.hideKindDeclined||[]);
+  return Object.values(by).filter(r=> r.notReal >= HIDE_KIND_AFTER && !r.added && !hidden.has(r.key) && !declined.has(r.key));
+}
+function hideKindHtml(){
+  const ks = rejectedKinds();
+  if(!ks.length) return '';
+  return ks.slice(0, 3).map(r=> `<div class="card queue-card" style="margin-bottom:16px;">
+    <div class="name">You rejected ${r.notReal} mails like this as not real</div>
+    <div class="sub" style="overflow-wrap:anywhere; margin-top:4px;">${storyEsc(r.sender)}<br>"${storyEsc(r.subject)}"</div>
+    <div class="sub" style="margin-top:6px;">Put mails like these away from now on? Other mails from this address still show.</div>
+    <div style="display:flex; gap:14px; margin-top:8px;"><button class="link-btn" data-hidekind="${storyEsc(r.key)}">Put them away</button><button class="link-btn" style="color:var(--ink-soft);" data-keepkind="${storyEsc(r.key)}">Keep showing</button></div>
+  </div>`).join('');
+}
+async function hideMailKind(key, hide){
+  const r = rejectedKinds().find(x=> x.key === key);
+  if(hide && r) state.hiddenMailKinds.push({key, sender: r.sender, subject: r.subject, at: new Date().toISOString()});
+  if(!hide) state.hideKindDeclined.push(key);
+  if(hide) applyReaderLessons(true);
+  await saveState();
+  render();
+  showToast(hide ? 'Mails like these will be put away. Settings → Bank emails can bring them back.' : 'They will keep showing.', 4000);
+}
+// Two mails about one payment (Axis sends "processed" and then "credited to the beneficiary"),
+// or a mail for something already added: shown as a possible duplicate, never dropped.
+function applyReaderLessons(fromChoice){
+  const lessons = directionLessons();
+  // kinds you chose to put away
+  const hiddenKeys = new Set((state.hiddenMailKinds||[]).map(h=> h.key));
+  const toHide = (state.pendingImports||[]).filter(it=> it.sender && hiddenKeys.has(mailKindKey(it.sender, it.subject)));
+  if(toHide.length){
+    toHide.forEach(it=> dismissImportItem(it, 'not_real', 'put away: a kind you chose'));
+    if(!fromChoice) setTimeout(()=> saveState(), 0);
+  }
+  const pend = (state.pendingImports||[]);
+  pend.forEach(it=>{
+    if(it.typeRead === undefined) it.typeRead = it.type;
+    const key = String(it.sender||'').toLowerCase() + '|' + subjectShape(it.subject);
+    const lesson = it.sender ? lessons[key] : null;
+    if(lesson && (lesson === 'income' || lesson === 'expense')){ it.type = lesson; it.dirLearned = lesson !== it.typeRead; }
+    else { it.type = it.typeRead; it.dirLearned = false; }
+  });
+  const pool = buildExistingCashEventsPool();
+  const sorted = [...pend].sort((a,b)=> new Date(a.ts) - new Date(b.ts));
+  const seen = [];
+  sorted.forEach(it=>{
+    if(it.status === 'duplicate' && !it.dupLocal){ seen.push(it); return; } // marked when it was read
+    const ledger = pool.find(e=> isDuplicateOf(it, e, DUP_TOLERANCE_LEDGER_MIN, false));
+    const twin = seen.find(p=> p.gmailMessageId !== it.gmailMessageId && (p.type === it.type) && isDuplicateOf(it, p, 24*60, true));
+    if(ledger || twin){ it.status = 'duplicate'; it.dupLocal = true; it.matchedAccount = ledger ? ledger.account : (twin.accountId || null); }
+    else if(it.dupLocal){ it.status = 'pending'; it.dupLocal = false; it.matchedAccount = null; }
+    seen.push(it);
+  });
+}
 function renderPendingReview(){
+  applyReaderLessons();
+  const kindWrap = document.getElementById('hide-kind-wrap');
+  if(kindWrap){
+    kindWrap.innerHTML = hideKindHtml();
+    kindWrap.querySelectorAll('[data-hidekind]').forEach(b=> b.addEventListener('click', ()=> hideMailKind(b.getAttribute('data-hidekind'), true)));
+    kindWrap.querySelectorAll('[data-keepkind]').forEach(b=> b.addEventListener('click', ()=> hideMailKind(b.getAttribute('data-keepkind'), false)));
+  }
   const wrap = document.getElementById('pending-review-wrap');
   const all = [...(state.pendingImports||[])].sort((a,b)=> new Date(b.ts)-new Date(a.ts));
   // "possible": from an address that does not look like a bank, card, lender or payment app;
@@ -7107,7 +7289,7 @@ function renderPendingReview(){
   const newCount = items.filter(i=>i.status==='pending').length;
   const dupCount = items.filter(i=>i.status==='duplicate').length;
   wrap.innerHTML = `<div class="card queue-card" style="margin-bottom:16px;">
-    <div class="row"><div><div class="name"><span class="q-dot"></span>${items.length} transaction${items.length>1?'s':''} from your email</div><div class="sub">${newCount} to review${dupCount?`, ${dupCount} already added`:''}</div></div>
+    <div class="row"><div><div class="name"><span class="q-dot"></span>${items.length} transaction${items.length>1?'s':''} from your email</div><div class="sub">${newCount} to review${dupCount?`, ${dupCount} look like duplicates`:''}</div></div>
       <button class="link-btn" id="clear-all-pending-btn" style="color:var(--debt);">Clear all</button>
     </div>
     ${items.map(it=>{
@@ -7332,7 +7514,7 @@ function openReviewImport(id){
   document.getElementById('ri-mode').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v==='regular'));
   document.getElementById('ri-person-dir').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v === (imp.type==='income' ? 'received' : 'gave')));
   const sourceLine = imp.fromSms ? 'From a pasted SMS · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + ' · “' + (imp.subject||'') + '”' : 'From ' + (imp.sourceEmail||'your email') + ' · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + (imp.sender ? ' · sent by ' + imp.sender : '') + (imp.subject ? ' · “' + imp.subject + '”' : '');
-  document.getElementById('ri-source-note').textContent = (imp.status==='duplicate' ? 'Possible duplicate. Check before adding. ' : '')
+  document.getElementById('ri-source-note').textContent = (imp.status==='duplicate' ? 'Possible duplicate. Check before adding. ' : '') + (imp.dirLearned ? 'Direction set as you corrected it before for this sender. ' : '')
     + (imp.possible ? 'From an address that does not look like a bank, card or payment app. Add it only if it is a real transaction. ' : imp.unknownSender ? (imp.bankLike ? 'New address that looks like a bank. Check the account. ' : 'New address, not tied to any account. Check the account. ') : '') + sourceLine;
   document.getElementById('ri-payee').value = imp.payee;
   document.getElementById('ri-amount').value = imp.amount;
@@ -7466,7 +7648,7 @@ document.getElementById('ri-flip-dir').addEventListener('click', ()=>{
 // instead of an impression. Nothing here changes how emails are read.
 function recordImportOutcome(imp, outcome, final, mode, why, savedId){
   if(!Array.isArray(state.importOutcomes)) state.importOutcomes = [];
-  const parsed = {type: imp.type||null, amount: imp.amount||0, payee: imp.payee||'', accountId: validatedAccountId(imp.accountId, imp.sourceEmail), category: imp.category||null};
+  const parsed = {type: imp.typeRead || imp.type || null, amount: imp.amount||0, payee: imp.payee||'', accountId: validatedAccountId(imp.accountId, imp.sourceEmail), category: imp.category||null};
   const changed = [];
   if(final){
     if(final.type !== parsed.type) changed.push('direction');
@@ -7478,7 +7660,7 @@ function recordImportOutcome(imp, outcome, final, mode, why, savedId){
   state.importOutcomes.push({
     id: genId('io'), at: new Date().toISOString(), emailTs: imp.ts||null, sourceEmail: imp.sourceEmail||null,
     gmailMessageId: imp.gmailMessageId||null, sender: imp.sender||null, subject: imp.subject||null, outcome, mode: mode||null, why: why||null,
-    flaggedDuplicate: imp.status==='duplicate', unknownSender: !!imp.unknownSender, bankLike: !!imp.bankLike, parsed, final: final||null, changed, savedId: savedId||null
+    flaggedDuplicate: imp.status==='duplicate', learnedDir: !!imp.dirLearned, unknownSender: !!imp.unknownSender, bankLike: !!imp.bankLike, parsed, final: final||null, changed, savedId: savedId||null
   });
   if(state.importOutcomes.length > 600) state.importOutcomes = state.importOutcomes.slice(-600);
 }
@@ -7700,87 +7882,98 @@ function engineReportText(){
   return lines.join('\n');
 }
 
-// ---- READING COST ----
-// What reading the inboxes costs in Gmail units (a list page 5, a mail read 20), from two
-// records the server keeps: readerUsage (every real run, by day and inbox, from v86) and
-// readerAudit (a recount from Gmail on request: per day, mails that arrived, what the bank-
-// address and quick searches would list, and the entries that really came from those mails).
-let costUsage = null, costAudit = null;
+// ---- READING COST (owner only) ----
+// What reading the inboxes costs in Gmail units (a list page 5, a mail read 20), for every
+// household, from the server's records: what each check spent (from v86), and a recount from
+// Gmail on request (per day: mails that arrived, what the bank-address and quick searches
+// would list, and the entries that really came from those mails). Households appear as codes.
+let costData = null;
 const COST_PERIODS = [['before6Oct','Before 6 Oct','every mail opened'],['oct6to7','6–7 Oct','sender rule, every mail still opened'],['fromV75','From 8 Oct','bank addresses first, then the quick search']];
 const fmtN = n => Math.round(n||0).toLocaleString('en-IN');
 const pct = (a, b) => b ? Math.round(100 * a / b) + '%' : '—';
+function hhLabel(h, i){ return h.first ? 'Ours' : `Household ${i + 1}` + (h.createdAt ? ' (since ' + new Date(h.createdAt).toLocaleDateString('en-IN', {day:'numeric', month:'short'}) + ')' : ''); }
 async function loadReadingCost(){
-  if(!cloudReady || !db) return;
   try{
-    const [u, a] = await Promise.all([hh('readerUsage').get(), hh('readerAudit').get()]);
-    costUsage = u.exists ? u.data() : null;
-    costAudit = a.exists ? a.data() : null;
+    const r = await readerCall('readingCost', {method:'GET', query:'action=summary'});
+    if(r.status === 200 && r.data.ok) costData = r.data;
   }catch(e){ console.error('Could not load the reading cost', e); }
 }
-function usageTotals(days){
-  const t = {runs:0, reads:0, lists:0, units:0, listed:0, offered:0};
-  days.forEach(d=> Object.keys(t).forEach(k=> t[k] += d[k]||0));
-  return t;
+function addSummaries(list){
+  const keys = ['days','arrived','quick','bank','narrow','entries','entriesNarrow','missedByNarrow','unitsReadAll','unitsNarrow','unitsBankOnly'];
+  const out = {};
+  list.forEach(sm=> Object.entries(sm || {}).forEach(([p, v])=>{ const t = out[p] = out[p] || Object.fromEntries(keys.map(k=> [k, 0])); keys.forEach(k=> t[k] = k === 'days' ? Math.max(t[k], v[k]||0) : t[k] + (v[k]||0)); }));
+  return out;
+}
+function auditTable(sm){
+  const row = (label, v)=> `<tr><td>${label}</td><td>${fmtN(v.arrived)}</td><td>${fmtN(v.narrow)}</td><td>${v.entries}</td><td>${fmtN(v.unitsReadAll)}</td><td>${fmtN(v.unitsNarrow)}</td><td>${pct(v.unitsReadAll - v.unitsNarrow, v.unitsReadAll)}</td></tr>`;
+  return `<div style="overflow-x:auto;"><table class="cost-t"><tr><th></th><th>Mails</th><th>Listed</th><th>Entries</th><th>Units if all read</th><th>Units if listed read</th><th>Saved</th></tr>
+    ${COST_PERIODS.filter(([k])=> sm[k]).map(([k, label])=> row(storyEsc(label), sm[k])).join('')}${sm.all ? row('<b>All</b>', sm.all) : ''}</table></div>`;
 }
 function renderReadingCost(){
   const el = document.getElementById('cost-body');
   if(!el) return;
   const to = document.getElementById('cost-to');
   if(to && !to.value) to.value = localDateStr(new Date());
+  if(!costData){ el.innerHTML = `<div class="card section-sub" style="margin:0;">Loading… (needs the internet)</div>`; return; }
+  const hs = costData.households || [];
   let html = '';
-  // 1. what real runs spent
-  const days = costUsage && costUsage.days ? Object.keys(costUsage.days).sort() : [];
-  if(days.length){
-    const last = days.slice(-14);
-    const t = usageTotals(days.map(d=> costUsage.days[d]));
-    html += `<div class="card"><b>What the reader spent</b><div class="section-sub" style="margin:4px 0 8px;">Every check since ${storyEsc(days[0])}, counted as it ran.</div>
-      <div style="overflow-x:auto;"><table class="cost-t"><tr><th>Day</th><th>Checks</th><th>Mails read</th><th>Units</th><th>Entries</th></tr>
-      ${last.map(d=>{ const v = costUsage.days[d]; return `<tr><td>${storyEsc(d.slice(5))}</td><td>${v.runs||0}</td><td>${fmtN(v.reads)}</td><td>${fmtN(v.units)}</td><td>${v.offered||0}</td></tr>`; }).join('')}
-      <tr class="tot"><td>All ${days.length} days</td><td>${t.runs}</td><td>${fmtN(t.reads)}</td><td>${fmtN(t.units)}</td><td>${t.offered}</td></tr></table></div>
-      <div class="section-sub" style="margin-top:6px;">${t.offered ? fmtN(t.units / t.offered) + ' units for each entry offered. ' : ''}Average ${fmtN(t.units / days.length)} units a day. Gmail is free up to 80,000,000 units a day for the whole app.</div></div>`;
-  } else {
-    html += `<div class="card section-sub" style="margin:0;">What each check spends is counted from this build on. It shows here after the next check.</div>`;
-  }
+  // 1. what each household's checks did, by its sign-in
+  const T = {runs:0, listed:0, headReads:0, fullReads:0, reads:0, units:0, offered:0, added:0, inboxes:0};
+  hs.forEach(h=>{ T.inboxes += h.inboxes; Object.keys(T).forEach(k=>{ if(k !== 'inboxes') T[k] += h.usage[k]||0; }); });
+  const dailyDays = Object.keys(costData.daily || {}).sort();
+  const statRows = u => [
+    ['Mails listed by the search', u.listed], ['From and Subject read', u.headReads], ['Opened in full', u.fullReads],
+    ['Transactions fetched', u.offered], ['Real transactions added', u.added], ['Gmail units', u.units]];
+  const block = (title, sub, u) => `<div style="margin-top:12px;"><div class="name" style="font-weight:600;">${title}</div><div class="section-sub" style="margin:2px 0 6px;">${sub}</div>
+    <table class="cost-t">${statRows(u).map(([l, v])=> `<tr><td>${l}</td><td>${fmtN(v)}</td></tr>`).join('')}</table></div>`;
+  html += `<div class="card"><b>Mail reading, by household</b><div class="section-sub" style="margin:4px 0 0;">${hs.length} households, ${T.inboxes} inboxes. Counted on every check${dailyDays.length ? ' since ' + storyEsc(dailyDays[0]) : ''}. Mails read before v88 count under "Opened in full".</div>
+    ${hs.map((h, i)=> block(storyEsc((h.logins||[]).join(', ') || hhLabel(h, i)),
+      `${storyEsc(hhLabel(h, i))} · ${h.inboxes} inbox${h.inboxes===1?'':'es'} · ${h.usage.runs} checks · ${h.settled ? 'bank addresses only' : 'first 30 days: every mail looked at twice a week'}`,
+      {...h.usage, fullReads: (h.usage.fullReads||0) + Math.max(0, (h.usage.reads||0) - (h.usage.headReads||0) - (h.usage.fullReads||0))})).join('')}
+    ${block('All households', `${T.runs} checks${dailyDays.length ? ' · ' + fmtN(T.units / dailyDays.length) + ' units a day' : ''} · free up to 80,000,000 a day`, {...T, fullReads: T.fullReads + Math.max(0, T.reads - T.headReads - T.fullReads)})}
+  </div>`;
   // 2. the recount from Gmail
-  const sm = costAudit && costAudit.summary;
-  if(sm && sm.all){
-    const row = (label, v)=> `<tr><td>${label}</td><td>${fmtN(v.arrived)}</td><td>${fmtN(v.narrow)}</td><td>${v.entries}</td><td>${fmtN(v.unitsReadAll)}</td><td>${fmtN(v.unitsNarrow)}</td><td>${pct(v.unitsReadAll - v.unitsNarrow, v.unitsReadAll)}</td></tr>`;
-    const missed = sm.all.missedByNarrow || 0;
-    html += `<div class="card" style="margin-top:8px;"><b>Counted again from Gmail</b><div class="section-sub" style="margin:4px 0 8px;">${storyEsc(costAudit.fromDay)} to ${storyEsc(costAudit.toDay)}${costAudit.complete ? '' : ' · stopped at ' + storyEsc(costAudit.stoppedAt) + ', tap Count mails again to go on'}. Mail counts are re-counted from Gmail now; entries come from your saved records. Units assume each mail is read once.</div>
-      <div style="overflow-x:auto;"><table class="cost-t"><tr><th></th><th>Mails</th><th>Listed</th><th>Entries</th><th>Units if all read</th><th>Units if listed read</th><th>Saved</th></tr>
-      ${COST_PERIODS.filter(([k])=> sm[k]).map(([k, label])=> row(storyEsc(label), sm[k])).join('')}
-      ${row('<b>All</b>', sm.all)}</table></div>
+  const audited = hs.filter(h=> h.audit && h.audit.summary);
+  if(audited.length){
+    const all = addSummaries(audited.map(h=> h.audit.summary));
+    const missed = (all.all && all.all.missedByNarrow) || 0;
+    const a0 = audited[0].audit;
+    html += `<div class="card" style="margin-top:8px;"><b>Counted again from Gmail</b><div class="section-sub" style="margin:4px 0 8px;">${storyEsc(a0.fromDay)} to ${storyEsc(a0.toDay)}, ${audited.length} of ${hs.length} households${audited.some(h=> !h.audit.complete) ? ' · not finished, tap Count mails again to go on' : ''}. Mail counts are re-counted from Gmail now; entries come from saved records. Units assume each mail is read once.</div>
+      ${auditTable(all)}
       <div class="section-sub" style="margin-top:6px;">How the reader worked: ${COST_PERIODS.map(([,l,d])=> storyEsc(l) + ', ' + d).join('; ')}. Listed: mails the bank-address and quick searches find.</div>
-      <div class="section-sub" style="margin-top:6px;">${pct(sm.all.entries, sm.all.arrived)} of mails were real entries. ${missed ? `<b>${missed} saved ${missed === 1 ? 'entry' : 'entries'} came from mails the bank-address and quick searches would not list</b> (see the copied text).` : 'Every saved entry came from a mail the bank-address and quick searches list.'}
-      ${Object.values(costAudit.unattributed||{}).reduce((a,b)=>a+b,0) ? ` ${Object.values(costAudit.unattributed).reduce((a,b)=>a+b,0)} older entries have no mail id and are not counted above.` : ''}</div></div>`;
+      <div class="section-sub" style="margin-top:6px;">${all.all ? pct(all.all.entries, all.all.arrived) + ' of mails were real entries. ' : ''}${missed ? `<b>${missed} saved ${missed === 1 ? 'entry' : 'entries'} came from mails the bank-address and quick searches would not list</b> (see the copied text).` : 'Every saved entry came from a mail the bank-address and quick searches list.'}</div>
+      ${audited.length > 1 ? audited.map(h=> `<div class="section-sub" style="margin:10px 0 4px;"><b>${storyEsc(hhLabel(h, hs.indexOf(h)))}</b></div>${auditTable(h.audit.summary)}`).join('') : ''}</div>`;
   }
   el.innerHTML = html;
 }
 function readingCostText(){
   const L = [];
-  L.push('READING COST — Financial Assistant', 'Gmail units: list page 5, mail read 20. Limits: 6,000 units a minute per inbox; free up to 80,000,000 units a day per app.', '');
-  const days = costUsage && costUsage.days ? Object.keys(costUsage.days).sort() : [];
-  if(days.length){
-    L.push('WHAT THE READER SPENT (counted on every check)', 'day | checks | full checks | list pages | mails read | units | mails listed | entries offered');
-    days.forEach(d=>{ const v = costUsage.days[d]; L.push(`${d} | ${v.runs||0} | ${v.fullRuns||0} | ${v.lists||0} | ${v.reads||0} | ${v.units||0} | ${v.listed||0} | ${v.offered||0}`);
-      Object.entries(v.inboxes||{}).forEach(([e, x])=> L.push(`   ${e}: ${x.reads||0} read, ${x.units||0} units, ${x.offered||0} entries`)); });
-    const t = usageTotals(days.map(d=> costUsage.days[d]));
-    L.push(`TOTAL ${days.length} days | ${t.runs} checks | ${t.reads} reads | ${t.units} units | ${t.offered} entries | ${t.offered ? Math.round(t.units/t.offered) : '-'} units per entry`, '');
-  }
-  if(costAudit && costAudit.summary){
-    const sm = costAudit.summary;
-    L.push(`COUNTED AGAIN FROM GMAIL ${costAudit.fromDay} to ${costAudit.toDay}${costAudit.complete ? '' : ' (stopped at ' + costAudit.stoppedAt + ')'}`,
-      'Mail counts: re-counted from Gmail now (list only). Entries: from saved records (by mail id). Units assume each mail read once.',
-      'period | days | mails arrived | quick search | bank addresses | bank+quick | entries | entries in bank+quick | missed by bank+quick | units read-all | units bank+quick | units bank only');
-    [...COST_PERIODS.map(([k,l,d])=>[k, l + ' (' + d + ')']), ['all','All']].forEach(([k, l])=>{ const v = sm[k]; if(!v) return;
+  L.push('READING COST — Financial Assistant (all households)', 'Gmail units: list page 5, mail read 20. Limits: 6,000 units a minute per inbox; free up to 80,000,000 units a day per app.', '');
+  if(!costData) return L.concat('Not loaded.').join('\n');
+  const hs = costData.households || [];
+  L.push('MAIL READING BY HOUSEHOLD (counted on every check)', 'household | sign-in | inboxes | checks | mails listed | From/Subject read | opened in full | transactions fetched | real added | units | units per real entry');
+  hs.forEach((h, i)=>{ const u = h.usage; L.push(`${hhLabel(h, i)} [${h.code}] | ${(h.logins||[]).join(' ')} | ${h.inboxes} | ${u.runs} | ${u.listed||0} | ${u.headReads||0} | ${(u.fullReads||0) + Math.max(0,(u.reads||0)-(u.headReads||0)-(u.fullReads||0))} | ${u.offered} | ${u.added||0} | ${u.units} | ${u.added ? Math.round(u.units/u.added) : '-'}`); });
+  L.push('', 'WHOLE APP BY DAY', 'day | households | inboxes | checks | mails read | units | entries');
+  Object.keys(costData.daily || {}).sort().forEach(d=>{ const v = costData.daily[d]; L.push(`${d} | ${v.households} | ${v.inboxes} | ${v.runs} | ${v.reads} | ${v.units} | ${v.offered}`); });
+  hs.forEach((h, i)=>{
+    const days = Object.keys(h.usageDays || {}).sort();
+    if(days.length){ L.push('', `BY DAY — ${hhLabel(h, i)}`, 'day | checks | mails listed | From/Subject read | opened in full | units | fetched | real added'); days.forEach(d=>{ const v = h.usageDays[d]; L.push(`${d} | ${v.runs} | ${v.listed||0} | ${v.headReads||0} | ${(v.fullReads||0) + Math.max(0,(v.reads||0)-(v.headReads||0)-(v.fullReads||0))} | ${v.units} | ${v.offered} | ${v.added||0}`); }); }
+  });
+  const audited = hs.filter(h=> h.audit && h.audit.summary);
+  if(audited.length){
+    const head = 'period | days | mails arrived | quick search | bank addresses | bank+quick | entries | entries in bank+quick | missed by bank+quick | units read-all | units bank+quick | units bank only';
+    const lines = sm=> [...COST_PERIODS.map(([k,l,d])=>[k, l + ' (' + d + ')']), ['all','All']].forEach(([k, l])=>{ const v = sm[k]; if(!v) return;
       L.push(`${l} | ${v.days} | ${v.arrived} | ${v.quick} | ${v.bank} | ${v.narrow} | ${v.entries} | ${v.entriesNarrow} | ${v.missedByNarrow} | ${v.unitsReadAll} | ${v.unitsNarrow} | ${v.unitsBankOnly}`); });
-    L.push('', 'PER INBOX PER DAY', 'inbox | day | arrived | quick | bank | bank+quick | entries | entries from bank | missed (mail ids)');
-    Object.entries(costAudit.inboxes||{}).forEach(([e, box])=>{
-      if(box.error) L.push(`${e} | could not finish: ${box.error}`);
-      Object.keys(box.days||{}).sort().forEach(d=>{ const v = box.days[d]; L.push(`${e} | ${d} | ${v.arrived} | ${v.quick} | ${v.bank} | ${v.narrow} | ${v.entries} | ${v.entriesFromBank} | ${(v.missedByNarrow||[]).join(' ')}`); });
+    L.push('', `COUNTED AGAIN FROM GMAIL ${audited[0].audit.fromDay} to ${audited[0].audit.toDay}`, 'Mail counts: re-counted from Gmail now (list only). Entries: from saved records (by mail id). Units assume each mail read once.', '', 'ALL HOUSEHOLDS', head);
+    lines(addSummaries(audited.map(h=> h.audit.summary)));
+    audited.forEach(h=>{
+      const i = hs.indexOf(h);
+      L.push('', `${hhLabel(h, i)} [${h.code}]${h.audit.complete ? '' : ' (not finished, stopped at ' + h.audit.stoppedAt + ')'}`, head);
+      lines(h.audit.summary);
+      L.push('per inbox per day: inbox | day | arrived | quick | bank | bank+quick | entries | entries from bank | missed (mail ids)');
+      (h.audit.inboxDays || []).forEach((days, n)=> Object.keys(days).sort().forEach(d=>{ const v = days[d]; L.push(`Inbox ${n+1} | ${d} | ${v.arrived} | ${v.quick} | ${v.bank} | ${v.narrow} | ${v.entries} | ${v.entriesFromBank} | ${(v.missedByNarrow||[]).join(' ')}`); }));
+      if(h.audit.unattributed) L.push(`Older entries with no mail id: ${h.audit.unattributed}`);
     });
-    const un = Object.entries(costAudit.unattributed||{}).sort();
-    if(un.length) L.push('', 'Older entries with no mail id (by day): ' + un.map(([d,n])=> `${d}: ${n}`).join(', '));
   }
   return L.join('\n');
 }
@@ -7790,10 +7983,10 @@ document.getElementById('cost-run-btn').addEventListener('click', async (ev)=>{
   if(!from || !to || from > to){ showToast('Pick a From date before the To date', 3000); return; }
   btn.disabled = true; const label = btn.textContent; btn.textContent = 'Counting… (a few minutes)';
   try{
-    const r = await readerCall('readerAudit', {method:'GET', query:'from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to)});
+    const r = await readerCall('readingCost', {method:'GET', query:'action=audit&from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to)});
     if(r.status === 200 && r.data.ok){
-      await loadReadingCost(); renderReadingCost();
-      showToast(r.data.complete ? 'Counted' : 'Counted up to ' + (r.data.stoppedAt || '') + '. Tap again to go on.', 4000);
+      costData = r.data; renderReadingCost();
+      showToast(r.data.complete ? 'Counted, all households' : `Counted ${r.data.done} household(s). Tap again to go on.`, 4000);
     } else showToast((r.data && r.data.error) || 'Could not count just now. Try again later.', 4000);
   }catch(e){ console.error('Count mails failed', e); showToast('Could not count just now. Try again later.', 4000); }
   btn.disabled = false; btn.textContent = label;
