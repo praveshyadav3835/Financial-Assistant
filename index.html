@@ -464,6 +464,7 @@
       <div style="margin-top:18px;">
         <div id="signin-card-wrap"></div>
         <div id="reader-card-wrap"></div>
+        <div id="home-no-email-wrap"></div>
         <div id="heads-up-wrap"></div>
         <div id="pending-review-wrap"></div>
         <div id="hide-kind-wrap"></div>
@@ -528,7 +529,6 @@
       </div>
       <div class="panel">
         <div class="ph"><b>People Ledger</b></div>
-        <p class="section-sub">Green: you'll get. Red: you'll pay. Tap an amount to add a payment.</p>
         <div id="people-list"></div>
       </div>
     </section>
@@ -1101,7 +1101,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-09 · v88-review-fixes</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-12 · v89-exact-senders</p>
   </div>
 </div>
 
@@ -2019,7 +2019,7 @@ function renderReaderUI(force){
     : '<div class="eng-sub">No inbox connected yet. Connect the Gmail inbox where your bank\'s alerts arrive, and new transactions appear on Home for you to check and add.</div>';
   const lr = readerStatus && readerStatus.lastRun;
   const lastRun = lr ? ` Last check${lr.full===true ? ' (full)' : lr.full===false ? ' (quick)' : ''}: ${lr.listed!==undefined ? lr.listed+' listed, ' : ''}${lr.opened} opened, ${lr.notOpened} left unopened${(lr.notices||lr.offers) ? `, ${[lr.notices ? lr.notices+' due reminder'+(lr.notices===1?'':'s') : '', lr.offers ? lr.offers+' offer'+(lr.offers===1?'':'s') : ''].filter(Boolean).join(' and ')} from banks not shown` : ''}.` : '';
-  const how = 'Checked at 8 am and 8 pm, reading mails from your banks’ addresses. On Sunday at 8 pm, and whenever you tap Check on the Accounts tab, Gmail is also asked for mails from other senders with money words (debited, credited, UPI, spent and the like), so a new bank or card is not missed. In the first 30 days every mail is looked at on Wednesday and Sunday. A mail is opened only when its sender looks like a bank, card, lender or payment app; any other is opened only if its subject reads like a transaction, and is shown apart for you to check. Offers, loan pitches and due reminders are left out unless they say money actually moved.' + lastRun;
+  const how = 'Checked at 8 am and 8 pm. When every account and card has a confirmed alert address, only mails from those addresses are read, on every check and on Check; nothing else is looked at. Until then, mails from banks’ addresses are read, and on Sunday at 8 pm and on Check also mails from other senders with money words (in the first 30 days every mail is looked at on Wednesday and Sunday). A mail is opened only when its sender looks like a bank, card, lender or payment app; any other is opened only if its subject reads like a transaction, and is shown apart for you to check. Offers, loan pitches and due reminders are left out unless they say money actually moved.' + lastRun;
   // Every mail from a bank-like address that was opened but did not become an entry, with
   // the reason, so that nothing is left out without you seeing it.
   const dropped = (lr && Array.isArray(lr.dropped)) ? lr.dropped : [];
@@ -3496,15 +3496,21 @@ document.getElementById('sms-read').addEventListener('click', async ()=>{
 // added by hand in the last 30 days but nothing from email is pointed out, so its gap is known
 // and its entries are added with the + button.
 const NO_EMAIL_DAYS = 30;
+// Banks known to email only some transactions. Told at once, on Home and on Accounts, without
+// waiting for 30 days of entries added by hand. (SBI: salary, EMI, SIP and YONO transfers only.)
+const NO_EMAIL_BANKS = [{re: /\bsbi\b|state\s*bank/i, cards: false, note: 'SBI emails only salary, EMI, SIP and YONO transfers. UPI and card payments come by SMS only.'}];
+function knownNoEmail(a, isCard){ return NO_EMAIL_BANKS.find(b=> b.re.test(String(a.bank||'') + ' ' + String(a.name||'')) && (b.cards || !isCard)) || null; }
 function accountsWithoutEmail(){
   if(!readerOn()) return [];
+  const okNow = new Set(state.noEmailOk||[]);
+  const known = state.accounts.filter(a=> !okNow.has(a.id) && knownNoEmail(a, false)).map(a=> ({id:a.id, name:a.name, known: knownNoEmail(a, false).note}));
   const since = Date.now() - NO_EMAIL_DAYS*86400000;
   const recent = ts => ts && new Date(ts).getTime() >= since;
   const fromEmail = new Set();
   state.transactions.forEach(t=>{ if(t.remarks==='Imported from email' && recent(t.ts)){ if(t.account) fromEmail.add(t.account); } });
   (state.importOutcomes||[]).forEach(o=>{ if(o.outcome==='added' && o.sender!=='SMS' && o.final && o.final.accountId && recent(o.emailTs || o.at)) fromEmail.add(o.final.accountId); });
   (state.pendingImports||[]).forEach(p=>{ if(p.accountId && !p.fromSms && recent(p.ts)) fromEmail.add(p.accountId); });
-  if(!fromEmail.size) return []; // the reader has not brought anything in yet: nothing to compare with
+  if(!fromEmail.size) return known; // the reader has not brought anything in yet: nothing to compare with
   const byHand = {};
   state.transactions.forEach(t=>{
     if(t.remarks==='Imported from email' || !recent(t.ts)) return; // pasted SMS entries count as added by hand here
@@ -3512,25 +3518,27 @@ function accountsWithoutEmail(){
     if(t.account) byHand[t.account] = (byHand[t.account]||0) + 1;
   });
   const ok = new Set(state.noEmailOk||[]);
-  return [...state.accounts, ...state.cards].filter(a=> a.id!=='cash_wallet' && a.id!=='sinking_fund' && !ok.has(a.id) && !fromEmail.has(a.id) && (byHand[a.id]||0) >= 2)
-    .map(a=> ({id:a.id, name:a.name, n:byHand[a.id]}));
+  const knownIds = new Set(known.map(k=> k.id));
+  return [...known, ...[...state.accounts, ...state.cards].filter(a=> !knownIds.has(a.id) && a.id!=='cash_wallet' && a.id!=='sinking_fund' && !ok.has(a.id) && !fromEmail.has(a.id) && (byHand[a.id]||0) >= 2)
+    .map(a=> ({id:a.id, name:a.name, n:byHand[a.id]}))];
 }
 function renderNoEmailCard(){
-  const wrap = document.getElementById('no-email-wrap');
+  ['no-email-wrap', 'home-no-email-wrap'].forEach(id=> renderNoEmailCardIn(document.getElementById(id), id));
+}
+function renderNoEmailCardIn(wrap, wid){
   if(!wrap) return;
   const list = accountsWithoutEmail();
   if(!list.length){ wrap.innerHTML = ''; return; }
-  wrap.innerHTML = `<div class="card" id="no-email-card" style="margin-top:14px;">
-    <div class="name" style="font-weight:600;">No bank emails for ${list.length===1 ? 'this account' : 'these accounts'}</div>
-    <div class="eng-sub" style="margin:4px 0 6px;">In the last ${NO_EMAIL_DAYS} days you added entries here yourself, but no alert email came. Some banks send alerts only by SMS (SBI emails salary, EMI, SIP and YONO transfers, not small UPI payments). Paste the bank's SMS, or add the entry with +.</div>
-    ${list.map(a=> `<div class="eng-line"><span style="min-width:0; overflow-wrap:anywhere;">${storyEsc(a.name)}<br><span class="eng-sub">${a.n} added by hand, none from email</span></span><span style="white-space:nowrap;"><button class="link-btn" data-noemail-sms="${storyEsc(a.id)}">Paste SMS</button> · <button class="link-btn" data-noemail-add="${storyEsc(a.id)}">Add</button> · <button class="link-btn" data-noemail-ok="${storyEsc(a.id)}" style="color:var(--ink-soft);">OK</button></span></div>`).join('')}
+  const allKnown = list.every(a=> a.known);
+  wrap.innerHTML = `<div class="card ${wid==='home-no-email-wrap' ? 'queue-card' : ''}" id="${wid==='home-no-email-wrap' ? 'home-no-email-card' : 'no-email-card'}" style="margin-${wid==='home-no-email-wrap' ? 'bottom' : 'top'}:14px;">
+    <div class="name" style="font-weight:600;">${allKnown ? (list.length===1 ? 'Your bank does not email most transactions' : 'These banks do not email most transactions') : 'No bank emails for ' + (list.length===1 ? 'this account' : 'these accounts')}</div>
+    <div class="eng-sub" style="margin:4px 0 6px;">${allKnown ? 'Paste the bank\'s SMS, or add the entry with +.' : `In the last ${NO_EMAIL_DAYS} days you added entries here yourself, but no alert email came. Some banks send alerts only by SMS. Paste the bank's SMS, or add the entry with +.`}</div>
+    ${list.map(a=> `<div class="eng-line"><span style="min-width:0; overflow-wrap:anywhere;">${storyEsc(a.name)}<br><span class="eng-sub">${a.known ? storyEsc(a.known) : a.n + ' added by hand, none from email'}</span></span><span style="white-space:nowrap;"><button class="link-btn" data-noemail-sms="${storyEsc(a.id)}">Paste SMS</button> · <button class="link-btn" data-noemail-add="${storyEsc(a.id)}">Add</button> · <button class="link-btn" data-noemail-ok="${storyEsc(a.id)}" style="color:var(--ink-soft);">OK</button></span></div>`).join('')}
   </div>`;
   wrap.querySelectorAll('[data-noemail-add]').forEach(b=> b.addEventListener('click', ()=> openAddTxSheet(b.getAttribute('data-noemail-add'))));
   wrap.querySelectorAll('[data-noemail-sms]').forEach(b=> b.addEventListener('click', ()=> openSmsSheet(b.getAttribute('data-noemail-sms'))));
   wrap.querySelectorAll('[data-noemail-ok]').forEach(b=> b.addEventListener('click', async ()=>{
     if(!Array.isArray(state.noEmailOk)) state.noEmailOk = [];
-  if(!Array.isArray(state.hiddenMailKinds)) state.hiddenMailKinds = [];
-  if(!Array.isArray(state.hideKindDeclined)) state.hideKindDeclined = [];
     state.noEmailOk.push(b.getAttribute('data-noemail-ok'));
     await saveState();
     renderNoEmailCard();
@@ -3629,7 +3637,7 @@ function render(){
         <div class="chip-icon" data-toggleperson="${p.id}" style="cursor:pointer; color:var(--ink);">${(p.name||'?').trim().charAt(0).toUpperCase()}</div>
         <div style="flex:1; min-width:0;">
           <div data-toggleperson="${p.id}" style="cursor:pointer;">
-            <div class="name">${p.name}${chevron}</div><div class="sub">${p.note||''}</div>
+            <div class="name">${p.name}${chevron}</div>
           </div>
           <div class="person-links"><button class="link-btn" data-pdf="${p.id}">Share statement</button><i>·</i><button class="link-btn" data-editperson="${p.id}">Edit</button></div>
         </div>
@@ -7208,10 +7216,33 @@ function rejectedKinds(){
   const hidden = new Set((state.hiddenMailKinds||[]).map(h=> h.key)), declined = new Set(state.hideKindDeclined||[]);
   return Object.values(by).filter(r=> r.notReal >= HIDE_KIND_AFTER && !r.added && !hidden.has(r.key) && !declined.has(r.key));
 }
+// An address tied to no account whose mails you rejected as not real 3 times or more, whatever
+// the subjects, and never added: offer to ignore the address itself.
+function rejectedAddresses(){
+  const by = {};
+  (state.importOutcomes||[]).forEach(o=>{
+    if(!o.sender || o.sender === 'SMS') return;
+    const a = String(o.sender).toLowerCase();
+    const r = by[a] = by[a] || {sender:a, notReal:0, added:0, unknown:true};
+    if(o.outcome === 'not_real') r.notReal++;
+    if(o.outcome === 'added') r.added++;
+    if(o.unknownSender === false) r.unknown = false;
+  });
+  const tied = readerSenders || {}, ignored = new Set(readerIgnored || []), declined = new Set(state.hideKindDeclined || []);
+  return Object.values(by).filter(r=> r.notReal >= HIDE_KIND_AFTER && !r.added && r.unknown && !tied[r.sender] && !ignored.has(r.sender) && !declined.has('addr|' + r.sender));
+}
 function hideKindHtml(){
-  const ks = rejectedKinds();
-  if(!ks.length) return '';
-  return ks.slice(0, 3).map(r=> `<div class="card queue-card" style="margin-bottom:16px;">
+  const addrs = rejectedAddresses();
+  const addrHtml = addrs.slice(0, 3).map(r=> `<div class="card queue-card" style="margin-bottom:16px;">
+    <div class="name">You rejected ${r.notReal} mails from this address as not real</div>
+    <div class="sub" style="overflow-wrap:anywhere; margin-top:4px;">${storyEsc(r.sender)}</div>
+    <div class="sub" style="margin-top:6px;">It is not tied to any of your accounts. Ignore it from now on?</div>
+    <div style="display:flex; gap:14px; margin-top:8px;"><button class="link-btn" data-ignoreaddr="${storyEsc(r.sender)}">Ignore this address</button><button class="link-btn" style="color:var(--ink-soft);" data-keepkind="addr|${storyEsc(r.sender)}">Keep showing</button></div>
+  </div>`).join('');
+  const covered = new Set(addrs.map(r=> r.sender));
+  const ks = rejectedKinds().filter(r=> !covered.has(r.sender));
+  if(!ks.length) return addrHtml;
+  return addrHtml + ks.slice(0, 3).map(r=> `<div class="card queue-card" style="margin-bottom:16px;">
     <div class="name">You rejected ${r.notReal} mails like this as not real</div>
     <div class="sub" style="overflow-wrap:anywhere; margin-top:4px;">${storyEsc(r.sender)}<br>"${storyEsc(r.subject)}"</div>
     <div class="sub" style="margin-top:6px;">Put mails like these away from now on? Other mails from this address still show.</div>
@@ -7265,6 +7296,14 @@ function renderPendingReview(){
     kindWrap.innerHTML = hideKindHtml();
     kindWrap.querySelectorAll('[data-hidekind]').forEach(b=> b.addEventListener('click', ()=> hideMailKind(b.getAttribute('data-hidekind'), true)));
     kindWrap.querySelectorAll('[data-keepkind]').forEach(b=> b.addEventListener('click', ()=> hideMailKind(b.getAttribute('data-keepkind'), false)));
+    kindWrap.querySelectorAll('[data-ignoreaddr]').forEach(b=> b.addEventListener('click', async ()=>{
+      const a = b.getAttribute('data-ignoreaddr');
+      // mails from it waiting on Home go too, as not real
+      (state.pendingImports||[]).filter(p=> String(p.sender||'').toLowerCase() === a).forEach(p=> dismissImportItem(p, 'not_real', 'ignored address'));
+      await saveState();
+      await ignoreReaderSender(a);
+      render();
+    }));
   }
   const wrap = document.getElementById('pending-review-wrap');
   const all = [...(state.pendingImports||[])].sort((a,b)=> new Date(b.ts)-new Date(a.ts));
@@ -7928,7 +7967,7 @@ function renderReadingCost(){
     <table class="cost-t">${statRows(u).map(([l, v])=> `<tr><td>${l}</td><td>${fmtN(v)}</td></tr>`).join('')}</table></div>`;
   html += `<div class="card"><b>Mail reading, by household</b><div class="section-sub" style="margin:4px 0 0;">${hs.length} households, ${T.inboxes} inboxes. Counted on every check${dailyDays.length ? ' since ' + storyEsc(dailyDays[0]) : ''}. Mails read before v88 count under "Opened in full".</div>
     ${hs.map((h, i)=> block(storyEsc((h.logins||[]).join(', ') || hhLabel(h, i)),
-      `${storyEsc(hhLabel(h, i))} · ${h.inboxes} inbox${h.inboxes===1?'':'es'} · ${h.usage.runs} checks · ${h.settled ? 'bank addresses only' : 'first 30 days: every mail looked at twice a week'}`,
+      `${storyEsc(hhLabel(h, i))} · ${h.inboxes} inbox${h.inboxes===1?'':'es'} · ${h.usage.runs} checks · ${h.coverage && h.coverage.covered ? 'reads only its ' + h.coverage.addresses.length + ' confirmed address' + (h.coverage.addresses.length===1?'':'es') : 'no confirmed address yet for ' + storyEsc(((h.coverage && h.coverage.missing) || []).join(', ') || 'its accounts') + (h.settled ? ': bank addresses + weekly search' : ': first 30 days, every mail looked at twice a week')}`,
       {...h.usage, fullReads: (h.usage.fullReads||0) + Math.max(0, (h.usage.reads||0) - (h.usage.headReads||0) - (h.usage.fullReads||0))})).join('')}
     ${block('All households', `${T.runs} checks${dailyDays.length ? ' · ' + fmtN(T.units / dailyDays.length) + ' units a day' : ''} · free up to 80,000,000 a day`, {...T, fullReads: T.fullReads + Math.max(0, T.reads - T.headReads - T.fullReads)})}
   </div>`;
