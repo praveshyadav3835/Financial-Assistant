@@ -1102,7 +1102,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-12 · v90-fresh-screens</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-12 · v91-sender-register</p>
   </div>
 </div>
 
@@ -3501,7 +3501,12 @@ document.getElementById('sms-read').addEventListener('click', async ()=>{
 const NO_EMAIL_DAYS = 30;
 // Banks known to email only some transactions. Told at once, on Home and on Accounts, without
 // waiting for 30 days of entries added by hand. (SBI: salary, EMI, SIP and YONO transfers only.)
-const NO_EMAIL_BANKS = [{re: /\bsbi\b|state\s*bank/i, cards: false, note: 'SBI emails only salary, EMI, SIP and YONO transfers. UPI and card payments come by SMS only.'}];
+// From the Bank & Credit Card Sender Master Register (12 Oct 2026).
+const NO_EMAIL_BANKS = [
+  {re: /\bsbi\b|state\s*bank/i, cards: false, note: 'SBI emails only salary, EMI, SIP and YONO transfers. UPI payments come by SMS only.'},
+  {re: /kotak/i, cards: false, note: 'Kotak does not email UPI payments (it sends app notifications and SMS).'},
+  {re: /\bindian\s*bank\b/i, cards: false, note: 'Indian Bank does not email UPI payments. They come by SMS.'}
+];
 function knownNoEmail(a, isCard){ return NO_EMAIL_BANKS.find(b=> b.re.test(String(a.bank||'') + ' ' + String(a.name||'')) && (b.cards || !isCard)) || null; }
 function accountsWithoutEmail(){
   if(!readerOn()) return [];
