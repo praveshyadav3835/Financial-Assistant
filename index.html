@@ -889,6 +889,7 @@
     </div>
     <div class="field"><label>Note (optional)</label><input id="adjustbal-remarks" placeholder="e.g. bank fee not added"></div>
     <p class="section-sub" id="adjustbal-preview"></p>
+    <div id="adjustbal-gap"></div>
     <button class="btn-primary" id="adjustbal-save">Save</button>
     <button class="btn-ghost" id="adjustbal-cancel">Cancel</button>
   </div>
@@ -1101,7 +1102,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-12 · v89-exact-senders</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-12 · v90-fresh-screens</p>
   </div>
 </div>
 
@@ -1306,6 +1307,7 @@ const STARTER = {
   noEmailOk: [],
   hiddenMailKinds: [],   // {key, sender, subject, at}: mails of this kind are put away as not real, as you chose
   hideKindDeclined: [],  // kinds you chose to keep seeing
+  gapsSeen: [],          // "unaccounted for" gaps already shown in Fix balance
   lastBudgetReviewMonth: null,
   lastFetchSummary: null,
   lastGmailFetch: null
@@ -1375,6 +1377,7 @@ function normalizeState(){
   if(!Array.isArray(state.noEmailOk)) state.noEmailOk = [];
   if(!Array.isArray(state.hiddenMailKinds)) state.hiddenMailKinds = [];
   if(!Array.isArray(state.hideKindDeclined)) state.hideKindDeclined = [];
+  if(!Array.isArray(state.gapsSeen)) state.gapsSeen = [];
   // A device that starts from the empty starting set must not treat that set as its own new
   // work: only what is added from here on is sent to the cloud.
   if(!stateFromStorage && typeof previousArrays !== 'undefined'){
@@ -2171,7 +2174,7 @@ const COLLECTION_FIELDS = {
   // correction, rejected, already logged) — the score sheet for the email reader.
   importOutcomes: 'importOutcome'
 };
-const META_FIELDS = ['budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','lastBudgetReviewMonth','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts','transferPairDeclined','noEmailOk','hiddenMailKinds','hideKindDeclined'];
+const META_FIELDS = ['budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','lastBudgetReviewMonth','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts','transferPairDeclined','noEmailOk','hiddenMailKinds','hideKindDeclined','gapsSeen'];
 let previousArrays = { transactions:[], personLedger:[], pendingImports:[], dismissedImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[], budgetMonths:[], importOutcomes:[] };
 
 // ---- Outbox for cloud writes that haven't been confirmed yet ----
@@ -3664,7 +3667,7 @@ function render(){
   document.querySelectorAll('[data-editperson]').forEach(el=> el.addEventListener('click', (e)=>{ e.stopPropagation(); openEditPerson(el.getAttribute('data-editperson')); }));
   document.querySelectorAll('[data-toggleperson]').forEach(el=> el.addEventListener('click', ()=>{
     const id = el.getAttribute('data-toggleperson');
-    if(expandedPeople.has(id)) expandedPeople.delete(id); else expandedPeople.add(id);
+    if(expandedPeople.has(id)) expandedPeople.delete(id); else { expandedPeople.clear(); expandedPeople.add(id); }
     render();
   }));
   document.querySelectorAll('[data-editpersonentry]').forEach(el=> el.addEventListener('click', (e)=>{
@@ -4041,9 +4044,61 @@ document.querySelectorAll('nav.tabbar button').forEach(btn=>{
     // The greeting header is Home's alone — every other tab starts at its own content.
     document.body.classList.toggle('not-home', btn.dataset.tab!=='home');
     window.scrollTo(0,0);
+    if(expandedPeople.size || expandedCats.size){ expandedPeople.clear(); expandedCats.clear(); render(); }
     if(btn.dataset.tab==='insights') renderAnalysisPage();
   });
 });
+
+// ---- SWIPE BETWEEN TABS ----
+// A sideways swipe on a tab's page moves to the next or previous tab (Home ↔ Accounts ↔ People ↔
+// Insights). Not inside a sheet or a full-screen page, not on something that scrolls sideways
+// itself, and not on a field being typed in.
+const TAB_ORDER = ['home','money','people','insights'];
+(function setupTabSwipe(){
+  let x0 = null, y0 = null, t0 = 0, ok = false;
+  const scrollsSideways = el=>{ for(let n = el; n && n !== document.body; n = n.parentElement){ const st = getComputedStyle(n); if((st.overflowX === 'auto' || st.overflowX === 'scroll') && n.scrollWidth > n.clientWidth + 2) return true; } return false; };
+  document.addEventListener('touchstart', e=>{
+    ok = false;
+    if(e.touches.length !== 1) return;
+    const el = e.target;
+    if(!el.closest('section.tab') || el.closest('.sheet-backdrop, .fullscreen-page, input, textarea, select, canvas, svg, [data-noswipe]') || scrollsSideways(el)) return;
+    if(document.querySelector('.sheet-backdrop.open, .fullscreen-page.open')) return;
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now(); ok = true;
+  }, {passive:true});
+  document.addEventListener('touchend', e=>{
+    if(!ok || x0 === null) return;
+    ok = false;
+    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if(Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8 || Date.now() - t0 > 700) return;
+    const cur = (document.querySelector('nav.tabbar button.active') || {}).dataset;
+    const i = TAB_ORDER.indexOf(cur ? cur.tab : 'home');
+    const next = TAB_ORDER[i + (dx < 0 ? 1 : -1)];
+    if(next) goTab(next);
+  }, {passive:true});
+})();
+
+// ---- EVERY SCREEN STARTS FRESH ----
+// Opening the app (or coming back to it after a while) shows Home from the top, with no sheet
+// or page left open, every list folded, and each statement on "All". Nothing is kept from the
+// last visit except your data and settings.
+const FRESH_AFTER_MS = 3 * 60 * 1000;
+if('scrollRestoration' in history) history.scrollRestoration = 'manual';
+function freshScreens(){
+  document.querySelectorAll('.sheet-backdrop.open, .fullscreen-page.open').forEach(el=> el.classList.remove('open'));
+  expandedPeople.clear(); expandedCats.clear();
+  stmtTab = 'all'; possibleOpen = false;
+  goTab('home');
+  window.scrollTo(0, 0);
+  document.querySelectorAll('.fs-body').forEach(el=> el.scrollTop = 0);
+  render();
+}
+let hiddenAt = null;
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){ hiddenAt = Date.now(); return; }
+  if(hiddenAt && Date.now() - hiddenAt >= FRESH_AFTER_MS) freshScreens();
+  hiddenAt = null;
+});
+window.addEventListener('pageshow', e=>{ if(e.persisted) freshScreens(); });
 
 function currentMonthKey(){ return monthKeyOf(new Date()); }
 
@@ -4150,6 +4205,15 @@ const txBackdrop = document.getElementById('tx-backdrop');
 // presetAccountId: opened from an account's own page, so the entry starts on that account
 // (and, for a bank account, as the From side if it turns out to be a transfer).
 function openAddTxSheet(presetAccountId){
+  // Every time: Expense, Household, You gave, nothing picked (what was chosen last time is not kept).
+  [['tx-type','expense'],['tx-household','yes'],['tx-person-dir','gave']].forEach(([id, v])=>{
+    document.querySelectorAll('#'+id+' button').forEach(b=> b.classList.toggle('on', b.dataset.v===v));
+  });
+  document.getElementById('tx-single-fields').classList.remove('hide');
+  document.getElementById('tx-transfer-fields').classList.add('hide');
+  document.getElementById('tx-person-fields').classList.add('hide');
+  document.getElementById('tx-household-row').classList.remove('hide');
+  txSelectedCat = null; txSelectedAccount = null; txFrom = null; txTo = null;
   txAmount=''; updateAmountDisplay();
   document.getElementById('tx-payee').value='';
   document.getElementById('tx-transfer-note').value='';
@@ -5798,7 +5862,79 @@ function currentBalanceFor(id, isCard){
   const a = state.accounts.find(x=>x.id===id);
   return a ? accountBalance(a) : 0;
 }
+// ---- Does the account add up since the last balance fix? ----
+// Anchor on the most recent fix (the last point the number was known to be right), add every
+// entry dated since, and compare with the live balance. A gap usually means an entry dated
+// before the fix was added, changed or moved to this account after it. Shown in Fix balance
+// only, once: after you leave the sheet it is not shown again for that same gap.
+function balanceGap(targetId, isCard){
+  const target = isCard ? state.cards.find(c=>c.id===targetId) : state.accounts.find(a=>a.id===targetId);
+  if(!target) return null;
+  const liveTotal = isCard ? cardDue(target) : accountBalance(target);
+  const entries = statementEntries(target, isCard);
+  const adj = (state.balanceAdjustments||[]).filter(a=>a.targetId===targetId).sort((a,b)=>new Date(b.ts)-new Date(a.ts))[0];
+  const anchorTs = adj ? new Date(adj.ts) : null;
+  const anchorVal = adj ? adj.newValue : (isCard ? target.openingDue : target.opening);
+  const running = entries.filter(e=> !e.beforeOpening && (!anchorTs || new Date(e.ts)>=anchorTs)).reduce((s,e)=> s+e.delta, anchorVal);
+  const amount = Math.abs(running - liveTotal);
+  if(amount < 1) return null;
+  const key = targetId + '|' + (adj ? adj.id : 'opening') + '|' + Math.round(amount);
+  let cause = null;
+  const pending = (state.pendingImports||[]).find(p=> p.accountId===targetId && Math.abs(p.amount-amount)<1);
+  const dismissed = !pending && (state.dismissedImports||[]).find(p=> p.accountId===targetId && Math.abs(p.amount-amount)<1);
+  if(pending) cause = {kind:'pending', id: pending.id, label: (pending.payee||'a transaction') + ' — still to review', ts: pending.ts, amount: pending.amount,
+    note: 'From your email, not added yet.'};
+  else if(dismissed) cause = {kind:'dismissed', label: (dismissed.payee||'a transaction') + ' — marked not a transaction', ts: dismissed.ts, amount: dismissed.amount,
+    note: 'The bank’s email said this happened. If marking it was a mistake, add it by hand.'};
+  else if(anchorTs){
+    const e = entries.find(x=> new Date(x.ts) < anchorTs && Math.abs(Math.abs(x.delta) - amount) < 1);
+    if(e) cause = {kind: e.kind, id: e.id, label: e.label + (e.sub ? ' · ' + e.sub : ''), ts: e.ts, amount: Math.abs(e.delta),
+      note: `Dated before your last balance fix (${anchorTs.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}), so the fixed balance already had it. It was added or moved here after the fix.`};
+  }
+  return {amount, key, since: adj ? 'your last balance fix' : 'the opening balance', cause};
+}
+function renderAdjustGap(){
+  const el = document.getElementById('adjustbal-gap');
+  if(!el) return;
+  const g = adjustGap;
+  if(!g){ el.innerHTML = ''; return; }
+  const c = g.cause;
+  const day = ts => new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  el.innerHTML = `<div class="card" style="margin:6px 0 12px;"><div style="font-size:13.5px; font-weight:700; color:var(--debt);">⚠️ <span class="maskable">${fmt(g.amount)}</span> unaccounted for since ${g.since}</div>
+    ${c ? `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div style="min-width:0;"><div class="name">Possible cause: ${storyEsc(c.label)}</div><div class="sub">${day(c.ts)} · ${storyEsc(c.note)}</div></div><div class="amt maskable">${fmt(c.amount)}</div></div>
+      <div style="display:flex; gap:16px; margin-top:8px;">${(c.kind==='tx' || c.kind==='people') ? `<button class="link-btn" id="adjgap-remove" style="color:var(--debt);">Remove this entry</button>` : c.kind==='pending' ? `<button class="link-btn" id="adjgap-review">Review it</button>` : ''}<button class="link-btn" id="adjgap-ok" style="color:var(--ink-soft);">It's fine</button></div>`
+      : `<div class="sub" style="margin-top:6px;">No single entry explains it. An entry dated before the fix may have been added, changed or deleted after it, or a transaction was never added. Enter the balance your bank shows and save.</div>`}
+  </div>`;
+  applyMaskUI();
+  const done = ()=>{ markGapSeen(); adjustGap = null; renderAdjustGap(); };
+  const ok = document.getElementById('adjgap-ok'); if(ok) ok.onclick = done;
+  const rv = document.getElementById('adjgap-review'); if(rv) rv.onclick = ()=>{ done(); document.getElementById('adjustbal-backdrop').classList.remove('open'); openReviewImport(c.id); };
+  const rm = document.getElementById('adjgap-remove');
+  if(rm) rm.onclick = async ()=>{
+    const what = c.kind==='people' ? 'This removes the entry from the People Ledger too, so that person’s balance changes.' : 'This removes it from your spending too.';
+    if(!confirm(`Remove "${c.label}" (${fmt(c.amount)})? ${what}`)) return;
+    if(c.kind==='people') state.personLedger = state.personLedger.filter(e=> e.id !== c.id);
+    else state.transactions = state.transactions.filter(t=> t.id !== c.id);
+    recomputeBudgetActuals();
+    adjustGap = null;
+    await saveState();
+    render();
+    document.getElementById('adjustbal-current').textContent = `App balance: ${fmt(currentBalanceFor(adjustTargetId, adjustIsCard))}`;
+    updateAdjustPreview();
+    renderAdjustGap();
+    showToast('Removed');
+  };
+}
+function markGapSeen(){
+  if(!adjustGap) return;
+  if(!Array.isArray(state.gapsSeen)) state.gapsSeen = [];
+  if(!state.gapsSeen.includes(adjustGap.key)){ state.gapsSeen.push(adjustGap.key); state.gapsSeen = state.gapsSeen.slice(-100); saveState(); }
+}
+let adjustGap = null;
 function openAdjustBalance(id, isCard, suggestedTarget){
+  const g = balanceGap(id, isCard);
+  adjustGap = (g && !(state.gapsSeen||[]).includes(g.key)) ? g : null;
+  renderAdjustGap();
   adjustTargetId = id; adjustIsCard = isCard;
   const name = targetName(id);
   const current = currentBalanceFor(id, isCard);
@@ -5821,12 +5957,15 @@ function updateAdjustPreview(){
   if(Math.abs(diff) < 0.5){ previewEl.textContent = 'No difference. Nothing to fix.'; return; }
   previewEl.textContent = `This adds a balance fix of ${diff>0?'+':''}${fmt(diff)}.`;
 }
-document.getElementById('adjustbal-cancel').addEventListener('click', ()=> document.getElementById('adjustbal-backdrop').classList.remove('open'));
+document.getElementById('adjustbal-cancel').addEventListener('click', ()=>{ markGapSeen(); document.getElementById('adjustbal-backdrop').classList.remove('open'); });
 const adjustbalBackdrop = document.getElementById('adjustbal-backdrop');
-adjustbalBackdrop.addEventListener('click', e=>{ if(e.target===adjustbalBackdrop) adjustbalBackdrop.classList.remove('open'); });
+adjustbalBackdrop.addEventListener('click', e=>{ if(e.target===adjustbalBackdrop){ markGapSeen(); adjustbalBackdrop.classList.remove('open'); } });
+// closed any other way (the phone's back button): seen too
+new MutationObserver(()=>{ if(!adjustbalBackdrop.classList.contains('open') && adjustGap){ markGapSeen(); adjustGap = null; } }).observe(adjustbalBackdrop, {attributes:true, attributeFilter:['class']});
 document.getElementById('adjustbal-save').addEventListener('click', async ()=>{
   const target = parseFloat(document.getElementById('adjustbal-target').value);
   if(isNaN(target)){ alert('Enter the actual balance.'); return; }
+  markGapSeen(); adjustGap = null;
   const current = currentBalanceFor(adjustTargetId, adjustIsCard);
   const diff = target - current;
   if(Math.abs(diff) >= 0.5){
@@ -5989,43 +6128,8 @@ function renderAcctStatement(targetId, isCard){
   const anchorTs = adj ? new Date(adj.ts) : null;
   const anchorVal = adj ? adj.newValue : (isCard ? target.openingDue : target.opening);
   const running = entries.filter(e=> !e.beforeOpening && (!anchorTs || new Date(e.ts)>=anchorTs)).reduce((s,e)=> s+e.delta, anchorVal);
-  // Diagnostic for when the numbers don't reconcile. Two kinds of gap, checked in order:
-  //
-  // 1. One-sided email evidence — a transaction the bank confirmed by email but that never
-  //    made it into your ledger, because it's still sitting unapproved, or you dismissed it
-  //    as "not real" when it may actually have been. This is the strongest kind of lead,
-  //    since it's independent of your own bookkeeping and doesn't depend on there being an
-  //    anchor at all.
-  // 2. Failing that: an entry dated BEFORE the anchor (normally assumed to already be baked
-  //    into the adjusted value) that was actually added or edited AFTER — which shifts the
-  //    live total without being part of what happened since the adjustment. People Ledger
-  //    entries are scanned too, since an account used for "for someone" entries is exactly
-  //    where a backdated one is a likely cause.
-  const discrepancy = Math.abs(running - liveTotal);
-  let suspectHtml = '';
-  if(discrepancy >= 1){
-    const pendingMatch = (state.pendingImports||[]).find(p=> p.accountId===targetId && Math.abs(p.amount-discrepancy)<1);
-    const dismissedMatch = !pendingMatch && (state.dismissedImports||[]).find(p=> p.accountId===targetId && Math.abs(p.amount-discrepancy)<1);
-    if(pendingMatch){
-      suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px; cursor:pointer;" data-openpending="${pendingMatch.id}"><div><div class="name">Likely cause: ${pendingMatch.payee||'a transaction'} — still to review</div><div class="sub">Dated ${new Date(pendingMatch.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · from your email, not added yet. Tap to review.</div></div><div class="amt">${fmt(pendingMatch.amount)}</div></div>`;
-    } else if(dismissedMatch){
-      suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">Likely cause: ${dismissedMatch.payee||'a transaction'} — marked not a transaction</div><div class="sub">Dated ${new Date(dismissedMatch.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · the bank's email said this happened, but it was marked "not a transaction". If that was a mistake, adding it by hand will close this gap.</div></div><div class="amt">${fmt(dismissedMatch.amount)}</div></div>`;
-    } else if(anchorTs){
-      const suspect = entries.find(e=> new Date(e.ts) < anchorTs && Math.abs(Math.abs(e.delta) - discrepancy) < 1);
-      if(suspect){
-        suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">Likely cause: ${suspect.label}${suspect.sub?' · '+suspect.sub:''}</div><div class="sub">Dated ${new Date(suspect.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} — before your last balance fix, so it should already be included in it. If it was added or its account changed after ${anchorTs.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}, that's the gap.</div></div><div class="amt">${fmt(Math.abs(suspect.delta))}</div></div>`;
-      }
-    }
-    // No automatic match — say so plainly rather than silently offering nothing. Comparing
-    // against a real bank statement is a separate, heavier step (needs the file uploaded);
-    // it's offered here as an explicit choice, not something tapping the warning jumps into.
-    if(!suspectHtml){
-      suspectHtml = `<div class="row" style="background:rgba(224,122,95,0.08); border-radius:8px; margin-top:6px;"><div><div class="name">No single entry explains it</div><div class="sub">${anchorTs ? `An entry dated before your last balance fix (${anchorTs.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}) may have been added, changed or deleted after it — that moves the balance away from the fixed figure. Otherwise it` : 'It'} may be a transaction that was never added. Check it against your bank's own record.</div></div></div>`;
-    }
-  }
-  document.getElementById('acctstatement-warning').innerHTML = discrepancy>=1
-    ? `<div class="card" style="margin-bottom:12px;"><div style="font-size:13.5px; font-weight:700; color:var(--debt);">⚠️ <span class="maskable">${fmt(discrepancy)}</span> unaccounted for since ${adj ? 'your last balance fix' : 'the opening balance'}</div>${suspectHtml}</div>`
-    : '';
+  // The "unaccounted for" check is shown only in Fix balance (balanceGap below), not here.
+  document.getElementById('acctstatement-warning').innerHTML = '';
 
   // One list, newest first: every transaction, every adjustment ("Adjusted to ₹…") and, at
   // the very bottom, the opening balance. The tabs only filter this same list.
@@ -6085,7 +6189,7 @@ function renderAcctStatement(targetId, isCard){
     });
   });
   applyMaskUI();
-  const pendingLink = document.querySelector('#acctstatement-warning [data-openpending]');
+  const pendingLink = null;
   if(pendingLink) pendingLink.addEventListener('click', ()=> openReviewImport(pendingLink.getAttribute('data-openpending')));
   const reconLink = document.getElementById('acctstatement-reconcile-link');
   if(reconLink) reconLink.addEventListener('click', ()=> openReconSheet(targetId, isCard));
