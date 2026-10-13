@@ -427,6 +427,21 @@
 .cost-t th, .cost-t td{padding:4px 3px; text-align:right; border-bottom:1px solid var(--border, rgba(127,127,127,.2));}
 .cost-t th:first-child, .cost-t td:first-child{text-align:left;}
 .cost-t tr.tot td{font-weight:600;}
+
+  /* ---- Help ---- */
+  .help-chips{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 16px;}
+  .help-chip{border:1px solid var(--line); background:var(--chip); color:var(--ink); border-radius:999px; padding:9px 13px; font-size:13.5px; cursor:pointer; min-height:40px;}
+  .help-msg{max-width:88%; padding:11px 13px; border-radius:16px; margin:8px 0; font-size:14px; line-height:1.45; white-space:pre-line; overflow-wrap:anywhere;}
+  .help-msg.bot{background:var(--card); border:1px solid var(--line); border-bottom-left-radius:4px;}
+  .help-msg.me{background:var(--peri-dim); color:var(--ink); margin-left:auto; border-bottom-right-radius:4px;}
+  .help-msg .help-actions{display:flex; gap:14px; margin-top:8px; flex-wrap:wrap;}
+  .help-ask{display:flex; gap:8px; padding:10px 18px calc(env(safe-area-inset-bottom,0px) + 12px); border-top:1px solid var(--line); background:var(--bg);}
+  .help-ask input{flex:1; min-width:0; padding:12px 13px; border:1px solid var(--line); border-radius:14px; background:var(--paper-dim); color:var(--ink); font-size:15px;}
+  #tour-layer{position:fixed; inset:0; z-index:200; pointer-events:none;}
+  #tour-spot{position:fixed; border-radius:14px; box-shadow:0 0 0 9999px rgba(5,8,11,0.68); border:2px solid var(--peri); transition:all .25s ease; pointer-events:none;}
+  #tour-bubble{position:fixed; left:16px; right:16px; max-width:420px; margin:0 auto; background:var(--card); color:var(--ink); border-radius:16px; padding:14px; box-shadow:var(--shadow-md); pointer-events:auto; font-size:14.5px; line-height:1.45;}
+  .tour-btns{display:flex; align-items:center; gap:14px; margin-top:10px;}
+  .tour-btns #tour-count{flex:1; color:var(--ink-soft); font-size:12.5px;}
 </style>
 </head>
 <body>
@@ -442,6 +457,10 @@
     <button class="round-btn" id="mask-toggle-btn" title="Show or hide balances" aria-label="Show or hide balances">
       <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg>
       <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l16 16"/><path d="M9.9 5.8A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-3 3.7M6.3 7.6A15.600 15.600 0 0 0 2.500 12S6 18.500 12 18.500c1.300 0 2.500-.300 3.600-.800"/><path d="M10 10a2.8 2.8 0 0 0 4 4"/></svg>
+    </button>
+    <button class="round-btn" id="open-help-btn" title="Help" aria-label="Help" style="position:relative;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.2"/><path d="M9.4 9.3a2.7 2.7 0 0 1 5.2 1c0 1.8-2.6 2.3-2.6 3.9"/><circle cx="12" cy="17.2" r="0.6" fill="currentColor"/></svg>
+      <span id="help-badge" class="hide" style="position:absolute; top:6px; right:6px; width:9px; height:9px; border-radius:50%; background:var(--debt);"></span>
     </button>
     <button class="round-btn" id="open-tools-btn" title="Settings" aria-label="Settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.800v2.400M2.800 12h2.400M18.800 12h2.400M5.500 5.500l1.700 1.700M16.800 16.800l1.700 1.700M18.500 5.500l-1.700 1.700M7.200 16.800l-1.700 1.700"/></svg>
@@ -1062,6 +1081,38 @@
   </div>
 </div>
 
+<div class="fullscreen-page" id="help-page">
+  <div class="fs-header">
+    <button class="fs-back" id="help-back-btn" aria-label="Back">←</button>
+    <h2>Help</h2>
+  </div>
+  <div class="fs-body" id="help-body">
+    <div id="help-log"></div>
+    <div id="help-chips" class="help-chips"></div>
+    <div id="help-mine"></div>
+  </div>
+  <div class="help-ask">
+    <input id="help-input" placeholder="Ask anything about the app" autocomplete="off" enterkeyhint="send">
+    <button class="btn-primary" id="help-send" style="width:auto; margin:0; padding:12px 16px;">Ask</button>
+  </div>
+</div>
+
+<div class="fullscreen-page" id="helpadmin-page">
+  <div class="fs-header">
+    <button class="fs-back" id="helpadmin-back-btn" aria-label="Back">←</button>
+    <h2>Help questions</h2>
+  </div>
+  <div class="fs-body" id="helpadmin-body"></div>
+</div>
+
+<div id="tour-layer" class="hide" aria-live="polite">
+  <div id="tour-spot"></div>
+  <div id="tour-bubble">
+    <div id="tour-text"></div>
+    <div class="tour-btns"><span id="tour-count"></span><button class="link-btn" id="tour-skip">Close</button><button class="btn-primary" id="tour-next" style="width:auto; margin:0; padding:9px 16px;">Next</button></div>
+  </div>
+</div>
+
 <div class="fullscreen-page" id="tools-page">
   <div class="fs-header">
     <button class="fs-back" id="tools-back-btn" aria-label="Back">←</button>
@@ -1085,6 +1136,7 @@
     <div class="divider-label">Bank emails</div>
     <div class="card" id="reader-box" style="margin-bottom:6px;"></div>
     <button class="btn-ghost admin-only hide" id="tools-engine-report-btn" style="margin-top:0;">Email accuracy</button>
+    <button class="btn-ghost admin-only hide" id="tools-helpadmin-btn">Help questions from users</button>
 
     <div class="divider-label">PDF reports</div>
     <div class="field" style="margin-bottom:6px;"><label>Name printed under the title (optional)</label><input id="pdf-name-input" maxlength="90" autocomplete="off" placeholder="e.g. Sharma family, Pune"></div>
@@ -1102,7 +1154,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-12 · v91-sender-register</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-12 · v93-ignore-sticks</p>
   </div>
 </div>
 
@@ -1852,6 +1904,7 @@ async function loadReaderSenders(){
     readerLearned = learned.exists ? learned.data() : null;
   }catch(e){ console.error('Could not load the alert addresses', e); }
   renderReaderUI(true);
+  renderPendingReview();
 }
 // Which account the entries from each address were saved to. Two sources added together:
 // the server's count from past entries (as it stood at builtAt), and the decisions made
@@ -7407,6 +7460,10 @@ function renderPendingReview(){
     kindWrap.querySelectorAll('[data-keepkind]').forEach(b=> b.addEventListener('click', ()=> hideMailKind(b.getAttribute('data-keepkind'), false)));
     kindWrap.querySelectorAll('[data-ignoreaddr]').forEach(b=> b.addEventListener('click', async ()=>{
       const a = b.getAttribute('data-ignoreaddr');
+      // remembered with the household's own data too, so the card never comes back, even before
+      // the reader's address list has loaded when the app opens
+      if(!Array.isArray(state.hideKindDeclined)) state.hideKindDeclined = [];
+      if(!state.hideKindDeclined.includes('addr|' + a)) state.hideKindDeclined.push('addr|' + a);
       // mails from it waiting on Home go too, as not real
       (state.pendingImports||[]).filter(p=> String(p.sender||'').toLowerCase() === a).forEach(p=> dismissImportItem(p, 'not_real', 'ignored address'));
       await saveState();
@@ -8171,6 +8228,256 @@ document.getElementById('engine-copy-btn').addEventListener('click', async ()=>{
   showToast(ok ? 'Report copied' : 'Select all the text in the box and copy it', 3500);
 });
 // ================= END GMAIL AUTO-IMPORT =================
+
+
+// ================= HELP =================
+// Ready answers for the common tasks, each with "Show me": a step-by-step tour that highlights
+// the real button on the screen. Anything typed is matched against these first (free, on the
+// phone). Only what does not match goes to the server, where AI answers from the same guide;
+// what the guide does not cover is kept for the app's owner, and his reply shows here.
+const HELP_TOPICS = [{"id": "start", "title": "What this app does", "keywords": ["start", "begin", "beginning", "new user", "intro", "overview", "tabs", "shuru", "what does this app do", "getting started", "guide"], "answer": "It keeps your household money in one place.\n• Home: this month's spending, entries waiting from your email, recent activity and the budget.\n• Accounts: every bank account and card with its balance.\n• People: money you lent or borrowed.\n• Insights: where the money went, savings, six months.\nSwipe left or right to move between them. The + button adds an entry.", "tour": [{"do": "tab:home", "sel": "nav.tabbar", "text": "Four tabs: Home, Accounts, People and Insights. You can also swipe sideways between them."}, {"sel": "#fab-add", "text": "The + button adds an expense, income, transfer or a people entry."}]}, {"id": "add-expense", "title": "Add an expense", "keywords": ["add", "expense", "spend", "spent", "paid", "pay", "entry", "log", "kharcha", "new transaction", "record"], "answer": "1. Tap + at the bottom.\n2. Expense is already picked. Type the amount on the keypad.\n3. Write who you paid (shop, person, bill).\n4. Pick a category and the account or card it was paid from.\n5. Tap Save.", "tour": [{"sel": "#fab-add", "text": "Tap + to add an entry."}, {"do": "open:add", "sel": "#tx-type", "text": "Expense is picked already. Income and Transfer are here too."}, {"do": "open:add", "sel": ".amount-display", "text": "Type the amount on the keypad below."}, {"do": "open:add", "sel": "#tx-payee", "text": "Write who you paid."}, {"do": "open:add", "sel": "#tx-save", "text": "Pick the category and account above, then Save."}]}, {"id": "add-income", "title": "Add income or a transfer", "keywords": ["income", "salary", "received", "credit", "transfer", "move", "own account", "card payment", "bill payment", "pay card"], "answer": "Tap +, then choose Income (money that came in) or Transfer (money moved between your own accounts, or paying your credit card bill). Type the amount, pick the accounts, and Save. A transfer is not spending.", "tour": [{"do": "open:add", "sel": "#tx-type", "text": "Choose Income or Transfer here."}]}, {"id": "people", "title": "Lend or borrow money (People)", "keywords": ["people", "person", "lend", "lent", "borrow", "loan", "owe", "friend", "udhaar", "give", "got", "repay", "settle", "ledger"], "answer": "People keeps track of money between you and others.\n• Tap + and choose People, or go to the People tab.\n• \"You gave\" means they owe you; \"You got\" means you owe them.\n• Tap a person's amount to add a payment. Tap their name to see every entry.\n• Edit (under the name) changes the name or note. When the balance is zero, Settle takes them off the list; the record is kept.", "tour": [{"do": "tab:people", "sel": "#add-person-btn", "text": "Add a new person here."}, {"do": "tab:people", "sel": ".person-block", "text": "Tap the amount to add a payment; tap the name to see the entries."}]}, {"id": "connect-gmail", "title": "Connect Gmail so entries come in by themselves", "keywords": ["gmail", "email", "mail", "connect", "automatic", "auto", "bank alert", "inbox", "link", "read email"], "answer": "1. Open Settings (the gear on Home).\n2. Under Bank emails tap Connect Gmail.\n3. Choose your Google account and allow reading.\nThe app reads only your banks' alert mails, twice a day, and shows each transaction on Home for you to check. You can disconnect any time from the same place.", "tour": [{"do": "tab:home", "sel": "#open-tools-btn", "text": "Open Settings."}, {"do": "open:tools", "sel": "#reader-connect-btn", "text": "Tap Connect Gmail and allow reading your bank alerts."}]}, {"id": "review-email", "title": "Entries from email: add or reject", "keywords": ["review", "waiting", "pending", "approve", "reject", "not real", "from your email", "suggested", "imported", "check entry"], "answer": "Entries the app found in your bank mails wait on Home.\n• Tap one, check the amount, category and account, then Add.\n• If it isn't a real transaction, tap Not a transaction. If you already added it yourself, tap Already added.\n• If the direction is wrong, tap Wrong direction?; the app remembers it for that bank.", "tour": [{"do": "tab:home", "sel": "#pending-review-wrap", "text": "Entries from your email wait here. Tap one to add or reject it."}]}, {"id": "check-email", "title": "Check email now or for past dates", "keywords": ["check", "fetch", "now", "refresh", "sync", "past", "from date", "old", "missing", "month"], "answer": "Go to Accounts. In Check email pick a From date (and a To date if you want) and tap Check. New entries appear on Home. The app also checks by itself at 8 am and 8 pm.", "tour": [{"do": "tab:money", "sel": ".email-fetch", "text": "Pick the dates and tap Check."}]}, {"id": "fix-balance", "title": "Balance is wrong: fix it", "keywords": ["balance", "wrong", "incorrect", "fix", "adjust", "mismatch", "not matching", "difference", "reconcile", "unaccounted"], "answer": "1. Go to Accounts and tap the account.\n2. Tap Incorrect balance? Edit.\n3. Type the balance your bank app shows and Save.\nIf an entry explains the difference, Fix balance shows it with Remove this entry.", "tour": [{"do": "tab:money", "sel": "[data-acctstatement]", "text": "Tap the account."}, {"do": "open:firstaccount", "sel": "#acctstatement-edit-link", "text": "Tap Edit and type the balance your bank shows."}]}, {"id": "paste-sms", "title": "My bank doesn't email: paste the SMS", "keywords": ["sms", "message", "text", "paste", "upi", "sbi", "kotak", "no email", "phonepe", "gpay", "paytm", "not coming"], "answer": "Some banks don't email UPI payments (SBI, Kotak, Indian Bank). Copy the bank's SMS, tap +, then Paste a bank SMS instead. The app reads the amount, date and account; check and Save. You can also add the entry by hand.", "tour": [{"do": "open:add", "sel": "#tx-paste-sms", "text": "Tap here and paste the bank's SMS."}]}, {"id": "add-account", "title": "Add a bank account or credit card", "keywords": ["account", "card", "credit card", "bank", "add account", "new card", "wallet", "cash"], "answer": "Go to Accounts and tap + at the top. Choose bank account or credit card, write its name (include the bank's name, like \"HDFC Savings\"), the last digits and today's balance or amount due, then Save.", "tour": [{"do": "tab:money", "sel": "#add-account-btn", "text": "Tap + to add an account or card."}]}, {"id": "budget", "title": "Budget and categories", "keywords": ["budget", "category", "categories", "limit", "plan", "monthly", "rename category", "delete category"], "answer": "The budget is on Home, below Recent activity. Each category shows spending against its budget. Tap ✎ to rename, change or delete a category; + Add a category makes a new one; Edit budget opens the full planner.", "tour": [{"do": "tab:home", "sel": "#home-budget-panel", "text": "Your budget for this month. Tap ✎ on a category to change it."}, {"do": "tab:home", "sel": "#home-budget-edit-btn", "text": "Edit budget opens the full planner."}]}, {"id": "edit-entry", "title": "Change or delete an entry", "keywords": ["edit", "change", "delete", "remove", "mistake", "wrong entry", "correct", "update entry"], "answer": "Tap the entry (in Recent activity on Home, or in an account's list). Change what you need and Save, or tap Delete. A People entry opens from the person's list in the People tab.", "tour": [{"do": "tab:home", "sel": "#recent-list", "text": "Tap any entry to change or delete it."}]}, {"id": "insights", "title": "Insights: where the money went", "keywords": ["insight", "analysis", "report", "chart", "where", "savings", "saving", "trend", "category spend", "download", "pdf"], "answer": "The Insights tab shows spending by category, income, savings (investments count as saved), the month against your usual, the last six months and your top payees. Use the arrows to change the month; ⬇ PDF downloads it.", "tour": [{"do": "tab:insights", "sel": "#analysis-period-tabs", "text": "Choose week, month or a custom period."}]}, {"id": "invite", "title": "Add my partner to the household", "keywords": ["partner", "wife", "husband", "family", "share", "invite", "household", "together", "member"], "answer": "Open Settings, find Household, type your partner's Gmail address and tap Invite. When they sign in with that Google account, they see the same household.", "tour": [{"do": "open:tools", "sel": "#household-section", "text": "Type your partner's Gmail address and tap Invite."}]}, {"id": "privacy", "title": "Hide balances and privacy", "keywords": ["hide", "privacy", "private", "safe", "secure", "security", "mask", "data", "who can see"], "answer": "The eye button on Home hides every balance. Your data is in your own household; only people you invite can see it. The app reads only bank alert mails, never anything else, and you can disconnect Gmail any time in Settings.", "tour": [{"do": "tab:home", "sel": "#mask-toggle-btn", "text": "Tap the eye to hide or show balances."}]}, {"id": "theme", "title": "Dark or light look", "keywords": ["dark", "light", "theme", "colour", "color", "mode"], "answer": "Open Settings and choose Dark or Light under Appearance.", "tour": [{"do": "open:tools", "sel": "#theme-seg", "text": "Choose Dark or Light."}]}];
+let helpLog = [];
+function helpTokens(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9ऀ-ॿ ]/g,' ').split(/\s+/).filter(w=> w.length > 1); }
+function matchHelpTopic(q){
+  const r = rankHelpTopics(q);
+  return r.length && r[0].score >= 3 ? r[0].t : null;
+}
+function rankHelpTopics(q){
+  const words = helpTokens(q);
+  if(!words.length) return [];
+  const STOP = new Set(['how','to','do','i','the','a','an','is','my','can','what','where','in','on','of','for','me','it','and','not','kaise','kya','hai','ka','ki','ke','se','ko','mein','me']);
+  const real = words.filter(w=> !STOP.has(w));
+  if(!real.length) return [];
+  const ranked = [];
+  HELP_TOPICS.forEach(t=>{
+    const kws = t.keywords.map(k=> k.toLowerCase());
+    const title = helpTokens(t.title);
+    let score = 0;
+    real.forEach(w=>{
+      if(kws.includes(w)) score += 3;
+      else if(kws.some(k=> k.includes(' ') ? (' '+q.toLowerCase()+' ').includes(' '+k+' ') : (k.length > 3 && (w.startsWith(k) || k.startsWith(w))))) score += 2;
+      else if(title.includes(w)) score += 1;
+    });
+    kws.filter(k=> k.includes(' ')).forEach(k=>{ if((' '+q.toLowerCase()+' ').includes(' '+k+' ')) score += 3; });
+    if(score > 0) ranked.push({t, score});
+  });
+  return ranked.sort((a,b)=> b.score - a.score);
+}
+// Wordings learned from people's choices (shared once two people chose the same topic, or the
+// owner answered with it). Kept on the phone too, so it works offline.
+let helpPhrases = {};
+try{ helpPhrases = JSON.parse(localStorage.getItem('fa-help-phrases') || '{}'); }catch(e){}
+function helpPhraseKey(q){ return String(q||'').toLowerCase().replace(/[^a-z0-9\u0900-\u097f ]/g,' ').split(/\s+/).filter(Boolean).join(' ').slice(0,120); }
+async function loadHelpPhrases(){
+  if(!authUser) return;
+  try{
+    const r = await readerCall('help', {method:'GET', query:'action=phrases'});
+    if(r.status === 200 && r.data.ok){ helpPhrases = r.data.phrases || {}; try{ localStorage.setItem('fa-help-phrases', JSON.stringify(helpPhrases)); }catch(e){} }
+  }catch(e){}
+}
+function helpSay(who, text, opts){ helpLog.push({who, text, ...(opts||{})}); renderHelp(); }
+function helpShowTopic(t){
+  helpSay('bot', t.answer, {topic: t.id});
+}
+function renderHelp(){
+  const log = document.getElementById('help-log');
+  if(!log) return;
+  if(!helpLog.length) helpLog.push({who:'bot', text:'Hi! What would you like to do? Pick one below, or type your question.'});
+  log.innerHTML = helpLog.map((m, i)=> `<div class="help-msg ${m.who}">${storyEsc(m.text)}${m.topic ? `<div class="help-actions">${(HELP_TOPICS.find(t=> t.id===m.topic)||{}).tour ? `<button class="link-btn" data-helptour="${m.topic}">Show me</button>` : ''}</div>` : ''}${m.suggest ? `<div class="help-actions" style="flex-direction:column; align-items:flex-start; gap:8px;">${m.suggest.map(id=> `<button class="help-chip" data-helpsuggest="${id}" data-msg="${i}">${storyEsc((HELP_TOPICS.find(t=> t.id===id)||{}).title||id)}</button>`).join('')}${m.done ? '' : `<button class="link-btn" data-helpsend="${i}">None of these: send my question to the team</button>`}</div>` : ''}</div>`).join('');
+  log.querySelectorAll('[data-helptour]').forEach(b=> b.addEventListener('click', ()=> startTour(b.getAttribute('data-helptour'))));
+  log.querySelectorAll('[data-helpsuggest]').forEach(b=> b.addEventListener('click', ()=>{
+    const m = helpLog[+b.getAttribute('data-msg')], t = HELP_TOPICS.find(x=> x.id === b.getAttribute('data-helpsuggest'));
+    if(!m || !t) return;
+    m.done = true;
+    helpSay('me', t.title); helpShowTopic(t); helpScrollDown();
+    if(authUser && m.question) readerCall('help', {body: {action:'learn', question: m.question, topic: t.id}}).catch(()=>{});
+  }));
+  log.querySelectorAll('[data-helpsend]').forEach(b=> b.addEventListener('click', ()=>{
+    const m = helpLog[+b.getAttribute('data-helpsend')];
+    if(!m || m.done) return;
+    m.done = true;
+    sendHelpToTeam(m.question);
+  }));
+  const chips = document.getElementById('help-chips');
+  chips.innerHTML = HELP_TOPICS.map(t=> `<button class="help-chip" data-helptopic="${t.id}">${storyEsc(t.title)}</button>`).join('');
+  chips.querySelectorAll('[data-helptopic]').forEach(b=> b.addEventListener('click', ()=>{
+    const t = HELP_TOPICS.find(x=> x.id === b.getAttribute('data-helptopic'));
+    helpSay('me', t.title); helpShowTopic(t); helpScrollDown();
+  }));
+  renderHelpMine();
+}
+function helpScrollDown(){ const b = document.getElementById('help-body'); if(b) setTimeout(()=>{ const log = document.getElementById('help-log'); b.scrollTop = log.offsetTop + log.offsetHeight - b.clientHeight + 40; }, 30); }
+let helpMine = [];
+function helpSeenKey(){ return 'fa-help-seen-' + (authUser && authUser.uid || ''); }
+function renderHelpMine(){
+  const el = document.getElementById('help-mine');
+  if(!el) return;
+  if(!helpMine.length){ el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="divider-label">Your questions to the team</div>` + helpMine.map(q=> `<div class="card" style="margin-bottom:8px;">
+    <div class="name" style="font-size:14px;">${storyEsc(q.question)}</div>
+    <div class="sub" style="margin-top:4px;">${new Date(q.at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${(q.reply || q.topic) ? 'Answered' : 'Not available yet. We will get back to you here.'}</div>
+    ${q.reply ? `<div class="help-msg bot" style="max-width:100%; margin:8px 0 0;">${storyEsc(q.reply)}</div>` : ''}
+    ${q.topic && HELP_TOPICS.find(t=> t.id===q.topic) ? `<div class="help-msg bot" style="max-width:100%; margin:8px 0 0;">${storyEsc(HELP_TOPICS.find(t=> t.id===q.topic).answer)}<div class="help-actions"><button class="link-btn" data-helptour="${q.topic}">Show me</button></div></div>` : ''}
+  </div>`).join('');
+  el.querySelectorAll('[data-helptour]').forEach(b=> b.addEventListener('click', ()=> startTour(b.getAttribute('data-helptour'))));
+}
+async function loadHelpMine(){
+  if(!authUser) return;
+  try{
+    const r = await readerCall('help', {method:'GET', query:'action=mine'});
+    if(r.status === 200 && r.data.ok){
+      helpMine = r.data.list || [];
+      let seen = []; try{ seen = JSON.parse(localStorage.getItem(helpSeenKey()) || '[]'); }catch(e){}
+      const unseen = helpMine.some(q=> (q.reply || q.topic) && !seen.includes(q.id));
+      document.getElementById('help-badge').classList.toggle('hide', !unseen);
+      if(document.getElementById('help-page').classList.contains('open')){ renderHelpMine(); markHelpSeen(); }
+    }
+  }catch(e){}
+}
+function markHelpSeen(){
+  try{ localStorage.setItem(helpSeenKey(), JSON.stringify(helpMine.filter(q=> q.reply || q.topic).map(q=> q.id))); }catch(e){}
+  document.getElementById('help-badge').classList.add('hide');
+}
+function currentScreenName(){
+  const open = document.querySelector('.sheet-backdrop.open, .fullscreen-page.open:not(#help-page)');
+  if(open) return open.id;
+  const b = document.querySelector('nav.tabbar button.active');
+  return b ? 'tab-' + b.dataset.tab : 'home';
+}
+let helpFromScreen = 'home';
+function openHelp(){
+  helpFromScreen = currentScreenName();
+  renderHelp();
+  openFullscreen('help-page');
+  markHelpSeen();
+  loadHelpMine();
+  loadHelpPhrases();
+}
+async function askHelp(){
+  const input = document.getElementById('help-input');
+  const q = input.value.trim();
+  if(!q) return;
+  input.value = '';
+  helpSay('me', q);
+  const learned = helpPhrases[helpPhraseKey(q)];
+  const t = (learned && HELP_TOPICS.find(x=> x.id === learned)) || matchHelpTopic(q);
+  if(t){ helpShowTopic(t); helpScrollDown(); return; }
+  const near = rankHelpTopics(q).slice(0, 3).map(r=> r.t.id);
+  if(near.length){ helpSay('bot', 'Is it one of these?', {suggest: near, question: q}); helpScrollDown(); return; }
+  sendHelpToTeam(q);
+}
+async function sendHelpToTeam(q){
+  if(!authUser){ helpSay('bot', 'I could not find that in the help. Sign in (Settings → Account) so your question can reach the team.'); helpScrollDown(); return; }
+  let r = null;
+  try{ r = await readerCall('help', {body: {action:'ask', question: q, screen: helpFromScreen}}); }catch(e){}
+  if(r && r.status === 200 && r.data.ok){ helpSay('bot', 'This is not in the help yet, so I have sent your question to the team. We will get back to you here, under "Your questions to the team".'); loadHelpMine(); }
+  else helpSay('bot', 'I could not send it just now. Try again in a moment, or pick a topic below.');
+  helpScrollDown();
+}
+document.getElementById('open-help-btn').addEventListener('click', openHelp);
+document.getElementById('help-back-btn').addEventListener('click', ()=> closeFullscreen('help-page'));
+document.getElementById('help-send').addEventListener('click', askHelp);
+document.getElementById('help-input').addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); askHelp(); } });
+
+// ---- "Show me": a tour over the real screen ----
+let tourSteps = [], tourIdx = 0;
+function tourDo(action){
+  if(!action) return;
+  const [kind, arg] = action.split(':');
+  // close whatever is open except what this step needs
+  const keepAdd = kind === 'open' && arg === 'add', keepTools = kind === 'open' && arg === 'tools';
+  document.querySelectorAll('.sheet-backdrop.open, .fullscreen-page.open').forEach(el=>{
+    if(keepAdd && el.id === 'tx-backdrop') return;
+    if(keepTools && el.id === 'tools-page') return;
+    if(arg === 'firstaccount' && el.id === 'acctstatement-backdrop') return;
+    el.classList.remove('open');
+  });
+  if(kind === 'tab') goTab(arg);
+  if(kind === 'open' && arg === 'add' && !document.getElementById('tx-backdrop').classList.contains('open')) openAddTxSheet();
+  if(kind === 'open' && arg === 'tools' && !document.getElementById('tools-page').classList.contains('open')) document.getElementById('open-tools-btn').click();
+  if(kind === 'open' && arg === 'firstaccount' && !document.getElementById('acctstatement-backdrop').classList.contains('open')){
+    goTab('money');
+    const row = document.querySelector('[data-acctstatement]');
+    if(row) openAcctStatement(row.dataset.acctstatement, row.dataset.iscard === '1');
+  }
+}
+function startTour(topicId){
+  const t = HELP_TOPICS.find(x=> x.id === topicId);
+  if(!t || !t.tour) return;
+  closeFullscreen('help-page');
+  tourSteps = t.tour; tourIdx = 0;
+  document.getElementById('tour-layer').classList.remove('hide');
+  showTourStep();
+}
+function endTour(){
+  document.getElementById('tour-layer').classList.add('hide');
+  tourSteps = [];
+}
+function showTourStep(){
+  const step = tourSteps[tourIdx];
+  if(!step){ endTour(); return; }
+  tourDo(step.do);
+  setTimeout(()=>{
+    const el = step.sel ? document.querySelector(step.sel) : null;
+    const visible = el && el.getClientRects().length && !el.closest('.hide');
+    if(visible) el.scrollIntoView({block:'center', behavior:'instant'});
+    setTimeout(()=>{
+      const spot = document.getElementById('tour-spot'), bubble = document.getElementById('tour-bubble');
+      document.getElementById('tour-text').textContent = step.text;
+      document.getElementById('tour-count').textContent = `${tourIdx+1} of ${tourSteps.length}`;
+      document.getElementById('tour-next').textContent = tourIdx === tourSteps.length-1 ? 'Done' : 'Next';
+      if(visible){
+        const r = el.getBoundingClientRect(), pad = 6;
+        Object.assign(spot.style, {display:'block', left:(r.left-pad)+'px', top:(r.top-pad)+'px', width:(r.width+pad*2)+'px', height:(r.height+pad*2)+'px'});
+        const below = r.bottom + 16 + 140 < window.innerHeight;
+        bubble.style.top = below ? (r.bottom + 16) + 'px' : 'auto';
+        bubble.style.bottom = below ? 'auto' : (window.innerHeight - r.top + 16) + 'px';
+      } else {
+        Object.assign(spot.style, {display:'block', left:'50%', top:'40%', width:'0px', height:'0px'});
+        bubble.style.top = '40%'; bubble.style.bottom = 'auto';
+      }
+    }, 60);
+  }, 180);
+}
+document.getElementById('tour-next').addEventListener('click', ()=>{ tourIdx++; if(tourIdx >= tourSteps.length) endTour(); else showTourStep(); });
+document.getElementById('tour-skip').addEventListener('click', endTour);
+window.addEventListener('resize', ()=>{ if(tourSteps.length) showTourStep(); });
+
+// ---- the owner's list of questions, with replies ----
+async function openHelpAdmin(){
+  openFullscreen('helpadmin-page');
+  const body = document.getElementById('helpadmin-body');
+  body.innerHTML = '<div class="section-sub">Loading…</div>';
+  const r = await readerCall('help', {method:'GET', query:'action=all'});
+  if(!(r.status === 200 && r.data.ok)){ body.innerHTML = '<div class="section-sub">Could not load. Try again later.</div>'; return; }
+  const list = r.data.list || [];
+  const open = list.filter(q=> q.status === 'open');
+  const topicOpts = '<option value="">No help topic</option>' + HELP_TOPICS.map(t=> `<option value="${t.id}">${storyEsc(t.title)}</option>`).join('');
+  body.innerHTML = `<div class="section-sub" style="margin:0 0 10px;">${open.length} waiting for your answer · ${list.filter(q=> q.status==='replied').length} answered. Answering with a help topic also teaches the help that wording, for everyone.</div>` +
+    (list.length ? list.map(q=> `<div class="card" style="margin-bottom:10px;">
+      <div class="name" style="font-size:14px;">${storyEsc(q.question)}</div>
+      <div class="sub" style="margin-top:3px; overflow-wrap:anywhere;">${storyEsc(q.email||'')} · ${new Date(q.at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${storyEsc(q.screen||'')}</div>
+      ${q.reply ? `<div class="help-msg me" style="max-width:100%; margin:8px 0 0;">You: ${storyEsc(q.reply)}</div>` : ''}
+      ${q.topic ? `<div class="sub" style="margin-top:6px;">Answered with: ${storyEsc((HELP_TOPICS.find(t=> t.id===q.topic)||{}).title || q.topic)}</div>` : ''}
+      <select id="ht-${q.id}" style="width:100%; margin-top:8px; padding:10px; border:1px solid var(--line); border-radius:12px; background:var(--paper-dim); color:var(--ink);">${topicOpts}</select>
+      <div style="display:flex; gap:8px; margin-top:8px;"><input id="hr-${q.id}" placeholder="${q.reply ? 'Change your reply' : 'Your reply (e.g. Coming in the next update)'}" style="flex:1; min-width:0; padding:10px; border:1px solid var(--line); border-radius:12px; background:var(--paper-dim); color:var(--ink);"><button class="btn-ghost" data-hreply="${q.id}" style="width:auto; margin:0; padding:9px 14px;">Send</button></div>
+    </div>`).join('') : '<div class="section-sub">No questions yet.</div>');
+  body.querySelectorAll('[data-hreply]').forEach(b=> b.addEventListener('click', async ()=>{
+    const id = b.getAttribute('data-hreply');
+    const reply = document.getElementById('hr-' + id).value.trim();
+    const topic = document.getElementById('ht-' + id).value;
+    if(!reply && !topic){ showToast('Write a reply or pick a help topic', 3000); return; }
+    b.disabled = true;
+    const w = await readerCall('help', {body: {action:'reply', id, reply, topic}});
+    showToast(w.status === 200 && w.data.ok ? 'Reply sent. They see it in Help.' : 'Could not send. Try again.', 3000);
+    if(w.status === 200 && w.data.ok) openHelpAdmin(); else b.disabled = false;
+  }));
+}
+document.getElementById('tools-helpadmin-btn').addEventListener('click', openHelpAdmin);
+document.getElementById('helpadmin-back-btn').addEventListener('click', ()=> closeFullscreen('helpadmin-page'));
+// a reply waiting shows as a dot on the Help button
+setTimeout(()=> loadHelpMine(), 4000);
+// ================= END HELP =================
 
 // ---- BACK BUTTON SUPPORT FOR ALL MODAL SHEETS ----
 // Whenever any .sheet-backdrop becomes visible, push a history entry so the phone's back
