@@ -421,6 +421,24 @@
   #gate .gate-sub{font-size:15px; line-height:1.5; color:var(--ink-soft); text-align:center; margin:0 0 22px;}
   #gate .gate-note{font-size:12.5px; line-height:1.5; color:var(--ink-soft); text-align:center; margin:14px 0 0;}
   #gate .divider-label{margin-top:24px;}
+  #gate .intro{min-height:100%; display:flex; flex-direction:column; max-width:480px; margin:0 auto; padding:calc(env(safe-area-inset-top,0px) + 18px) 0 calc(env(safe-area-inset-bottom,0px) + 28px);}
+  #gate .intro-skip{align-self:flex-end; margin-right:22px; font-size:14px; color:var(--ink-soft);}
+  #gate .intro-viewport{flex:1; overflow:hidden; display:flex; align-items:center;}
+  #gate .intro-track{display:flex; width:100%; transition:transform .35s cubic-bezier(.2,.8,.2,1);}
+  #gate .intro-slide{flex:0 0 100%; padding:0 32px; text-align:center; box-sizing:border-box;}
+  #gate .intro-art{width:150px; height:150px; color:var(--ink); --accent-c:#3A6FF0; margin:0 auto 26px; display:block; padding:22px; border-radius:40px; background:var(--card); box-shadow:var(--accent-glow);}
+  #gate .intro-slide h2{font-size:23px; font-weight:600; margin:0 0 12px; line-height:1.25;}
+  #gate .intro-slide p{font-size:15.5px; line-height:1.55; color:var(--ink-soft); margin:0 auto; max-width:330px;}
+  #gate .intro-dots{display:flex; justify-content:center; gap:8px; margin:22px 0;}
+  #gate .intro-dots span{width:8px; height:8px; border-radius:4px; background:var(--line); transition:width .25s, background .25s; cursor:pointer;}
+  #gate .intro-dots span.on{width:22px; background:var(--accent-c, #3A6FF0);}
+  #gate .intro-foot{padding:0 22px;}
+  #gate .intro-foot .btn-primary{margin-top:0; width:100%;}
+  #gate .fm-title{font-size:22px; font-weight:600; text-align:center; margin:0 0 10px;}
+  #gate .fm-acct{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid var(--line);}
+  #gate .fm-name{font-size:15px; font-weight:600;}
+  #gate .fm-btn{width:auto; margin:0; padding:8px 14px; font-size:13.5px; white-space:nowrap;}
+  #gate .fm-ok{color:var(--pos, #2e9e6b); font-size:18px; font-weight:700;}
 
   #toast{position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom,0px) + 104px); transform:translate(-50%,20px); background:var(--card); color:var(--ink); border:1px solid var(--line); padding:12px 20px; border-radius:30px; font-weight:500; font-size:13.5px; opacity:0; pointer-events:none; transition:all .25s ease; z-index:100; max-width:calc(100vw - 32px); text-align:center; box-shadow:var(--shadow-md);}
   #toast.show{opacity:1; transform:translate(-50%,0);}
@@ -931,7 +949,8 @@
     <h3 id="recon-title">Reconcile statement</h3>
     <p class="section-sub" id="recon-sub">Upload the statement — CSV/Excel export if your bank offers one, or the PDF if that's all you get (common for credit cards). Or paste CSV text below.</p>
     <div class="field"><label>Upload statement (CSV or PDF)</label><input type="file" id="recon-file" accept=".csv,text/csv,.pdf,application/pdf"></div>
-    <div class="field"><label>...or paste CSV text</label><textarea id="recon-paste" placeholder="Date,Description,Debit,Credit&#10;01/09/2026,Swiggy,430,"></textarea></div>
+    <div class="field hide" id="recon-pw-wrap"><label>PDF password</label><input id="recon-pw" type="password" autocomplete="off" placeholder="Often set by the bank, e.g. part of your name and birth date"><p class="section-sub" style="margin-top:6px;">Used on this phone only to open the file. It is never sent anywhere.</p></div>
+    <div class="field" id="recon-paste-wrap"><label>...or paste CSV text</label><textarea id="recon-paste" placeholder="Date,Description,Debit,Credit&#10;01/09/2026,Swiggy,430,"></textarea></div>
     <button class="btn-primary" id="recon-run">Compare with app</button>
     <div id="recon-results"></div>
     <button class="btn-ghost" id="recon-close">Close</button>
@@ -1166,7 +1185,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-13 · v94-paper-notes</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-14 · v96-first-look</p>
   </div>
 </div>
 
@@ -1561,6 +1580,120 @@ let setupBusy = false;
 function myEmail(){ return ((authUser && authUser.email) || '').toLowerCase(); }
 function myFirstName(){ return ((authUser && authUser.displayName) || '').trim().split(/\s+/)[0] || ''; }
 
+// ---------- first look: three screens, then one Google step
+const INTRO = [
+  {t: 'Your bank alerts become entries', p: 'Every spend and income your bank emails you appears here by itself. You only check and tap Add. No typing.',
+   art: '<rect x="18" y="30" width="76" height="52" rx="10" fill="none" stroke="currentColor" stroke-width="5"/><path d="M20 36l36 26 36-26" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/><circle cx="98" cy="84" r="20" fill="var(--accent-c, #3A6FF0)"/><path d="M89 84l6 6 12-12" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>'},
+  {t: 'Know where the month is going', p: 'See what is left of your budget, where the money went, and what is coming up, updated as you spend.',
+   art: '<circle cx="60" cy="60" r="38" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="12"/><path d="M60 22a38 38 0 1 1-33 57" fill="none" stroke="var(--accent-c, #3A6FF0)" stroke-width="12" stroke-linecap="round"/><text x="60" y="68" text-anchor="middle" font-size="22" font-weight="700" fill="currentColor">72%</text>'},
+  {t: 'Run it together', p: 'Invite your partner. You both see the same accounts and budget, and the People Ledger keeps track of who owes whom.',
+   art: '<circle cx="42" cy="44" r="15" fill="none" stroke="currentColor" stroke-width="5"/><path d="M16 94c2-18 13-28 26-28s24 10 26 28" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><circle cx="82" cy="44" r="15" fill="none" stroke="var(--accent-c, #3A6FF0)" stroke-width="5"/><path d="M60 94c2-18 11-28 22-28s22 10 24 28" fill="none" stroke="var(--accent-c, #3A6FF0)" stroke-width="5" stroke-linecap="round"/>'}
+];
+let introAt = 0;
+function introHtml(){
+  return `<div class="intro">
+    <button class="link-btn intro-skip" id="intro-skip">Skip</button>
+    <div class="intro-viewport"><div class="intro-track" id="intro-track">${INTRO.map(s=> `<div class="intro-slide"><svg class="intro-art" viewBox="0 0 120 120" aria-hidden="true">${s.art}</svg><h2>${s.t}</h2><p>${s.p}</p></div>`).join('')}</div></div>
+    <div class="intro-dots">${INTRO.map((_, i)=> `<span data-introdot="${i}"></span>`).join('')}</div>
+    <div class="intro-foot">
+      <button class="btn-primary" id="intro-next">Next</button>
+      <p class="gate-note intro-note" id="intro-note">One Google step signs you in and lets the app read only your bank and card alert emails. Your data can be opened only by your household.</p>
+    </div>
+  </div>`;
+}
+function introGo(i){
+  introAt = Math.max(0, Math.min(INTRO.length - 1, i));
+  const track = document.getElementById('intro-track'); if(!track) return;
+  track.style.transform = `translateX(${-introAt * 100}%)`;
+  document.querySelectorAll('[data-introdot]').forEach((d, k)=> d.classList.toggle('on', k === introAt));
+  const last = introAt === INTRO.length - 1;
+  const next = document.getElementById('intro-next');
+  next.innerHTML = last ? `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="vertical-align:-3px; margin-right:8px;"><path fill="#fff" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z"/><path fill="#fff" opacity=".85" d="M12 22c2.7 0 5-.9 6.6-2.5l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#fff" opacity=".7" d="M6.4 13.9a6 6 0 0 1 0-3.8V7.5H3.1a10 10 0 0 0 0 9z"/><path fill="#fff" opacity=".55" d="M12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.5l3.3 2.6C7.2 7.8 9.4 6 12 6z"/></svg>Continue with Google` : 'Next';
+  document.getElementById('intro-note').style.visibility = last ? 'visible' : 'hidden';
+  document.getElementById('intro-skip').style.visibility = last ? 'hidden' : 'visible';
+}
+function wireIntro(){
+  introAt = 0; introGo(0);
+  document.getElementById('intro-next').addEventListener('click', ()=> introAt === INTRO.length - 1 ? signInOneStep() : introGo(introAt + 1));
+  document.getElementById('intro-skip').addEventListener('click', ()=> introGo(INTRO.length - 1));
+  document.querySelectorAll('[data-introdot]').forEach(d=> d.addEventListener('click', ()=> introGo(+d.getAttribute('data-introdot'))));
+  const vp = document.querySelector('.intro-viewport'); let x0 = null, y0 = null;
+  vp.addEventListener('touchstart', e=>{ x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, {passive: true});
+  vp.addEventListener('touchend', e=>{ if(x0 === null) return; const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null; if(Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) introGo(introAt + (dx < 0 ? 1 : -1)); }, {passive: true});
+}
+// One Google screen: sign in and let the app read bank alerts. Falls back to the plain sign-in
+// if the server cannot be reached.
+async function signInOneStep(){
+  const btn = document.getElementById('intro-next') || document.getElementById('gate-signin');
+  if(btn){ btn.disabled = true; btn.textContent = 'Opening Google…'; }
+  try{
+    const res = await fetch(READER_BASE + 'signInStart', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({returnTo: location.origin + location.pathname})});
+    const d = await res.json();
+    if(res.ok && d.ok && d.url){ location.href = d.url; return; }
+    throw new Error('no url');
+  }catch(e){
+    console.warn('One-step sign-in unavailable, using the plain sign-in', e);
+    if(btn){ btn.disabled = false; }
+    if(typeof introGo === 'function' && document.getElementById('intro-next')) introGo(INTRO.length - 1);
+    signInWithGoogle();
+  }
+}
+// Back from Google with a one-time code: swap it for the sign-in token and sign in.
+async function finishOneStepSignIn(){
+  const sp = new URLSearchParams(location.search);
+  const code = sp.get('signin');
+  if(!code) return false;
+  history.replaceState(null, '', location.pathname + location.hash);
+  if(code === 'cancelled'){ showToast('Sign-in was not finished. Tap Continue with Google to try again.', 4000); return false; }
+  showGate('checking');
+  try{
+    const res = await fetch(READER_BASE + 'signInFinish', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({code})});
+    const d = await res.json();
+    if(!(res.ok && d.ok && d.idToken)) throw new Error('code refused');
+    await firebase.auth().signInWithCredential(firebase.auth.GoogleAuthProvider.credential(d.idToken));
+    try{ sessionStorage.setItem('fa-first-month', d.canRead ? 'read' : 'noread'); }catch(e){}
+    location.reload();
+    return true;
+  }catch(e){
+    console.error('Finishing sign-in failed', e);
+    showGate('welcome');
+    showToast('Sign-in did not complete. Try again.', 4000);
+    return true;
+  }
+}
+// A person who already has a household and signed in with the one Google step: tie the inbox.
+function claimIfPending(){
+  let flag = null; try{ flag = sessionStorage.getItem('fa-first-month'); }catch(e){}
+  if(!flag || !authUser) return;
+  try{ sessionStorage.removeItem('fa-first-month'); }catch(e){}
+  readerCall('claimInbox', {body: {}}).catch(e=> console.error('claimInbox failed', e));
+}
+// After set-up: tie the inbox to the household, then offer this month's statement.
+async function afterSetupSteps(){
+  let info = {noAlertAccounts: []};
+  try{ const r = await readerCall('claimInbox', {body: {}}); if(r.status === 200 && r.data.ok) info = r.data; }catch(e){ console.error('claimInbox failed', e); }
+  try{ sessionStorage.removeItem('fa-first-month'); }catch(e){}
+  if(readerStatus) readerStatus.noAlertAccounts = info.noAlertAccounts || [];
+  else readerStatus = {inboxes: [], noAlertAccounts: info.noAlertAccounts || []};
+  showGate('firstmonth', {claimed: info.claimed, noAlert: info.noAlertAccounts || []});
+}
+function firstMonthHtml(opts){
+  const first = statementFirstDay().toLocaleDateString('en-IN', {day: 'numeric', month: 'short'});
+  const inboxes = opts.claimed ? [{email: myEmail()}] : readerInboxes();
+  const all = [...state.accounts, ...state.cards].filter(a=> a.id !== 'cash_wallet' && a.id !== 'sinking_fund');
+  const rows = all.map(a=>{
+    const need = (opts.noAlert || []).includes(a.id) || knownNoEmail(a, !!state.cards.find(c=> c.id===a.id));
+    return `<div class="fm-acct"><div><div class="fm-name">${storyEsc(a.name)}</div><div class="eng-sub">${need ? 'Its bank may not email every transaction.' : 'Bank alerts are read from your email.'}</div></div>${need ? `<button class="btn-ghost fm-btn" data-fmstmt="${storyEsc(a.id)}">Upload statement</button>` : '<span class="fm-ok">✓</span>'}</div>`;
+  }).join('');
+  const mail = inboxes.length
+    ? `<p class="gate-sub">Your bank alert emails from ${first} are being read now. Each entry waits on Home for you to check.</p>`
+    : `<p class="gate-sub">Gmail is not connected yet, so bank alerts cannot be read.</p><button class="btn-primary" id="fm-connect" style="margin-top:0;">Connect Gmail</button>`;
+  return `<h2 class="fm-title">Bring in this month so far</h2>${mail}
+    <div class="divider-label">Your accounts</div>${rows}
+    <p class="gate-note" style="text-align:left;">For a bank that does not email every transaction, upload this month’s statement (PDF or CSV from the bank’s app or website). Its entries from ${first} go to Home for you to check. Your balances are not changed.</p>
+    <button class="btn-primary" id="fm-home">Go to Home</button>
+    <p class="gate-note">You can upload a statement any time from Home.</p>`;
+}
 function showGate(view, opts){
   opts = opts || {};
   const g = document.getElementById('gate');
@@ -1571,9 +1704,9 @@ function showGate(view, opts){
   if(view==='checking'){
     body = '<p class="gate-sub">Checking…</p>';
   } else if(view==='welcome'){
-    body = `<p class="gate-sub">Your household's money in one place: accounts, budget, and who owes whom.</p>
-      <button class="btn-primary" id="gate-signin">Sign in with Google</button>
-      <p class="gate-note">Each household's data can be opened only by its own members.</p>`;
+    g.innerHTML = introHtml(); g.classList.remove('hide'); g.scrollTop = 0; wireIntro(); return;
+  } else if(view==='firstmonth'){
+    body = firstMonthHtml(opts);
   } else if(view==='offline'){
     body = `<p class="gate-sub">Could not reach the server. Check your connection and try again.</p>
       <button class="btn-primary" id="gate-retry">Try again</button>${who}`;
@@ -1601,7 +1734,10 @@ function showGate(view, opts){
   g.classList.remove('hide');
   g.scrollTop = 0;
   const on = (id, fn)=>{ const el = document.getElementById(id); if(el) el.addEventListener('click', fn); };
-  on('gate-signin', signInWithGoogle);
+  on('gate-signin', signInOneStep);
+  on('fm-home', ()=>{ hideGate(); showToast('Entries from your email will wait on Home for you to check.', 3500); });
+  on('fm-connect', ()=> connectGmail(document.getElementById('fm-connect')));
+  g.querySelectorAll('[data-fmstmt]').forEach(b=> b.addEventListener('click', ()=>{ const id = b.getAttribute('data-fmstmt'); hideGate(); openStatementImport(id); }));
   on('gate-retry', ()=> location.reload());
   on('gate-signout', async ()=>{ try{ await firebase.auth().signOut(); }catch(e){ console.error('Sign-out failed', e); } location.reload(); });
   on('gate-join', ()=> joinInvitedHousehold(opts.invite));
@@ -1693,7 +1829,7 @@ async function settleHousehold(){
   let found;
   try{ found = await lookUpHousehold(); }
   catch(e){ console.error('Could not look up the household', e); showGate('offline'); return false; }
-  if(found.hid){ await openHousehold(found.hid); return false; }
+  if(found.hid){ await openHousehold(found.hid); claimIfPending(); return false; }
   showGate(found.closed ? 'closed' : 'setup', {invite: found.invite});
   return false;
 }
@@ -1747,7 +1883,7 @@ async function finishSetup(){
   setupBusy = false;
   const hid = setupHid; setupHid = null;
   await openHousehold(hid, {state:s, name:myName, householdName:hhName});
-  showToast('All set. Tap + to add your first transaction.', 3500);
+  await afterSetupSteps();
 }
 
 async function joinInvitedHousehold(inv){
@@ -1770,6 +1906,7 @@ async function joinInvitedHousehold(inv){
   setupBusy = false;
   await openHousehold(inv.householdId, {name:myName, householdName:inv.householdName || ''});
   showToast('You have joined ' + (inv.householdName || 'the household'), 3000);
+  try{ await readerCall('claimInbox', {body: {}}); }catch(e){ console.error('claimInbox failed', e); }
 }
 
 // ---- Household section in Settings: members and invitations ----
@@ -2343,9 +2480,10 @@ async function initCloudSync(onFirstData){
     if(!window.firebase) throw new Error('Firebase SDK did not load');
     firebase.initializeApp(firebaseConfig);
     await waitForAuthReady(); // so the very first request already carries the sign-in
+    if(await finishOneStepSignIn()) return;
     db = firebase.firestore();
     try{ await db.enablePersistence({synchronizeTabs:true}); }catch(e){ /* fine if this fails, sync still works online */ }
-    if(await settleHousehold()) await connectHousehold();
+    if(await settleHousehold()){ await connectHousehold(); claimIfPending(); }
   }catch(e){
     console.error('Cloud sync unavailable', e);
     if(!currentHid) showGate('offline');
@@ -3578,6 +3716,12 @@ function accountsWithoutEmail(){
   if(!readerOn()) return [];
   const okNow = new Set(state.noEmailOk||[]);
   const known = state.accounts.filter(a=> !okNow.has(a.id) && knownNoEmail(a, false)).map(a=> ({id:a.id, name:a.name, known: knownNoEmail(a, false).note}));
+  // accounts and cards the reader has no confirmed alert address for (from the server)
+  const noAlert = (!isLegacy() && readerStatus && Array.isArray(readerStatus.noAlertAccounts)) ? readerStatus.noAlertAccounts : [];
+  [...state.accounts, ...state.cards].forEach(a=>{
+    if(okNow.has(a.id) || known.some(k=> k.id===a.id) || !noAlert.includes(a.id) || a.id==='cash_wallet' || a.id==='sinking_fund') return;
+    known.push({id:a.id, name:a.name, known: 'Its bank\u2019s alert emails are not confirmed yet. Upload this month\u2019s statement so nothing is missed.'});
+  });
   const since = Date.now() - NO_EMAIL_DAYS*86400000;
   const recent = ts => ts && new Date(ts).getTime() >= since;
   const fromEmail = new Set();
@@ -6098,6 +6242,7 @@ function openStatementImport(id){
   document.getElementById('recon-title').textContent = 'Add from statement — ' + targetName(id);
   document.getElementById('recon-sub').textContent = 'Download the statement from your bank\'s app or website (PDF or CSV) and upload it here. Entries from the 1st of this month up to the statement\'s last date that are not in the app yet go to Home for you to check.';
   document.getElementById('recon-run').textContent = 'Read statement';
+  document.getElementById('recon-paste-wrap').classList.add('hide');
 }
 function openReconSheet(id, isCard){
   reconMode = 'compare';
@@ -6107,6 +6252,8 @@ function openReconSheet(id, isCard){
   document.getElementById('recon-title').textContent = 'Reconcile — ' + targetName(id);
   document.getElementById('recon-file').value='';
   document.getElementById('recon-paste').value='';
+  document.getElementById('recon-pw').value=''; document.getElementById('recon-pw-wrap').classList.add('hide');
+  document.getElementById('recon-paste-wrap').classList.remove('hide');
   document.getElementById('recon-results').innerHTML='';
   reconBackdrop.classList.add('open');
 }
@@ -6665,7 +6812,60 @@ function runReconciliation(csvText){
   return matchStatementRows(parsed.stRows, parsed.lastBalance);
 }
 
+// Statement text for the server: a PDF is opened here (with its password, if it has one) and
+// turned into lines in reading order; a CSV is sent as it is.
+async function statementText(file){
+  const isPdf = file.type==='application/pdf' || /\.pdf$/i.test(file.name);
+  if(!isPdf) return {text: await file.text()};
+  if(typeof pdfjsLib === 'undefined') return {error: 'The PDF reader did not load. Check your connection and try again.'};
+  const buf = await file.arrayBuffer();
+  const pw = (document.getElementById('recon-pw') || {}).value || '';
+  let pdf;
+  try{ pdf = await pdfjsLib.getDocument(pw ? {data: buf, password: pw} : {data: buf}).promise; }
+  catch(e){
+    if(e && (e.name === 'PasswordException' || /password/i.test(e.message || ''))){ document.getElementById('recon-pw-wrap').classList.remove('hide'); return {error: pw ? 'That password did not open the file. Try again.' : 'This PDF has a password. Type it above and tap Read statement again.', password: true}; }
+    throw e;
+  }
+  const lines = [];
+  for(let p=1; p<=pdf.numPages; p++){
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    const byY = {};
+    content.items.forEach(item=>{ const y = Math.round(item.transform[5]/2)*2; (byY[y] = byY[y]||[]).push(item); });
+    Object.keys(byY).sort((a,b)=> b-a).forEach(y=>{ const line = byY[y].sort((a,b)=> a.transform[4]-b.transform[4]).map(i=>i.str).join(' ').replace(/\s+/g,' ').trim(); if(line) lines.push(line); });
+  }
+  if(lines.join('').replace(/\s/g,'').length < 40) return {error: 'This PDF looks like a scanned picture, so its text cannot be read. Download the statement again from your bank\u2019s website or app, or add the entries with +.'};
+  return {text: lines.join('\n')};
+}
+async function readStatementOnServer(){
+  const resultsEl = document.getElementById('recon-results');
+  const fileInput = document.getElementById('recon-file');
+  const btn = document.getElementById('recon-run');
+  if(!(fileInput.files && fileInput.files.length)){ resultsEl.innerHTML = '<p class="status-note">Choose the statement file first.</p>'; return; }
+  if(!authUser){ resultsEl.innerHTML = '<p class="status-note">Sign in first.</p>'; return; }
+  btn.disabled = true; btn.textContent = 'Reading…';
+  resultsEl.innerHTML = '<p class="status-note">Reading the statement… this takes a few seconds.</p>';
+  try{
+    const t = await statementText(fileInput.files[0]);
+    if(t.error){ resultsEl.innerHTML = `<p class="status-note">${storyEsc(t.error)}</p>`; return; }
+    const target = [...state.accounts, ...state.cards].find(a=> a.id===reconTargetId) || {};
+    const f = statementFirstDay();
+    const fromDate = `${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,'0')}-01`;
+    const r = await readerCall('readStatement', {body: {accountId: reconTargetId, isCard: reconIsCard, bank: target.bank || target.name || '', fromDate, text: t.text}});
+    if(!(r.status===200 && r.data.ok)){ resultsEl.innerHTML = `<p class="status-note">${storyEsc((r.data && r.data.error) || 'Could not read the statement just now. Try again in a moment.')}</p>`; return; }
+    const stRows = (r.data.rows||[]).map(x=> ({date: new Date(x.date + 'T12:00:00'), desc: x.desc, debit: x.debit, credit: x.credit, key: x.key}));
+    const res = matchStatementRows(stRows, null);
+    res.held = r.data.held || 0;
+    renderStatementImport(res);
+  }catch(e){
+    console.error('Statement reading failed', e);
+    resultsEl.innerHTML = '<p class="status-note">Could not read that file. Try again, or add the entries with +.</p>';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Read statement';
+  }
+}
 document.getElementById('recon-run').addEventListener('click', async ()=>{
+  if(reconMode === 'import') return readStatementOnServer();
   const fileInput = document.getElementById('recon-file');
   const pasteText = document.getElementById('recon-paste').value;
   const resultsEl = document.getElementById('recon-results');
@@ -6718,18 +6918,22 @@ function renderStatementImport(res){
   }
   resultsEl.innerHTML = `<div class="recon-group-title">${rows.length} not in the app yet · ${from.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}${end ? ' to ' + end.toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : ''}</div>` +
     rows.map((r,i)=> `<label class="recon-row" style="cursor:pointer;"><div><div class="d">${storyEsc(r.desc||'(no description)')}</div><div class="m">${r.date.toLocaleDateString('en-IN')} · ${r.isOut?'paid':'received'} ${fmt(r.amount)}</div></div><input type="checkbox" data-stmtpick="${i}" checked style="width:22px; height:22px;"></label>`).join('') +
+    (res.held ? `<p class="section-sub" style="margin-top:10px;">${res.held} line${res.held===1?'':'s'} did not match the statement\u2019s own balance, so ${res.held===1?'it was':'they were'} left out. Add ${res.held===1?'it':'them'} with + if needed.</p>` : '') +
     `<button class="btn-primary" id="stmt-send-btn" style="margin-top:12px;">Send to Home for checking</button>`;
   document.getElementById('stmt-send-btn').addEventListener('click', async ()=>{
     const picked = [...resultsEl.querySelectorAll('[data-stmtpick]')].filter(c=> c.checked).map(c=> rows[+c.getAttribute('data-stmtpick')]);
     if(!picked.length){ showToast('Tick at least one entry', 2500); return; }
-    const cands = picked.map(r=> ({id: genId('imp'), gmailMessageId: null, sourceEmail: null, ts: new Date(r.date.getFullYear(), r.date.getMonth(), r.date.getDate(), 12).toISOString(),
+    const known = new Set([...(state.pendingImports||[]), ...(state.dismissedImports||[])].map(p=> p.id));
+    const cands = picked.filter(r=> !r.key || !known.has(r.key)).map(r=> ({id: r.key || genId('imp'), stmtKey: r.key || null, gmailMessageId: null, sourceEmail: null, ts: new Date(r.date.getFullYear(), r.date.getMonth(), r.date.getDate(), 12).toISOString(),
       amount: r.amount, type: reconIsCard ? (r.isOut ? 'expense' : 'income') : (r.isOut ? 'expense' : 'income'), payee: (r.desc || 'From statement').slice(0, 60),
       category: null, accountId: reconTargetId, sender: 'SMS', subject: (r.desc || '').slice(0, 140), status: 'pending', fromSms: true, fromStatement: true}));
+    if(!cands.length){ showToast('These are already on Home for checking.', 3000); return; }
     const classified = classifyImportCandidates(cands, state.pendingImports || []);
     state.pendingImports.push(...classified);
     await saveState();
     render();
     document.getElementById('recon-backdrop').classList.remove('open');
+    if(typeof onStatementDone === 'function') onStatementDone();
     showToast(`${classified.length} entr${classified.length===1?'y':'ies'} sent to Home. Check and add each one.`, 4000);
   });
 }
@@ -6973,6 +7177,7 @@ document.getElementById('gmail-custom-fetch-btn').addEventListener('click', asyn
     const r = await readerCall('manualFetch', {method:'GET', query:'after=' + encodeURIComponent(dateVal) + (toVal ? '&to=' + encodeURIComponent(toVal) : '')});
     if(r.status===401 || r.status===403){ showToast('Sign out and in again, then check once more.', 4000); statusEl.textContent = 'Checked every 12 hours'; return; }
     const data = r.data;
+    if(data.busy){ statusEl.textContent = 'Checked every 12 hours'; showToast('Already checking your email. Try again in a minute.', 3500); return; }
     if(!data.ok) throw new Error(data.error || 'Unknown error');
     const dismissedNote = (data.totalAutoDismissed ? ` · ${data.totalAutoDismissed} ignored automatically` : '') + (data.totalSkippedBySender ? ` · ${data.totalSkippedBySender} set aside, from addresses you ignore` : '');
     statusEl.textContent = `Checked every 12 hours · last check found ${data.totalFound} across ${data.inboxCount} inbox(es)${dismissedNote}`;
@@ -7509,6 +7714,22 @@ async function hideMailKind(key, hide){
 // Two mails about one payment (Axis sends "processed" and then "credited to the beneficiary"),
 // or a mail for something already added: shown as a possible duplicate, never dropped.
 function applyReaderLessons(fromChoice){
+  // One mail, one entry. Two checks running together used to save a mail twice; the extra
+  // copy is removed here (the server now gives each mail a single entry).
+  const byMail = new Map(), extra = [];
+  (state.pendingImports||[]).forEach(p=>{
+    if(!p.gmailMessageId || p.fromSms) return;
+    const k = String(p.sourceEmail||'') + '|' + p.gmailMessageId;
+    const had = byMail.get(k);
+    if(!had){ byMail.set(k, p); return; }
+    // keep the one with the mail's own id, else the first
+    if(p.id === 'imp_' + p.gmailMessageId && had.id !== p.id){ extra.push(had); byMail.set(k, p); } else extra.push(p);
+  });
+  if(extra.length){
+    const drop = new Set(extra.map(p=> p.id));
+    state.pendingImports = state.pendingImports.filter(p=> !drop.has(p.id));
+    setTimeout(()=> saveState(), 0);
+  }
   const lessons = directionLessons();
   // kinds you chose to put away
   const hiddenKeys = new Set((state.hiddenMailKinds||[]).map(h=> h.key));
