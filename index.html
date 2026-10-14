@@ -94,8 +94,9 @@
   .round-btn svg{width:20px; height:20px;}
   .round-btn:active{transform:scale(0.94);}
   /* Show / hide balances: open eye when balances are visible, struck-through when hidden */
-  #mask-toggle-btn .eye-off{display:block;} #mask-toggle-btn .eye-on{display:none;}
-  #mask-toggle-btn.on .eye-off{display:none;} #mask-toggle-btn.on .eye-on{display:block;}
+  #mask-toggle-btn .eye-off, [data-masktoggle] .eye-off{display:block;} #mask-toggle-btn .eye-on, [data-masktoggle] .eye-on{display:none;}
+  #mask-toggle-btn.on .eye-off, [data-masktoggle].on .eye-off{display:none;} #mask-toggle-btn.on .eye-on, [data-masktoggle].on .eye-on{display:block;}
+  [data-masktoggle] svg{width:20px; height:20px;}
   .whoami-pick{display:flex; gap:8px; margin:6px 0 2px;}
   .whoami-pick input{flex:2; min-width:0; padding:9px 10px; border-radius:12px; border:1px solid var(--line); background:var(--chip); color:var(--ink); font-size:14px;}
   .whoami-pick input:focus{outline:none; border-color:var(--peri);}
@@ -248,6 +249,35 @@
   .period-tabs{display:flex; background:var(--line); border-radius:16px; padding:4px; margin-bottom:14px;}
   .period-tabs button{flex:1; background:none; border:none; padding:9px 4px; border-radius:12px; font-size:13.5px; font-weight:400; color:var(--ink-soft); cursor:pointer;}
   .period-tabs button.on{background:var(--chip); color:var(--ink); box-shadow:var(--shadow-sm);}
+  .um-row{padding:12px 0; border-top:1px solid var(--line);}
+  .um-addr{font-size:14px; overflow-wrap:anywhere; margin-bottom:8px;}
+  .um-actions{display:flex; gap:8px;} .um-actions .btn-ghost{flex:1; margin:0; padding:10px 8px; font-size:13.5px;}
+  .um-reject{color:var(--debt, #e5484d); border-color:color-mix(in srgb, var(--debt, #e5484d) 45%, transparent);}
+  .um-pick{display:flex; gap:8px; margin-top:8px;} .um-pick.hide{display:none;}
+  .ig-list{margin-top:16px;} .ig-list > summary{font-size:14px; color:var(--ink); cursor:pointer; padding:6px 0;}
+  .ig-item{border-top:1px solid var(--line); padding:8px 0;} .ig-item > summary{font-size:13.5px; overflow-wrap:anywhere; cursor:pointer; color:var(--ink-soft);}
+  #budget-page-tabs button.on{background:var(--accent-grad); color:#fff; font-weight:600; box-shadow:var(--accent-glow);}
+  .bp-months{display:flex; overflow-x:auto; scroll-snap-type:x mandatory; gap:0; margin:4px -2px 0; scrollbar-width:none; -webkit-overflow-scrolling:touch;}
+  .bp-months::-webkit-scrollbar{display:none;}
+  .bp-mcard{flex:0 0 100%; scroll-snap-align:start; box-sizing:border-box; padding:16px; margin:0 2px; background:var(--card); border:1px solid var(--line); border-radius:20px;}
+  .bp-mtitle{font-size:15px; font-weight:600;}
+  .bp-legend{display:flex; gap:14px; align-items:center; flex-wrap:wrap; font-size:12px; color:var(--ink-soft); margin:12px 0 4px;}
+  .bp-legend i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px;}
+  .bp-legend .k-b{background:var(--line);} .bp-legend .k-s{background:var(--ink-soft);}
+  .bp-legend .eng-sub{margin-left:auto;}
+  .bp-bar{padding:9px 0; cursor:pointer; border-top:1px solid var(--line);}
+  .bp-bar:first-of-type{border-top:none;}
+  .bp-bar-name{font-size:13.5px; margin-bottom:6px;}
+  .bp-bar-track{position:relative; height:12px; border-radius:6px; background:transparent;}
+  .bp-bar-budget{position:absolute; left:0; top:0; bottom:0; border-radius:6px; background:var(--line);}
+  .bp-bar-spent{position:absolute; left:0; top:3px; bottom:3px; border-radius:4px; background:var(--ink-soft); transition:width .3s;}
+  .bp-bar-spent.over{background:var(--debt, #e5484d);}
+  .bp-bar-nums{display:none; font-size:12.5px; color:var(--ink-soft); margin-top:7px;}
+  .bp-bar.open .bp-bar-nums{display:block;}
+  .bp-mdots{display:flex; justify-content:center; gap:8px; margin:12px 0 18px;}
+  .bp-mdots button{border:1px solid var(--line); background:none; color:var(--ink-soft); border-radius:14px; padding:5px 12px; font-size:12.5px; cursor:pointer;}
+  .bp-mdots button.on{background:var(--chip); color:var(--ink); font-weight:600;}
+  .bp-this-label{font-size:17px; font-weight:600; margin:8px 0 12px; padding-left:10px; border-left:4px solid var(--accent-c, #3A6FF0);}
   .period-nav{display:flex; align-items:center; justify-content:space-between; padding:4px 6px; margin-bottom:8px;}
   .period-nav button{background:none; border:none; font-size:28px; font-weight:300; line-height:1; color:var(--ink); cursor:pointer; padding:4px 12px;}
   .period-nav .period-label{text-align:center; flex:1;}
@@ -434,6 +464,12 @@
   #gate .intro-dots span.on{width:22px; background:var(--accent-c, #3A6FF0);}
   #gate .intro-foot{padding:0 22px;}
   #gate .intro-foot .btn-primary{margin-top:0; width:100%;}
+  #gate .intro.fm .intro-slide p{margin:0 auto 10px;}
+  #gate .fm-found{color:var(--ink) !important; font-weight:500;}
+  #gate .fm-spin{width:34px; height:34px; margin:22px auto 0; border-radius:50%; border:4px solid var(--line); border-top-color:#3A6FF0; animation:fmspin .9s linear infinite;}
+  @keyframes fmspin{to{transform:rotate(360deg);}}
+  #gate .fm-multi{margin:0 0 10px !important;}
+  #gate .fm-later{display:block; margin:14px auto 0; font-size:15px; color:var(--ink-soft);}
   #gate .fm-title{font-size:22px; font-weight:600; text-align:center; margin:0 0 10px;}
   #gate .fm-acct{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid var(--line);}
   #gate .fm-name{font-size:15px; font-weight:600;}
@@ -449,7 +485,7 @@
 
   /* ---- Help ---- */
   .help-chips{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 16px;}
-  .help-chip{border:1px solid var(--line); background:var(--chip); color:var(--ink); border-radius:999px; padding:9px 13px; font-size:13.5px; cursor:pointer; min-height:40px;}
+  .help-chip{border:1px solid color-mix(in srgb, #3A6FF0 45%, transparent); background:color-mix(in srgb, #3A6FF0 16%, var(--card)); color:var(--ink); border-radius:999px; padding:9px 14px; font-size:14px; font-weight:500; cursor:pointer; min-height:40px;}
   .help-msg{max-width:88%; padding:11px 13px; border-radius:16px; margin:8px 0; font-size:14px; line-height:1.45; white-space:pre-line; overflow-wrap:anywhere;}
   .help-msg.bot{background:var(--card); border:1px solid var(--line); border-bottom-left-radius:4px;}
   .help-msg.me{background:var(--peri-dim); color:var(--ink); margin-left:auto; border-bottom-right-radius:4px;}
@@ -1052,10 +1088,9 @@
     <div id="bp-plan">
       <div id="bp-lastmonth"></div>
       <div id="bp-track"></div>
-      <div class="divider-label" id="bp-this-label">This month's budget</div>
-      <p class="section-sub" id="bp-suggest-note"></p>
-      <p class="section-sub" style="margin-top:-8px;">Tap a category's name (✎) to rename or delete it.</p>
-      <button class="btn-ghost" id="bp-apply-all" style="margin:0 0 12px;">Use all</button>
+      <div class="bp-this-label" id="bp-this-label">This month's budget</div>
+      <p class="section-sub hide" id="bp-suggest-note"></p>
+      <button class="btn-ghost" id="bp-apply-all" style="margin:0 0 12px;">Use all suggestions</button>
       <div class="card" id="bp-rows"></div>
       <button class="link-btn" id="bp-add-cat" style="margin:4px 0 6px;">+ Add a category</button>
       <div id="bp-cat-suggest"></div>
@@ -1122,7 +1157,7 @@
     <div id="help-mine"></div>
   </div>
   <div class="help-ask">
-    <input id="help-input" placeholder="Ask anything about the app" autocomplete="off" enterkeyhint="send">
+    <input id="help-input" placeholder="Ask anything: the assistant answers" autocomplete="off" enterkeyhint="send">
     <button class="btn-primary" id="help-send" style="width:auto; margin:0; padding:12px 16px;">Ask</button>
   </div>
 </div>
@@ -1167,6 +1202,7 @@
     <div class="card" id="reader-box" style="margin-bottom:6px;"></div>
     <button class="btn-ghost admin-only hide" id="tools-engine-report-btn" style="margin-top:0;">Email accuracy</button>
     <button class="btn-ghost admin-only hide" id="tools-helpadmin-btn">Help questions from users</button>
+    <button class="btn-ghost admin-only hide" id="tools-preview-firstlook-btn">Preview the first look (as a new user)</button>
 
     <div class="divider-label">Name on downloaded PDFs</div>
     <div class="field" style="margin-bottom:6px;"><label>Printed under the title of the PDFs you download from Insights and People (optional)</label><input id="pdf-name-input" maxlength="90" autocomplete="off" placeholder="e.g. Sharma family, Pune"></div>
@@ -1185,7 +1221,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-14 · v97-help-assistant</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-15 · v99-paper-notes-2</p>
   </div>
 </div>
 
@@ -1614,7 +1650,7 @@ function introGo(i){
 }
 function wireIntro(){
   introAt = 0; introGo(0);
-  document.getElementById('intro-next').addEventListener('click', ()=> introAt === INTRO.length - 1 ? signInOneStep() : introGo(introAt + 1));
+  document.getElementById('intro-next').addEventListener('click', ()=> introAt === INTRO.length - 1 ? (introPreview ? (introPreview = false, afterSetupSteps(true)) : signInOneStep()) : introGo(introAt + 1));
   document.getElementById('intro-skip').addEventListener('click', ()=> introGo(INTRO.length - 1));
   document.querySelectorAll('[data-introdot]').forEach(d=> d.addEventListener('click', ()=> introGo(+d.getAttribute('data-introdot'))));
   const vp = document.querySelector('.intro-viewport'); let x0 = null, y0 = null;
@@ -1669,30 +1705,69 @@ function claimIfPending(){
   readerCall('claimInbox', {body: {}}).catch(e=> console.error('claimInbox failed', e));
 }
 // After set-up: tie the inbox to the household, then offer this month's statement.
-async function afterSetupSteps(){
-  let info = {noAlertAccounts: []};
-  try{ const r = await readerCall('claimInbox', {body: {}}); if(r.status === 200 && r.data.ok) info = r.data; }catch(e){ console.error('claimInbox failed', e); }
-  try{ sessionStorage.removeItem('fa-first-month'); }catch(e){}
-  if(readerStatus) readerStatus.noAlertAccounts = info.noAlertAccounts || [];
-  else readerStatus = {inboxes: [], noAlertAccounts: info.noAlertAccounts || []};
-  showGate('firstmonth', {claimed: info.claimed, noAlert: info.noAlertAccounts || []});
-}
-function firstMonthHtml(opts){
-  const first = statementFirstDay().toLocaleDateString('en-IN', {day: 'numeric', month: 'short'});
-  const inboxes = opts.claimed ? [{email: myEmail()}] : readerInboxes();
+async function afterSetupSteps(preview){
+  let info = {noAlertAccounts: [], claimed: false};
+  if(!preview){
+    try{ const r = await readerCall('claimInbox', {body: {}}); if(r.status === 200 && r.data.ok) info = r.data; }catch(e){ console.error('claimInbox failed', e); }
+    try{ sessionStorage.removeItem('fa-first-month'); }catch(e){}
+    if(readerStatus) readerStatus.noAlertAccounts = info.noAlertAccounts || [];
+    else readerStatus = {inboxes: [], noAlertAccounts: info.noAlertAccounts || []};
+  } else {
+    info.noAlertAccounts = (readerStatus && readerStatus.noAlertAccounts) || [];
+  }
   const all = [...state.accounts, ...state.cards].filter(a=> a.id !== 'cash_wallet' && a.id !== 'sinking_fund');
-  const rows = all.map(a=>{
-    const need = (opts.noAlert || []).includes(a.id) || knownNoEmail(a, !!state.cards.find(c=> c.id===a.id));
-    return `<div class="fm-acct"><div><div class="fm-name">${storyEsc(a.name)}</div><div class="eng-sub">${need ? 'Its bank may not email every transaction.' : 'Bank alerts are read from your email.'}</div></div>${need ? `<button class="btn-ghost fm-btn" data-fmstmt="${storyEsc(a.id)}">Upload statement</button>` : '<span class="fm-ok">✓</span>'}</div>`;
-  }).join('');
-  const mail = inboxes.length
-    ? `<p class="gate-sub">Your bank alert emails from ${first} are being read now. Each entry waits on Home for you to check.</p>`
-    : `<p class="gate-sub">Gmail is not connected yet, so bank alerts cannot be read.</p><button class="btn-primary" id="fm-connect" style="margin-top:0;">Connect Gmail</button>`;
-  return `<h2 class="fm-title">Bring in this month so far</h2>${mail}
-    <div class="divider-label">Your accounts</div>${rows}
-    <p class="gate-note" style="text-align:left;">For a bank that does not email every transaction, upload this month’s statement (PDF or CSV from the bank’s app or website). Its entries from ${first} go to Home for you to check. Your balances are not changed.</p>
-    <button class="btn-primary" id="fm-home">Go to Home</button>
-    <p class="gate-note">You can upload a statement any time from Home.</p>`;
+  const needStmt = all.filter(a=> (info.noAlertAccounts || []).includes(a.id) || knownNoEmail(a, !!state.cards.find(c=> c.id===a.id)));
+  const connected = preview || info.claimed || readerInboxes().length > 0;
+  let found = null;
+  if(connected){
+    showFirstMonth('reading');
+    if(preview){ await new Promise(r=> setTimeout(r, 1600)); found = (state.pendingImports||[]).length; }
+    else {
+      try{
+        const r = await readerCall('manualFetch', {method:'GET', query:'after=' + encodeURIComponent(statementFirstDayIso())});
+        if(r.status === 200 && r.data && r.data.ok) found = r.data.totalFound || 0;
+      }catch(e){ console.error('First check failed', e); }
+    }
+  }
+  showFirstMonth(needStmt.length ? 'import' : 'done', {found, connected, needStmt, preview});
+}
+function statementFirstDayIso(){ const f = statementFirstDay(); return `${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,'0')}-01`; }
+const FM_ART_MAIL = '<rect x="18" y="30" width="76" height="52" rx="10" fill="none" stroke="currentColor" stroke-width="5"/><path d="M20 36l36 26 36-26" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/>';
+const FM_ART_STMT = '<rect x="10" y="14" width="56" height="74" rx="8" fill="none" stroke="currentColor" stroke-width="4.5"/><path d="M20 30h34M20 42h28M20 54h34M20 66h22" stroke="currentColor" stroke-opacity=".55" stroke-width="4" stroke-linecap="round"/><path d="M70 52h16" stroke="var(--accent-c, #3A6FF0)" stroke-width="5" stroke-linecap="round"/><path d="M80 44l8 8-8 8" fill="none" stroke="var(--accent-c, #3A6FF0)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><rect x="86" y="58" width="28" height="40" rx="6" fill="none" stroke="var(--accent-c, #3A6FF0)" stroke-width="4.5"/><path d="M93 70h14M93 79h14M93 88h9" stroke="var(--accent-c, #3A6FF0)" stroke-width="3.5" stroke-linecap="round"/>';
+function showFirstMonth(stage, d){
+  d = d || {};
+  const g = document.getElementById('gate'); if(!g) return;
+  const first = statementFirstDay().toLocaleDateString('en-IN', {day: 'numeric', month: 'short'});
+  const month = statementFirstDay().toLocaleDateString('en-IN', {month: 'long'});
+  const foundLine = d.found === null || d.found === undefined ? '' : d.found ? `${d.found} entr${d.found===1?'y':'ies'} from your email ${d.found===1?'is':'are'} waiting on Home for you to check.` : `No bank alerts found since ${first} yet. New ones will appear on Home.`;
+  let art = FM_ART_MAIL, title = '', body = '', foot = '';
+  if(stage === 'reading'){
+    title = `Bringing in ${month} so far`;
+    body = `<p>Reading your bank alert emails from ${first}…</p><div class="fm-spin" aria-hidden="true"></div>`;
+  } else if(stage === 'import'){
+    art = FM_ART_STMT;
+    const names = d.needStmt.map(a=> storyEsc(a.name));
+    title = 'Import your transactions';
+    body = `<p>${names.length === 1 ? names[0] + '’s bank' : 'These banks'} may not email every transaction. Upload this month’s statement (PDF or CSV from the bank’s app or website) and the app reads it for you.</p>${foundLine ? `<p class="fm-found">${foundLine}</p>` : ''}`;
+    foot = (d.needStmt.length === 1
+      ? `<button class="btn-primary" data-fmstmt="${storyEsc(d.needStmt[0].id)}">Import a statement</button>`
+      : d.needStmt.map(a=> `<button class="btn-primary fm-multi" data-fmstmt="${storyEsc(a.id)}">Import ${storyEsc(a.name)} statement</button>`).join('')) +
+      `<button class="link-btn fm-later" id="fm-home">Maybe later</button>`;
+  } else {
+    title = d.connected ? 'You are all set' : 'Connect Gmail';
+    body = d.connected ? `<p>${foundLine || 'Your bank alerts are read from now on.'}</p>` : `<p>Gmail is not connected yet, so bank alerts cannot be read.</p>`;
+    foot = d.connected ? `<button class="btn-primary" id="fm-home">Go to Home</button>` : `<button class="btn-primary" id="fm-connect">Connect Gmail</button><button class="link-btn fm-later" id="fm-home">Maybe later</button>`;
+  }
+  g.innerHTML = `<div class="intro fm">
+    <div class="intro-viewport"><div class="intro-slide"><svg class="intro-art" viewBox="0 0 120 120" aria-hidden="true">${art}</svg><h2>${title}</h2>${body}</div></div>
+    <div class="intro-foot">${foot}<p class="gate-note">${stage === 'import' ? 'Your balances are not changed. Every entry waits on Home for you to check.' : ''}</p></div>
+  </div>`;
+  g.classList.remove('hide'); g.scrollTop = 0;
+  const home = document.getElementById('fm-home');
+  if(home) home.addEventListener('click', ()=>{ hideGate(); render(); });
+  const con = document.getElementById('fm-connect');
+  if(con) con.addEventListener('click', ()=> connectGmail(con));
+  g.querySelectorAll('[data-fmstmt]').forEach(b=> b.addEventListener('click', ()=>{ const id = b.getAttribute('data-fmstmt'); hideGate(); render(); if(!d.preview) openStatementImport(id); else showToast('Preview: here the statement sheet opens.', 2500); }));
 }
 function showGate(view, opts){
   opts = opts || {};
@@ -1705,8 +1780,7 @@ function showGate(view, opts){
     body = '<p class="gate-sub">Checking…</p>';
   } else if(view==='welcome'){
     g.innerHTML = introHtml(); g.classList.remove('hide'); g.scrollTop = 0; wireIntro(); return;
-  } else if(view==='firstmonth'){
-    body = firstMonthHtml(opts);
+
   } else if(view==='offline'){
     body = `<p class="gate-sub">Could not reach the server. Check your connection and try again.</p>
       <button class="btn-primary" id="gate-retry">Try again</button>${who}`;
@@ -1735,9 +1809,6 @@ function showGate(view, opts){
   g.scrollTop = 0;
   const on = (id, fn)=>{ const el = document.getElementById(id); if(el) el.addEventListener('click', fn); };
   on('gate-signin', signInOneStep);
-  on('fm-home', ()=>{ hideGate(); showToast('Entries from your email will wait on Home for you to check.', 3500); });
-  on('fm-connect', ()=> connectGmail(document.getElementById('fm-connect')));
-  g.querySelectorAll('[data-fmstmt]').forEach(b=> b.addEventListener('click', ()=>{ const id = b.getAttribute('data-fmstmt'); hideGate(); openStatementImport(id); }));
   on('gate-retry', ()=> location.reload());
   on('gate-signout', async ()=>{ try{ await firebase.auth().signOut(); }catch(e){ console.error('Sign-out failed', e); } location.reload(); });
   on('gate-join', ()=> joinInvitedHousehold(opts.invite));
@@ -1971,6 +2042,8 @@ async function cancelInvite(email){
 const READER_BASE = 'https://us-central1-financial-assistant-141e8.cloudfunctions.net/';
 let readerStatus = null;     // from the server: inboxes, their state, bank addresses that fit no account
 let readerSenders = null;    // from this app: alert addresses the household has tied to an account
+let readerListsReady = false; // the household's tied / ignored addresses are known (cached or loaded)
+function readerListsKey(){ return 'fa-reader-lists-' + (currentHid || ''); }
 let readerIgnored = [];      // from this app: addresses the household has marked "not a bank"
 let readerDeclined = [];     // from this app: suggestions the household answered "not now"
 let readerLearned = null;    // from the server: which account each address's saved entries went to
@@ -1979,6 +2052,8 @@ let gmailJustConnected = null;
 function readerCacheKey(){ return 'fa-reader-'+currentHid; }
 function loadReaderCache(){
   readerStatus = null; readerSenders = null; readerIgnored = []; readerDeclined = []; readerLearned = null;
+  readerListsReady = false;
+  try{ const c = currentHid && JSON.parse(localStorage.getItem(readerListsKey())); if(c){ readerSenders = c.senders || {}; readerIgnored = c.ignored || []; readerDeclined = c.declined || []; readerListsReady = true; } }catch(e){}
   try{ if(currentHid) readerStatus = JSON.parse(localStorage.getItem(readerCacheKey())) || null; }catch(e){ readerStatus = null; }
 }
 function readerInboxes(){ return (readerStatus && Array.isArray(readerStatus.inboxes)) ? readerStatus.inboxes : []; }
@@ -2046,6 +2121,8 @@ async function loadReaderSenders(){
     readerSenders = (doc.exists && doc.data().senders) || {};
     readerIgnored = (doc.exists && Array.isArray(doc.data().ignored)) ? doc.data().ignored : [];
     readerDeclined = (doc.exists && Array.isArray(doc.data().declined)) ? doc.data().declined : [];
+    readerListsReady = true;
+    try{ localStorage.setItem(readerListsKey(), JSON.stringify({senders: readerSenders, ignored: readerIgnored, declined: readerDeclined})); }catch(e){}
     const learned = await hh('readerLearned').get();
     readerLearned = learned.exists ? learned.data() : null;
   }catch(e){ console.error('Could not load the alert addresses', e); }
@@ -2155,7 +2232,10 @@ async function ignoreReaderSender(address){
   if(!cloudReady || !db){ showToast('Go online and try again.', 3000); return; }
   try{
     await writeReaderSenders({...(readerSenders || {})}, [...new Set([...readerIgnored, address])]);
-    showToast('Ignored. Its mails are set aside from now on.', 3000);
+    const waiting = (state.pendingImports||[]).filter(p=> String(p.sender||'').toLowerCase() === String(address).toLowerCase());
+    if(waiting.length){ waiting.forEach(p=> dismissImportItem(p, 'not_real', 'ignored address')); await saveState(); render(); }
+    try{ localStorage.setItem(readerListsKey(), JSON.stringify({senders: readerSenders, ignored: readerIgnored, declined: readerDeclined})); }catch(e){}
+    showToast('Rejected permanently. Mails from this address will not be read again.', 3500);
   }catch(e){ console.error('Could not save', e); showToast('Could not save. Try again.', 3000); }
   renderReaderUI(true);
 }
@@ -2256,12 +2336,16 @@ function renderReaderUI(force){
     const unmatchedHtml = unmatched.length
       ? `<div class="eng-sub" style="margin:16px 0 4px; color:var(--ink);">New addresses</div>
          <div class="eng-sub" style="margin-bottom:6px;">Their entries are still offered on Home, marked "new address". If one is your bank, choose its account so its entries go there. If it never sends real transactions, ignore it.</div>` +
-        unmatched.map((u,i)=> `<div class="field" style="margin-bottom:10px;"><label style="overflow-wrap:anywhere;">${storyEsc(u.sender)} · ${tally(u)}</label><div style="display:flex; gap:8px;"><select id="um-acct-${i}" style="flex:1; min-width:0;">${acctOptions(likeliest(u.sender))}</select><button class="btn-ghost" data-umsave="${i}" data-sender="${storyEsc(u.sender)}" style="width:auto; margin:0; padding:10px 14px;">Save</button></div><button class="link-btn" data-umignore="${storyEsc(u.sender)}" style="color:var(--ink-soft);">Not a bank, ignore</button></div>`).join('')
+        unmatched.map((u,i)=> `<div class="um-row">
+          <div class="um-addr">${storyEsc(u.sender)}<span class="eng-sub"> · ${tally(u)}</span></div>
+          <div class="um-actions"><button class="btn-ghost um-reject" data-umignore="${storyEsc(u.sender)}">Reject permanently</button><button class="btn-ghost" data-umopen="${i}">It is my bank</button></div>
+          <div class="um-pick hide" id="um-pick-${i}"><select id="um-acct-${i}" style="flex:1; min-width:0;">${acctOptions(likeliest(u.sender))}</select><button class="btn-ghost" data-umsave="${i}" data-sender="${storyEsc(u.sender)}" style="width:auto; margin:0; padding:10px 14px;">Save</button></div>
+        </div>`).join('')
       : '';
     const ignoredHtml = readerIgnored.length
-      ? `<div class="eng-sub" style="margin:16px 0 4px; color:var(--ink);">Ignored addresses</div>
-         <div class="eng-sub" style="margin-bottom:4px;">Mails from these are set aside, because you marked them not a bank.</div>` +
-        [...readerIgnored].sort().map(a=> `<div class="eng-line"><span style="overflow-wrap:anywhere; min-width:0;">${storyEsc(a)}</span><button class="link-btn" data-unignore="${storyEsc(a)}" style="color:var(--ink-soft);">Stop ignoring</button></div>`).join('')
+      ? `<details class="ig-list"><summary>Ignored addresses (${readerIgnored.length})</summary>
+         <div class="eng-sub" style="margin:6px 0 4px;">Mails from these are never read. Tap an address to stop ignoring it.</div>` +
+        [...readerIgnored].sort().map(a=> `<details class="ig-item"><summary>${storyEsc(a)}</summary><button class="btn-ghost" data-unignore="${storyEsc(a)}" style="margin:8px 0 4px;">Stop ignoring this address</button></details>`).join('') + `</details>`
       : '';
     const taughtRows = Object.keys(taught).sort().map(addr=> `<div class="eng-line"><span style="overflow-wrap:anywhere; min-width:0;">${storyEsc(addr)}<br><span class="eng-sub">${storyEsc(targetName((taught[addr]||[])[0]))}</span></span><button class="link-btn" data-senderremove="${storyEsc(addr)}" style="color:var(--ink-soft);">Remove</button></div>`).join('');
     const built = (readerLearned && readerLearned.builtAt) ? `Last looked on ${new Date(readerLearned.builtAt).toLocaleDateString('en-IN',{day:'numeric', month:'short'})}: ${readerLearned.mailsOpened||0} past mails${readerLearned.mailsLeft ? ', '+readerLearned.mailsLeft+' still to look at' : ''}.` : 'Not looked at yet.';
@@ -2309,6 +2393,7 @@ function renderReaderUI(force){
     await saveState(); renderReaderUI(true); showToast('Mails like these show again from the next check.', 3500);
   }));
   box.querySelectorAll('[data-umignore]').forEach(b=> b.addEventListener('click', ()=> ignoreReaderSender(b.getAttribute('data-umignore'))));
+  box.querySelectorAll('[data-umopen]').forEach(b=> b.addEventListener('click', ()=>{ const el = document.getElementById('um-pick-' + b.getAttribute('data-umopen')); el.classList.toggle('hide'); }));
   box.querySelectorAll('[data-senderremove]').forEach(b=> b.addEventListener('click', ()=> saveReaderSender(b.getAttribute('data-senderremove'), null)));
   const add = document.getElementById('sender-add-btn');
   if(add) add.addEventListener('click', async ()=>{
@@ -2653,12 +2738,26 @@ function applyMaskUI(){
   }
   const btn = document.getElementById('mask-toggle-btn');
   if(btn) btn.classList.toggle('on', !balancesMasked);
+  document.querySelectorAll('[data-masktoggle]').forEach(b=> b.classList.toggle('on', !balancesMasked));
 }
-document.getElementById('mask-toggle-btn').addEventListener('click', ()=>{
+function toggleMask(){
   balancesMasked = !balancesMasked;
   try{ localStorage.setItem('cfo-mask-balances', balancesMasked ? '1' : '0'); }catch(e){}
   render();
-});
+}
+document.getElementById('mask-toggle-btn').addEventListener('click', toggleMask);
+// The owner can walk through the new-user screens without signing out (nothing is changed).
+let introPreview = false;
+document.getElementById('tools-preview-firstlook-btn').addEventListener('click', ()=>{ closeFullscreen('tools-page'); introPreview = true; showGate('welcome'); });
+// The same eye on every tab (top left), so amounts can be hidden or shown anywhere.
+(()=>{
+  const src = document.getElementById('mask-toggle-btn');
+  document.querySelectorAll('section.tab .page-top > .side:not(.right)').forEach(side=>{
+    if(side.children.length) return;
+    side.innerHTML = `<button class="icon-btn" data-masktoggle aria-label="Show or hide amounts">${src.innerHTML}</button>`;
+    side.firstChild.addEventListener('click', toggleMask);
+  });
+})();
 
 // ---- Tap-to-breakdown sheet (used by header + overview tiles) ----
 // Mirrors the app's existing per-account "statement" pattern: tapping a summary
@@ -4282,7 +4381,7 @@ const TAB_ORDER = ['home','money','people','insights'];
     ok = false; lock = null; dx = 0;
     if(e.touches.length !== 1) return;
     const t = e.target;
-    if(!t.closest('section.tab') || t.closest('.sheet-backdrop, .fullscreen-page, input, textarea, select, canvas, svg, [data-noswipe]') || scrollsSideways(t)) return;
+    if(!t.closest('section.tab') || t.closest('.sheet-backdrop, .fullscreen-page, input, textarea, select, [data-noswipe]') || scrollsSideways(t)) return;
     if(document.querySelector('.sheet-backdrop.open, .fullscreen-page.open') || !document.getElementById('tour-layer').classList.contains('hide')) return;
     el = document.querySelector('section.tab.active');
     if(!el) return;
@@ -5612,6 +5711,34 @@ function budgetMonthTableHtml(sm){
     rows.map(r=>`<tr><td>${storyEsc(storyCatLabel(r.cat))}</td><td class="maskable">${r.budget>0 ? fmt(r.budget) : '—'}</td><td class="maskable">${fmt(r.actual)}</td>${diffCell(r.budget, r.actual, r.lumpy)}</tr>`).join('')
   }<tr class="tot"><td>Total</td><td class="maskable">${fmt(sm.budget)}</td><td class="maskable">${fmt(sm.actual)}</td>${diffCell(sm.budget, sm.actual)}</tr></tbody></table>`;
 }
+function bpMonthCardHtml(d, current){
+  const sm = budgetMonthSummary(d);
+  const label = d.toLocaleDateString('en-IN',{month:'long', year:'numeric'}) + (current ? ' · so far' : '');
+  const rows = sm.rows.filter(r=> r.budget>0 || r.actual>0).sort((a,b)=> Math.max(b.budget,b.actual) - Math.max(a.budget,a.actual));
+  const diff = sm.budget - sm.actual;
+  if(!rows.length) return `<div class="bp-mcard"><div class="bp-mtitle">${label}</div><div class="empty" style="padding:10px 0;">Nothing on record for this month.</div></div>`;
+  const top = Math.max(...rows.map(r=> Math.max(r.budget, r.actual)), 1);
+  const bars = rows.map(r=>{
+    const over = r.budget>0 && r.actual > r.budget + 0.5;
+    const gap = r.budget - r.actual;
+    const note = !(r.budget>0) ? 'no budget' : Math.abs(gap) < 0.5 ? 'on budget' : gap < 0 ? `<span class="maskable">${fmt(-gap)}</span> over` : `<span class="maskable">${fmt(gap)}</span> under`;
+    return `<div class="bp-bar" data-bpbar>
+      <div class="bp-bar-name">${storyEsc(storyCatLabel(r.cat))}</div>
+      <div class="bp-bar-track"><div class="bp-bar-budget" style="width:${(r.budget/top*100).toFixed(1)}%"></div><div class="bp-bar-spent ${over?'over':''}" style="width:${(r.actual/top*100).toFixed(1)}%"></div></div>
+      <div class="bp-bar-nums">Budget <b class="maskable">${r.budget>0 ? fmt(r.budget) : '—'}</b> · Spent <b class="maskable">${fmt(r.actual)}</b> · <span class="${over?'neg-t':''}">${note}</span></div>
+    </div>`;
+  }).join('');
+  return `<div class="bp-mcard">
+    <div class="bp-mtitle">${label}</div>
+    <div class="bp-stat" style="margin-top:8px;">
+      <div class="cell"><div class="l">Budget</div><div class="v maskable">${fmt(sm.budget)}</div></div>
+      <div class="cell"><div class="l">Spent</div><div class="v maskable">${fmt(sm.actual)}</div></div>
+      <div class="cell"><div class="l">${diff<0?'Over by':'Left'}</div><div class="v maskable ${diff<0?'neg':'pos'}">${fmt(Math.abs(diff))}</div></div>
+    </div>
+    <div class="bp-legend"><span><i class="k-b"></i>Budget</span><span><i class="k-s"></i>Spent</span><span class="eng-sub">Tap a bar for the numbers</span></div>
+    ${bars}
+  </div>`;
+}
 let bpOpenMonth = null; // an older month opened from the budget record list
 function bpInputs(){ return [...document.querySelectorAll('#budget-page .bp-input')]; }
 function bpHasUnsavedChanges(){
@@ -5644,62 +5771,20 @@ function renderBudgetPage(keepTypedValues, change){
   const hasPrev = done.some(d=> monthKeyOf(d)===monthKeyOf(prevDate));
   document.getElementById('budget-page-title').textContent = 'Budget · ' + now.toLocaleDateString('en-IN',{month:'long', year:'numeric'});
 
-  // 1. Last month — budget vs actual
+  // 1. Three running months (two before and this one), slid sideways, each as bars:
+  // one bar per category, filled to what was spent against its budget; a tap shows the numbers.
   const lastEl = document.getElementById('bp-lastmonth');
-  let prev = null;
-  if(hasPrev){
-    prev = budgetMonthSummary(prevDate);
-    const diff = prev.budget - prev.actual;
-    const overRows = prev.rows.filter(r=> !r.lumpy && r.budget>0 && r.actual>r.budget).sort((a,b)=> (b.actual-b.budget)-(a.actual-a.budget));
-    const lumpyPrev = prev.rows.find(r=> r.lumpy && r.budget>0 && r.actual-r.budget>=0.5);
-    const pct = prev.budget>0 ? Math.min(100, prev.actual/prev.budget*100) : (prev.actual>0?100:0);
-    lastEl.innerHTML = `<div class="divider-label" style="margin-top:6px;">Last month — ${prevLong}: budget vs spent</div>
-      <div class="card">
-        <div class="bp-stat" style="margin-top:0;">
-          <div class="cell"><div class="l">Budget</div><div class="v maskable">${fmt(prev.budget)}</div></div>
-          <div class="cell"><div class="l">Spent</div><div class="v maskable">${fmt(prev.actual)}</div></div>
-          <div class="cell"><div class="l">${diff<0?'Over by':'Under by'}</div><div class="v maskable ${diff<0?'neg':'pos'}">${fmt(Math.abs(diff))}</div></div>
-        </div>
-        <div class="bar-track" style="margin:12px 0 0;"><div class="bar-fill ${diff<0?'over':''}" style="width:${pct}%"></div></div>
-        <div style="font-size:12px; color:var(--ink-soft); margin-top:10px; line-height:1.5;">${
-          overRows.length
-            ? `Over budget in ${overRows.length} categor${overRows.length===1?'y':'ies'}: ` + overRows.slice(0,3).map(r=>`${storyEsc(storyCatLabel(r.cat))} <span style="color:var(--debt); font-weight:700; white-space:nowrap;" class="maskable">+${fmt(r.actual-r.budget)}</span>`).join(', ') + (overRows.length>3?` and ${overRows.length-3} more`:'') + '.'
-            : 'Every category stayed within its budget.'
-        }${lumpyPrev ? ` Lumpy annual bills: <span style="color:var(--debt); font-weight:700; white-space:nowrap;" class="maskable">${fmt(lumpyPrev.actual-lumpyPrev.budget)}</span> above the monthly average.` : ''}${prev.special>0 ? ` One-time spending of <span class="maskable">${fmt(prev.special)}</span> is tracked separately, outside this budget.` : ''}</div>
-        ${budgetMonthTableHtml(prev)}
-      </div>`;
-  } else {
-    lastEl.innerHTML = `<div class="divider-label" style="margin-top:6px;">Last month — budget vs spent</div>
-      <div class="card"><div class="empty" style="padding:8px 0;">Nothing was added in ${prevLong}, so there is no budget vs spent to show yet. It appears here once a full month is on record.</div></div>`;
-  }
-
-  // 2. The record so far — the months being watched before settling the ideal budget
-  const trackEl = document.getElementById('bp-track');
-  const watched = done.slice(-BUDGET_REVIEW_MONTHS);
-  if(watched.length){
-    trackEl.innerHTML = `<div class="divider-label">Budget record — ${Math.min(done.length, BUDGET_REVIEW_MONTHS)} of ${BUDGET_REVIEW_MONTHS} months</div>
-      <div class="card">${watched.map(d=>{
-        const sm = budgetMonthSummary(d);
-        const diff = sm.budget - sm.actual;
-        // Last month's categories are already listed in the card above; older months open here.
-        const canOpen = !(prev && sm.key===prev.key);
-        const isOpen = canOpen && bpOpenMonth===sm.key;
-        return `<div class="row" ${canOpen?`data-bpmonth="${sm.key}" style="cursor:pointer;"`:''}><div><div class="name">${d.toLocaleDateString('en-IN',{month:'short', year:'numeric'})}${canOpen?` <span style="font-size:11px; color:var(--ink-soft);">${isOpen?'▲':'▼'}</span>`:''}</div><div class="sub maskable">Budget ${fmt(sm.budget)} · Spent ${fmt(sm.actual)}</div></div>
-          <div class="amt maskable ${diff<0?'neg':'pos'}" style="font-size:13.5px;">${diff<0?'Over ':'Under '}${fmt(Math.abs(diff))}</div></div>${isOpen ? budgetMonthTableHtml(sm) : ''}`;
-      }).join('')}
-      <div style="font-size:12px; color:var(--ink-soft); margin-top:11px; padding-top:11px; border-top:1px dashed var(--line);">${
-        done.length >= BUDGET_REVIEW_MONTHS
-          ? `${BUDGET_REVIEW_MONTHS} months are on record — enough to settle the ideal budget.`
-          : `Each finished month is saved here. After ${BUDGET_REVIEW_MONTHS} months (${BUDGET_REVIEW_MONTHS-done.length} more to go) there is enough to settle the ideal budget.`
-      }</div></div>`;
-    trackEl.querySelectorAll('[data-bpmonth]').forEach(el=> el.addEventListener('click', ()=>{
-      const k = el.getAttribute('data-bpmonth');
-      bpOpenMonth = bpOpenMonth===k ? null : k;
-      renderBudgetPage(true);
-    }));
-  } else {
-    trackEl.innerHTML = '';
-  }
+  let prev = hasPrev ? budgetMonthSummary(prevDate) : null;
+  const months3 = [2, 1, 0].map(k=> new Date(now.getFullYear(), now.getMonth() - k, 1));
+  lastEl.innerHTML = `<div class="bp-months" id="bp-months" data-noswipe>${months3.map((d, k)=> bpMonthCardHtml(d, k === 2)).join('')}</div>
+    <div class="bp-mdots">${months3.map((d, k)=> `<button data-bpm="${k}" class="${k===2?'on':''}">${d.toLocaleDateString('en-IN',{month:'short'})}</button>`).join('')}</div>`;
+  const strip = document.getElementById('bp-months');
+  requestAnimationFrame(()=>{ strip.scrollLeft = strip.scrollWidth; });
+  const markDot = ()=>{ const k = Math.round(strip.scrollLeft / Math.max(1, strip.clientWidth)); lastEl.querySelectorAll('[data-bpm]').forEach((b, n)=> b.classList.toggle('on', n === k)); };
+  strip.addEventListener('scroll', ()=> requestAnimationFrame(markDot), {passive: true});
+  lastEl.querySelectorAll('[data-bpm]').forEach(b=> b.addEventListener('click', ()=> strip.scrollTo({left: strip.clientWidth * +b.getAttribute('data-bpm'), behavior: 'smooth'})));
+  lastEl.querySelectorAll('[data-bpbar]').forEach(el=> el.addEventListener('click', ()=> el.classList.toggle('open')));
+  document.getElementById('bp-track').innerHTML = '';
 
   // 3. This month — suggestion + editable amount per category
   const sugg = budgetSuggestions();
@@ -7685,6 +7770,7 @@ function rejectedAddresses(){
   return Object.values(by).filter(r=> r.notReal >= HIDE_KIND_AFTER && !r.added && r.unknown && !tied[r.sender] && !ignored.has(r.sender) && !declined.has('addr|' + r.sender));
 }
 function hideKindHtml(){
+  if(!readerListsReady) return '';
   const addrs = rejectedAddresses();
   const addrHtml = addrs.slice(0, 3).map(r=> `<div class="card queue-card" style="margin-bottom:16px;">
     <div class="name">You rejected ${r.notReal} mails from this address as not real</div>
@@ -8542,7 +8628,7 @@ document.getElementById('engine-copy-btn').addEventListener('click', async ()=>{
 // the real button on the screen. Anything typed is matched against these first (free, on the
 // phone). Only what does not match goes to the server, where AI answers from the same guide;
 // what the guide does not cover is kept for the app's owner, and his reply shows here.
-const HELP_TOPICS = [{"id": "start", "title": "What this app does", "keywords": ["start", "begin", "beginning", "new user", "intro", "overview", "tabs", "shuru", "what does this app do", "getting started", "guide"], "answer": "It keeps your household money in one place.\n• Home: this month's spending, entries waiting from your email, recent activity and the budget.\n• Accounts: every bank account and card with its balance.\n• People: money you lent or borrowed.\n• Insights: where the money went, savings, six months.\nSwipe left or right to move between them. The + button adds an entry.", "tour": [{"do": "tab:home", "sel": "nav.tabbar", "text": "Four tabs: Home, Accounts, People and Insights. You can also swipe sideways between them."}, {"sel": "#fab-add", "text": "The + button adds an expense, income, transfer or a people entry."}]}, {"id": "add-expense", "title": "Add an expense", "keywords": ["add", "expense", "spend", "spent", "paid", "pay", "entry", "log", "kharcha", "new transaction", "record"], "answer": "1. Tap + at the bottom.\n2. Expense is already picked. Type the amount on the keypad.\n3. Write who you paid (shop, person, bill).\n4. Pick a category and the account or card it was paid from.\n5. Tap Save.", "tour": [{"sel": "#fab-add", "text": "Tap + to add an entry."}, {"do": "open:add", "sel": "#tx-type", "text": "Expense is picked already. Income and Transfer are here too."}, {"do": "open:add", "sel": ".amount-display", "text": "Type the amount on the keypad below."}, {"do": "open:add", "sel": "#tx-payee", "text": "Write who you paid."}, {"do": "open:add", "sel": "#tx-save", "text": "Pick the category and account above, then Save."}]}, {"id": "add-income", "title": "Add income or a transfer", "keywords": ["income", "salary", "received", "credit", "transfer", "move", "own account", "card payment", "bill payment", "pay card"], "answer": "Tap +, then choose Income (money that came in) or Transfer (money moved between your own accounts, or paying your credit card bill). Type the amount, pick the accounts, and Save. A transfer is not spending.", "tour": [{"do": "open:add", "sel": "#tx-type", "text": "Choose Income or Transfer here."}]}, {"id": "people", "title": "Lend or borrow money (People)", "keywords": ["people", "person", "lend", "lent", "borrow", "loan", "owe", "friend", "udhaar", "give", "got", "repay", "settle", "ledger"], "answer": "People keeps track of money between you and others.\n• Tap + and choose People, or go to the People tab.\n• \"You gave\" means they owe you; \"You got\" means you owe them.\n• Tap a person's amount to add a payment. Tap their name to see every entry.\n• Edit (under the name) changes the name or note. When the balance is zero, Settle takes them off the list; the record is kept.", "tour": [{"do": "tab:people", "sel": "#add-person-btn", "text": "Add a new person here."}, {"do": "tab:people", "sel": ".person-block", "text": "Tap the amount to add a payment; tap the name to see the entries."}]}, {"id": "connect-gmail", "title": "Connect Gmail so entries come in by themselves", "keywords": ["gmail", "email", "mail", "connect", "automatic", "auto", "bank alert", "inbox", "link", "read email"], "answer": "When you sign in with Google, the same step connects your Gmail. To connect another inbox later:\n1. Open Settings (the gear on Home).\n2. Under Bank emails tap Connect another inbox.\n3. Choose that Google account and allow reading.\nThe app reads only your banks' alert mails, twice a day, and shows each transaction on Home for you to check. You can disconnect any time from the same place.", "tour": [{"do": "tab:home", "sel": "#open-tools-btn", "text": "Open Settings."}, {"do": "open:tools", "sel": "#reader-connect-btn", "text": "Tap Connect Gmail and allow reading your bank alerts."}]}, {"id": "review-email", "title": "Entries from email: add or reject", "keywords": ["review", "waiting", "pending", "approve", "reject", "not real", "from your email", "suggested", "imported", "check entry"], "answer": "Entries the app found in your bank mails wait on Home.\n• Tap one, check the amount, category and account, then Add.\n• If it isn't a real transaction, tap Not a transaction. If you already added it yourself, tap Already added.\n• If the direction is wrong, tap Wrong direction?; the app remembers it for that bank.", "tour": [{"do": "tab:home", "sel": "#pending-review-wrap", "text": "Entries from your email wait here. Tap one to add or reject it."}]}, {"id": "check-email", "title": "Check email now or for past dates", "keywords": ["check", "fetch", "now", "refresh", "sync", "past", "from date", "old", "missing", "month"], "answer": "Go to Accounts. In Check email pick a From date (from the 1st of this month) and a To date if you want, then tap Check. New entries appear on Home. The app also checks by itself at 8 am and 8 pm. For anything older, upload the bank statement.", "tour": [{"do": "tab:money", "sel": ".email-fetch", "text": "Pick the dates and tap Check."}]}, {"id": "fix-balance", "title": "Balance is wrong: fix it", "keywords": ["balance", "wrong", "incorrect", "fix", "adjust", "mismatch", "not matching", "difference", "reconcile", "unaccounted"], "answer": "1. Go to Accounts and tap the account.\n2. Tap Incorrect balance? Edit.\n3. Type the balance your bank app shows and Save.\nIf an entry explains the difference, Fix balance shows it with Remove this entry.", "tour": [{"do": "tab:money", "sel": "[data-acctstatement]", "text": "Tap the account."}, {"do": "open:firstaccount", "sel": "#acctstatement-edit-link", "text": "Tap Edit and type the balance your bank shows."}]}, {"id": "paste-sms", "title": "My bank doesn't email: statement or SMS", "keywords": ["sms", "message", "text", "paste", "upi", "sbi", "kotak", "no email", "phonepe", "gpay", "paytm", "not coming", "statement", "upload", "pdf", "csv", "download statement", "bank statement"], "answer": "Some banks don't email every transaction (for example SBI, Kotak, Indian Bank), or the app has not confirmed their alert address yet. Home shows a card for them.\n1. Download this month's statement from the bank's app or website (PDF or CSV).\n2. Tap Statement on that card and upload it. If the PDF has a password, type it; it stays on your phone.\n3. Entries from the 1st of this month that are not in the app go to Home for you to check. Your balances are not changed.\nOr copy the bank's SMS, tap +, then Paste a bank SMS instead.", "tour": [{"do": "open:add", "sel": "#tx-paste-sms", "text": "Tap here and paste the bank's SMS."}]}, {"id": "add-account", "title": "Add a bank account or credit card", "keywords": ["account", "card", "credit card", "bank", "add account", "new card", "wallet", "cash"], "answer": "Go to Accounts and tap + at the top. Choose bank account or credit card, write its name (include the bank's name, like \"HDFC Savings\"), the last digits and today's balance or amount due, then Save.", "tour": [{"do": "tab:money", "sel": "#add-account-btn", "text": "Tap + to add an account or card."}]}, {"id": "budget", "title": "Budget and categories", "keywords": ["budget", "category", "categories", "limit", "plan", "monthly", "rename category", "delete category"], "answer": "The budget is on Home, below Recent activity. Each category shows spending against its budget. Tap ✎ to rename, change or delete a category; + Add a category makes a new one; Edit budget opens the full planner.", "tour": [{"do": "tab:home", "sel": "#home-budget-panel", "text": "Your budget for this month. Tap ✎ on a category to change it."}, {"do": "tab:home", "sel": "#home-budget-edit-btn", "text": "Edit budget opens the full planner."}]}, {"id": "edit-entry", "title": "Change or delete an entry", "keywords": ["edit", "change", "delete", "remove", "mistake", "wrong entry", "correct", "update entry"], "answer": "Tap the entry (in Recent activity on Home, or in an account's list). Change what you need and Save, or tap Delete. A People entry opens from the person's list in the People tab.", "tour": [{"do": "tab:home", "sel": "#recent-list", "text": "Tap any entry to change or delete it."}]}, {"id": "insights", "title": "Insights: where the money went", "keywords": ["insight", "analysis", "report", "chart", "where", "savings", "saving", "trend", "category spend", "download", "pdf"], "answer": "The Insights tab shows spending by category, income, savings (investments count as saved), the month against your usual, the last six months and your top payees. Use the arrows to change the month; ⬇ PDF downloads it.", "tour": [{"do": "tab:insights", "sel": "#analysis-period-tabs", "text": "Choose week, month or a custom period."}]}, {"id": "invite", "title": "Add my partner to the household", "keywords": ["partner", "wife", "husband", "family", "share", "invite", "household", "together", "member"], "answer": "Open Settings, find Household, type your partner's Gmail address and tap Invite. When they sign in with that Google account, they see the same household.", "tour": [{"do": "open:tools", "sel": "#household-section", "text": "Type your partner's Gmail address and tap Invite."}]}, {"id": "privacy", "title": "Hide balances and privacy", "keywords": ["hide", "privacy", "private", "safe", "secure", "security", "mask", "data", "who can see"], "answer": "The eye button on Home hides every balance. Your data is in your own household; only people you invite can see it. The app reads only bank alert mails, never anything else, and you can disconnect Gmail any time in Settings.", "tour": [{"do": "tab:home", "sel": "#mask-toggle-btn", "text": "Tap the eye to hide or show balances."}]}, {"id": "theme", "title": "Dark or light look", "keywords": ["dark", "light", "theme", "colour", "color", "mode"], "answer": "Open Settings and choose Dark or Light under Appearance.", "tour": [{"do": "open:tools", "sel": "#theme-seg", "text": "Choose Dark or Light."}]}];
+const HELP_TOPICS = [{"id": "start", "title": "What this app does", "keywords": ["start", "begin", "beginning", "new user", "intro", "overview", "tabs", "shuru", "what does this app do", "getting started", "guide"], "answer": "It keeps your household money in one place.\n• Home: this month's spending, entries waiting from your email, recent activity and the budget.\n• Accounts: every bank account and card with its balance.\n• People: money you lent or borrowed.\n• Insights: where the money went, savings, six months.\nSwipe left or right to move between them. The + button adds an entry.", "tour": [{"do": "tab:home", "sel": "nav.tabbar", "text": "Four tabs: Home, Accounts, People and Insights. You can also swipe sideways between them."}, {"sel": "#fab-add", "text": "The + button adds an expense, income, transfer or a people entry."}]}, {"id": "add-expense", "title": "Add an expense", "keywords": ["add", "expense", "spend", "spent", "paid", "pay", "entry", "log", "kharcha", "new transaction", "record"], "answer": "1. Tap + at the bottom.\n2. Expense is already picked. Type the amount on the keypad.\n3. Write who you paid (shop, person, bill).\n4. Pick a category and the account or card it was paid from.\n5. Tap Save.", "tour": [{"sel": "#fab-add", "text": "Tap + to add an entry."}, {"do": "open:add", "sel": "#tx-type", "text": "Expense is picked already. Income and Transfer are here too."}, {"do": "open:add", "sel": ".amount-display", "text": "Type the amount on the keypad below."}, {"do": "open:add", "sel": "#tx-payee", "text": "Write who you paid."}, {"do": "open:add", "sel": "#tx-save", "text": "Pick the category and account above, then Save."}]}, {"id": "add-income", "title": "Add income or a transfer", "keywords": ["income", "salary", "received", "credit", "transfer", "move", "own account", "card payment", "bill payment", "pay card"], "answer": "Tap +, then choose Income (money that came in) or Transfer (money moved between your own accounts, or paying your credit card bill). Type the amount, pick the accounts, and Save. A transfer is not spending.", "tour": [{"do": "open:add", "sel": "#tx-type", "text": "Choose Income or Transfer here."}]}, {"id": "people", "title": "Lend or borrow money (People)", "keywords": ["people", "person", "lend", "lent", "borrow", "loan", "owe", "friend", "udhaar", "give", "got", "repay", "settle", "ledger"], "answer": "People keeps track of money between you and others.\n• Tap + and choose People, or go to the People tab.\n• \"You gave\" means they owe you; \"You got\" means you owe them.\n• Tap a person's amount to add a payment. Tap their name to see every entry.\n• Edit (under the name) changes the name or note. When the balance is zero, Settle takes them off the list; the record is kept.", "tour": [{"do": "tab:people", "sel": "#add-person-btn", "text": "Add a new person here."}, {"do": "tab:people", "sel": ".person-block", "text": "Tap the amount to add a payment; tap the name to see the entries."}]}, {"id": "reimburse", "title": "Office reimbursement, or paid for someone", "keywords": ["reimbursement", "reimburse", "office", "company", "claim", "expense claim", "paid for", "on behalf", "split", "kisi ke liye", "office ka", "wapas", "refund from office", "dost ke liye"], "answer": "Money you pay for your office, a friend or family that will come back is kept in People, so it is not counted as your own spending.\n1. Go to the People tab and tap the + at the top (Add person). Name it, for example \"Office\".\n2. When you pay for the office, tap the amount next to Office and add it as You gave.\n3. When the office pays you back, add it as You got.\n4. The balance shows how much the office still owes you. When it reaches zero, tap Settle.", "tour": [{"do": "tab:people", "sel": "#add-person-btn", "text": "Add a new person here."}, {"do": "tab:people", "sel": ".person-block", "text": "Tap the amount to add a payment; tap the name to see the entries."}]}, {"id": "connect-gmail", "title": "Connect Gmail so entries come in by themselves", "keywords": ["gmail", "email", "mail", "connect", "automatic", "auto", "bank alert", "inbox", "link", "read email"], "answer": "When you sign in with Google, the same step connects your Gmail. To connect another inbox later:\n1. Open Settings (the gear on Home).\n2. Under Bank emails tap Connect another inbox.\n3. Choose that Google account and allow reading.\nThe app reads only your banks' alert mails, twice a day, and shows each transaction on Home for you to check. You can disconnect any time from the same place.", "tour": [{"do": "tab:home", "sel": "#open-tools-btn", "text": "Open Settings."}, {"do": "open:tools", "sel": "#reader-connect-btn", "text": "Tap Connect Gmail and allow reading your bank alerts."}]}, {"id": "review-email", "title": "Entries from email: add or reject", "keywords": ["review", "waiting", "pending", "approve", "reject", "not real", "from your email", "suggested", "imported", "check entry"], "answer": "Entries the app found in your bank mails wait on Home.\n• Tap one, check the amount, category and account, then Add.\n• If it isn't a real transaction, tap Not a transaction. If you already added it yourself, tap Already added.\n• If the direction is wrong, tap Wrong direction?; the app remembers it for that bank.", "tour": [{"do": "tab:home", "sel": "#pending-review-wrap", "text": "Entries from your email wait here. Tap one to add or reject it."}]}, {"id": "check-email", "title": "Check email now or for past dates", "keywords": ["check", "fetch", "now", "refresh", "sync", "past", "from date", "old", "missing", "month"], "answer": "Go to Accounts. In Check email pick a From date (from the 1st of this month) and a To date if you want, then tap Check. New entries appear on Home. The app also checks by itself at 8 am and 8 pm. For anything older, upload the bank statement.", "tour": [{"do": "tab:money", "sel": ".email-fetch", "text": "Pick the dates and tap Check."}]}, {"id": "fix-balance", "title": "Balance is wrong: fix it", "keywords": ["balance", "wrong", "incorrect", "fix", "adjust", "mismatch", "not matching", "difference", "reconcile", "unaccounted"], "answer": "1. Go to Accounts and tap the account.\n2. Tap Incorrect balance? Edit.\n3. Type the balance your bank app shows and Save.\nIf an entry explains the difference, Fix balance shows it with Remove this entry.", "tour": [{"do": "tab:money", "sel": "[data-acctstatement]", "text": "Tap the account."}, {"do": "open:firstaccount", "sel": "#acctstatement-edit-link", "text": "Tap Edit and type the balance your bank shows."}]}, {"id": "paste-sms", "title": "My bank doesn't email: statement or SMS", "keywords": ["sms", "message", "text", "paste", "upi", "sbi", "kotak", "no email", "phonepe", "gpay", "paytm", "not coming", "statement", "upload", "pdf", "csv", "download statement", "bank statement"], "answer": "Some banks don't email every transaction (for example SBI, Kotak, Indian Bank), or the app has not confirmed their alert address yet. Home shows a card for them.\n1. Download this month's statement from the bank's app or website (PDF or CSV).\n2. Tap Statement on that card and upload it. If the PDF has a password, type it; it stays on your phone.\n3. Entries from the 1st of this month that are not in the app go to Home for you to check. Your balances are not changed.\nOr copy the bank's SMS, tap +, then Paste a bank SMS instead.", "tour": [{"do": "open:add", "sel": "#tx-paste-sms", "text": "Tap here and paste the bank's SMS."}]}, {"id": "add-account", "title": "Add a bank account or credit card", "keywords": ["account", "card", "credit card", "bank", "add account", "new card", "wallet", "cash"], "answer": "Go to Accounts and tap + at the top. Choose bank account or credit card, write its name (include the bank's name, like \"HDFC Savings\"), the last digits and today's balance or amount due, then Save.", "tour": [{"do": "tab:money", "sel": "#add-account-btn", "text": "Tap + to add an account or card."}]}, {"id": "budget", "title": "Budget and categories", "keywords": ["budget", "category", "categories", "limit", "plan", "monthly", "rename category", "delete category"], "answer": "The budget is on Home, below Recent activity. Each category shows spending against its budget. Tap ✎ to rename, change or delete a category; + Add a category makes a new one; Edit budget opens the full planner.", "tour": [{"do": "tab:home", "sel": "#home-budget-panel", "text": "Your budget for this month. Tap ✎ on a category to change it."}, {"do": "tab:home", "sel": "#home-budget-edit-btn", "text": "Edit budget opens the full planner."}]}, {"id": "edit-entry", "title": "Change or delete an entry", "keywords": ["edit", "change", "delete", "remove", "mistake", "wrong entry", "correct", "update entry"], "answer": "Tap the entry (in Recent activity on Home, or in an account's list). Change what you need and Save, or tap Delete. A People entry opens from the person's list in the People tab.", "tour": [{"do": "tab:home", "sel": "#recent-list", "text": "Tap any entry to change or delete it."}]}, {"id": "insights", "title": "Insights: where the money went", "keywords": ["insight", "analysis", "report", "chart", "where", "savings", "saving", "trend", "category spend", "download", "pdf"], "answer": "The Insights tab shows spending by category, income, savings (investments count as saved), the month against your usual, the last six months and your top payees. Use the arrows to change the month; ⬇ PDF downloads it.", "tour": [{"do": "tab:insights", "sel": "#analysis-period-tabs", "text": "Choose week, month or a custom period."}]}, {"id": "invite", "title": "Add my partner to the household", "keywords": ["partner", "wife", "husband", "family", "share", "invite", "household", "together", "member"], "answer": "Open Settings, find Household, type your partner's Gmail address and tap Invite. When they sign in with that Google account, they see the same household.", "tour": [{"do": "open:tools", "sel": "#household-section", "text": "Type your partner's Gmail address and tap Invite."}]}, {"id": "privacy", "title": "Hide balances and privacy", "keywords": ["hide", "privacy", "private", "safe", "secure", "security", "mask", "data", "who can see"], "answer": "The eye button on Home hides every balance. Your data is in your own household; only people you invite can see it. The app reads only bank alert mails, never anything else, and you can disconnect Gmail any time in Settings.", "tour": [{"do": "tab:home", "sel": "#mask-toggle-btn", "text": "Tap the eye to hide or show balances."}]}, {"id": "theme", "title": "Dark or light look", "keywords": ["dark", "light", "theme", "colour", "color", "mode"], "answer": "Open Settings and choose Dark or Light under Appearance.", "tour": [{"do": "open:tools", "sel": "#theme-seg", "text": "Choose Dark or Light."}]}];
 let helpLog = [];
 function helpTokens(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9ऀ-ॿ ]/g,' ').split(/\s+/).filter(w=> w.length > 1); }
 function matchHelpTopic(q){
@@ -8628,7 +8714,8 @@ function renderHelp(){
     sendHelpToTeam(m.question);
   }));
   const chips = document.getElementById('help-chips');
-  chips.innerHTML = HELP_TOPICS.map(t=> `<button class="help-chip" data-helptopic="${t.id}">${storyEsc(t.title)}</button>`).join('');
+  const opened = new Set(helpLog.map(m=> m.topic).filter(Boolean));
+  chips.innerHTML = HELP_TOPICS.filter(t=> !opened.has(t.id)).map(t=> `<button class="help-chip" data-helptopic="${t.id}">${storyEsc(t.title)}</button>`).join('');
   chips.querySelectorAll('[data-helptopic]').forEach(b=> b.addEventListener('click', ()=>{
     const t = HELP_TOPICS.find(x=> x.id === b.getAttribute('data-helptopic'));
     helpSay('me', t.title); helpShowTopic(t); helpScrollDown();
