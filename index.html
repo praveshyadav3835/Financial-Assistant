@@ -1221,7 +1221,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-15 · v99-paper-notes-2</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-15 · v100-new-phone-fix</p>
   </div>
 </div>
 
@@ -1575,6 +1575,14 @@ async function signInWithGoogle(){
   renderAccountUI();
   showToast('Signed in');
 }
+function startFreshFromOldCopy(){
+  if(!confirm('Start your own household on this phone? The old copy from the other household is removed from this phone (it was never yours to open).')) return;
+  try{
+    [LEGACY_STORAGE_KEY, LEGACY_OUTBOX_KEY, 'cfo-whoami', 'fa-reader-lists-legacy', 'fa-reader-legacy'].forEach(k=> localStorage.removeItem(k));
+    localStorage.removeItem(HOUSEHOLD_PREF_KEY);
+  }catch(e){ console.error('Could not remove the old copy', e); showToast('Could not do that on this phone.', 3000); return; }
+  location.reload();
+}
 async function signOutOfGoogle(){
   if(!authAvailable() || !authUser) return;
   if(!confirm('Sign out on this device? Your data stays here, but it stops syncing until you sign in again.')) return;
@@ -1593,10 +1601,17 @@ function renderAccountUI(){
   if(authUser){
     const email = storyEsc(authUser.email || 'Google account');
     box.innerHTML = `<div class="row" style="padding:0; border:none;"><div style="min-width:0;"><div class="name" style="overflow-wrap:anywhere;">${email}</div><div class="sub" style="${cloudDenied?'color:var(--debt);':''}">${cloudDenied ? 'This account is not allowed to open this household. Sign out and use another.' : 'Signed in'}</div></div><button class="link-btn" id="account-signout-btn" style="flex-shrink:0;">Sign out</button></div>`;
+    // A phone that opened the app before households existed holds an old copy of the first
+    // household. Someone else signing in there is refused by the database (right), but should be
+    // offered their own household, not a dead end. The old copy is removed from that phone.
+    const oldCopy = cloudDenied && isLegacy() && !readHouseholdPref();
     card.innerHTML = cloudDenied
-      ? `<div class="heads-up-card" id="signin-card" style="cursor:pointer;"><div class="hu-icon">${ICON.user}</div><div class="hu-body"><div class="hu-title">This account is not allowed</div><div class="hu-sub">${email} cannot open this household. Changes stay on this device.</div></div><div class="hu-tag">Sign out</div></div>`
+      ? (oldCopy
+        ? `<div class="heads-up-card" id="fresh-card" style="cursor:pointer;"><div class="hu-icon">${ICON.user}</div><div class="hu-body"><div class="hu-title">Set up your own household</div><div class="hu-sub">This phone has an old copy from another household, which ${email} cannot open. Start your own; the old copy is removed from this phone.</div></div><div class="hu-tag">Start</div></div>`
+        : `<div class="heads-up-card" id="signin-card" style="cursor:pointer;"><div class="hu-icon">${ICON.user}</div><div class="hu-body"><div class="hu-title">This account is not allowed</div><div class="hu-sub">${email} cannot open this household. Changes stay on this device.</div></div><div class="hu-tag">Sign out</div></div>`)
       : '';
     const c = document.getElementById('signin-card'); if(c) c.addEventListener('click', signOutOfGoogle);
+    const fr = document.getElementById('fresh-card'); if(fr) fr.addEventListener('click', startFreshFromOldCopy);
     document.getElementById('account-signout-btn').addEventListener('click', signOutOfGoogle);
   } else {
     box.innerHTML = `<div class="eng-sub" style="margin-bottom:10px;">${cloudDenied ? 'Sign in to sync this device again. Changes made meanwhile are kept and sent after you sign in.' : 'Sign in so that only your household can open this data.'}</div><button class="btn-primary" id="account-signin-btn" style="margin-top:0;">Sign in with Google</button>`;
