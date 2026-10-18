@@ -985,7 +985,7 @@
   <div class="sheet">
     <h3 id="recon-title">Reconcile statement</h3>
     <p class="section-sub" id="recon-sub">Upload the statement — CSV/Excel export if your bank offers one, or the PDF if that's all you get (common for credit cards). Or paste CSV text below.</p>
-    <div class="field"><label>Upload statement (CSV or PDF)</label><input type="file" id="recon-file" accept=".csv,text/csv,.pdf,application/pdf"></div>
+    <div class="field"><label>Statement: PDF, Excel, CSV or a screenshot</label><input type="file" id="recon-file" accept=".csv,text/csv,.pdf,application/pdf,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/*"></div>
     <div class="field hide" id="recon-pw-wrap"><label>PDF password</label><input id="recon-pw" type="password" autocomplete="off" placeholder="Often set by the bank, e.g. part of your name and birth date"><p class="section-sub" style="margin-top:6px;">Used on this phone only to open the file. It is never sent anywhere.</p></div>
     <div class="field" id="recon-paste-wrap"><label>...or paste CSV text</label><textarea id="recon-paste" placeholder="Date,Description,Debit,Credit&#10;01/09/2026,Swiggy,430,"></textarea></div>
     <button class="btn-primary" id="recon-run">Compare with app</button>
@@ -1222,7 +1222,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-16 · v101-statement-button</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-17 · v102-statement-pictures</p>
   </div>
 </div>
 
@@ -6341,7 +6341,7 @@ function openStatementImport(id){
   openReconSheet(id, isCard);
   reconMode = 'import';
   document.getElementById('recon-title').textContent = 'Add from statement — ' + targetName(id);
-  document.getElementById('recon-sub').textContent = 'Download the statement from your bank\'s app or website (PDF or CSV) and upload it here. Entries from the 1st of this month up to the statement\'s last date that are not in the app yet go to Home for you to check.';
+  document.getElementById('recon-sub').textContent = 'Download the statement from your bank\'s app or website (PDF, Excel or CSV) and upload it here, or a screenshot of it. Entries from the 1st of this month up to the statement\'s last date that are not in the app yet go to Home for you to check.';
   document.getElementById('recon-run').textContent = 'Read statement';
   document.getElementById('recon-paste-wrap').classList.add('hide');
 }
@@ -6481,7 +6481,7 @@ function renderAcctStatement(targetId, isCard){
   // Upload statement, always here for every bank account and card (not Cash Wallet or the sinking fund)
   if(targetId !== 'cash_wallet' && targetId !== 'sinking_fund'){
     document.getElementById('acctstatement-hero').insertAdjacentHTML('beforeend', `<button class="btn-ghost stmt-upload-btn" id="acctstatement-upload-btn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>Upload statement</button>
-      <div class="eng-sub" style="text-align:center; margin:6px 0 4px;">PDF or CSV from your bank. Entries from the 1st of this month that are not in the app go to Home for you to check.</div>`);
+      <div class="eng-sub" style="text-align:center; margin:6px 0 4px;">PDF, Excel, CSV or a screenshot from your bank. Entries from the 1st of this month that are not in the app go to Home for you to check.</div>`);
     document.getElementById('acctstatement-upload-btn').addEventListener('click', ()=> openStatementImport(targetId));
   }
 
@@ -6921,9 +6921,38 @@ function runReconciliation(csvText){
 
 // Statement text for the server: a PDF is opened here (with its password, if it has one) and
 // turned into lines in reading order; a CSV is sent as it is.
+// A screenshot or photo: made smaller on the phone (cheaper and faster to read), sent as a picture.
+async function statementImage(file){
+  const url = URL.createObjectURL(file);
+  try{
+    const img = await new Promise((ok, bad)=>{ const i = new Image(); i.onload = ()=> ok(i); i.onerror = bad; i.src = url; });
+    const scale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const data = c.toDataURL('image/jpeg', 0.85).split(',')[1];
+    return {image: {data, mediaType: 'image/jpeg'}};
+  }catch(e){ return {error: 'This picture could not be opened. Try another screenshot.'}; }
+  finally{ URL.revokeObjectURL(url); }
+}
+// Excel (.xls / .xlsx): the first sheet is turned into CSV text on the phone.
+async function statementExcel(file){
+  if(!window.XLSX){
+    await new Promise((ok, bad)=>{ const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.onload = ok; sc.onerror = bad; document.head.appendChild(sc); }).catch(()=>{});
+  }
+  if(!window.XLSX) return {error: 'The Excel reader did not load. Check your connection, or download the statement as PDF or CSV.'};
+  const wb = XLSX.read(await file.arrayBuffer(), {type: 'array'});
+  const text = wb.SheetNames.map(n=> XLSX.utils.sheet_to_csv(wb.Sheets[n], {blankrows: false})).join('\n');
+  return {text};
+}
 async function statementText(file){
-  const isPdf = file.type==='application/pdf' || /\.pdf$/i.test(file.name);
-  if(!isPdf) return {text: await file.text()};
+  const name = String(file.name || '').toLowerCase(), type = String(file.type || '').toLowerCase();
+  if(type.startsWith('image/') || /\.(jpe?g|png|webp|heic)$/.test(name)) return statementImage(file);
+  if(/\.xlsx?$/.test(name) || /spreadsheetml|ms-excel/.test(type)) return statementExcel(file);
+  const isPdf = type==='application/pdf' || /\.pdf$/.test(name);
+  if(!isPdf){
+    if(!(/\.(csv|txt)$/.test(name) || /csv|text\//.test(type))) return {error: 'This file type cannot be read. Use the PDF, Excel or CSV statement from your bank, or a screenshot.'};
+    return {text: await file.text()};
+  }
   if(typeof pdfjsLib === 'undefined') return {error: 'The PDF reader did not load. Check your connection and try again.'};
   const buf = await file.arrayBuffer();
   const pw = (document.getElementById('recon-pw') || {}).value || '';
@@ -6958,11 +6987,17 @@ async function readStatementOnServer(){
     const target = [...state.accounts, ...state.cards].find(a=> a.id===reconTargetId) || {};
     const f = statementFirstDay();
     const fromDate = `${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,'0')}-01`;
-    const r = await readerCall('readStatement', {body: {accountId: reconTargetId, isCard: reconIsCard, bank: target.bank || target.name || '', fromDate, text: t.text}});
-    if(!(r.status===200 && r.data.ok)){ resultsEl.innerHTML = `<p class="status-note">${storyEsc((r.data && r.data.error) || 'Could not read the statement just now. Try again in a moment.')}</p>`; return; }
+    resultsEl.innerHTML = `<p class="status-note">${t.image ? 'Reading the picture…' : 'Reading the statement…'} this takes a few seconds.</p>`;
+    const r = await readerCall('readStatement', {body: {accountId: reconTargetId, isCard: reconIsCard, bank: target.bank || target.name || '', fromDate, text: t.text || '', image: t.image || null}});
+    if(!(r.status===200 && r.data.ok)){
+      const why = (r.data && r.data.error) || (r.status === 401 || r.status === 403 ? 'Sign in again, then try once more.' : r.status === 404 ? 'The statement reader is not set up on the server yet (deploy the functions).' : 'Could not read the statement just now. Try again in a moment.');
+      resultsEl.innerHTML = `<p class="status-note">${storyEsc(why)}</p>${ownerView && r.data && r.data.detail ? `<p class="eng-sub" style="overflow-wrap:anywhere;">For you: ${storyEsc(r.data.detail)}</p>` : ''}`;
+      return;
+    }
     const stRows = (r.data.rows||[]).map(x=> ({date: new Date(x.date + 'T12:00:00'), desc: x.desc, debit: x.debit, credit: x.credit, key: x.key}));
     const res = matchStatementRows(stRows, null);
     res.held = r.data.held || 0;
+    res.unchecked = !!r.data.unchecked;
     renderStatementImport(res);
   }catch(e){
     console.error('Statement reading failed', e);
@@ -7025,6 +7060,7 @@ function renderStatementImport(res){
   }
   resultsEl.innerHTML = `<div class="recon-group-title">${rows.length} not in the app yet · ${from.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}${end ? ' to ' + end.toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : ''}</div>` +
     rows.map((r,i)=> `<label class="recon-row" style="cursor:pointer;"><div><div class="d">${storyEsc(r.desc||'(no description)')}</div><div class="m">${r.date.toLocaleDateString('en-IN')} · ${r.isOut?'paid':'received'} ${fmt(r.amount)}</div></div><input type="checkbox" data-stmtpick="${i}" checked style="width:22px; height:22px;"></label>`).join('') +
+    (res.unchecked ? `<p class="section-sub" style="margin-top:10px;">Read from a picture with no balance to check against, so look at each entry carefully on Home.</p>` : '') +
     (res.held ? `<p class="section-sub" style="margin-top:10px;">${res.held} line${res.held===1?'':'s'} did not match the statement\u2019s own balance, so ${res.held===1?'it was':'they were'} left out. Add ${res.held===1?'it':'them'} with + if needed.</p>` : '') +
     `<button class="btn-primary" id="stmt-send-btn" style="margin-top:12px;">Send to Home for checking</button>`;
   document.getElementById('stmt-send-btn').addEventListener('click', async ()=>{
