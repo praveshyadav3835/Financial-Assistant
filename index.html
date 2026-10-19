@@ -1215,6 +1215,7 @@
     <button class="btn-ghost admin-only hide" id="tools-engine-report-btn" style="margin-top:0;">Email accuracy</button>
     <button class="btn-ghost admin-only hide" id="tools-helpadmin-btn">Help questions from users</button>
     <button class="btn-ghost admin-only hide" id="tools-preview-firstlook-btn">Preview the first look (as a new user)</button>
+    <div class="admin-only hide eng-sub" id="server-version-line" style="margin:10px 0 0;"></div>
 
     <div class="divider-label">Name on downloaded PDFs</div>
     <div class="field" style="margin-bottom:6px;"><label>Printed under the title of the PDFs you download from Insights and People (optional)</label><input id="pdf-name-input" maxlength="90" autocomplete="off" placeholder="e.g. Sharma family, Pune"></div>
@@ -1233,7 +1234,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-19 · v103-simple-onboarding</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-20 · v104-scanned-pdf</p>
   </div>
 </div>
 
@@ -2861,6 +2862,18 @@ function toggleMask(){
   render();
 }
 document.getElementById('mask-toggle-btn').addEventListener('click', toggleMask);
+// The owner sees whether the server has been deployed with what this app needs.
+const APP_NEEDS_SERVER = 'v104';
+async function checkServerVersion(){
+  const el = document.getElementById('server-version-line'); if(!el || !ownerView) return;
+  el.textContent = 'Server: checking…';
+  try{
+    const r = await fetch(READER_BASE + 'version'); const d = r.ok ? await r.json() : null;
+    const v = d && d.serverVersion;
+    el.innerHTML = v === APP_NEEDS_SERVER ? `Server: ${storyEsc(v)} ✓ matches this app` : `<span style="color:var(--debt);">Server: ${v ? storyEsc(v) : 'older'}, this app needs ${APP_NEEDS_SERVER}. On the PC run: firebase deploy --only functions</span>`;
+  }catch(e){ el.textContent = 'Server: could not check (offline?)'; }
+}
+document.getElementById('open-tools-btn').addEventListener('click', ()=> setTimeout(checkServerVersion, 50));
 // The owner can walk through the new-user screens without signing out (nothing is changed).
 let introPreview = false;
 document.getElementById('tools-preview-firstlook-btn').addEventListener('click', ()=>{ closeFullscreen('tools-page'); introPreview = true; showGate('welcome'); });
@@ -7042,7 +7055,7 @@ async function statementImage(file){
     const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
     c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
     const data = c.toDataURL('image/jpeg', 0.85).split(',')[1];
-    return {image: {data, mediaType: 'image/jpeg'}};
+    return {images: [{data, mediaType: 'image/jpeg'}]};
   }catch(e){ return {error: 'This picture could not be opened. Try another screenshot.'}; }
   finally{ URL.revokeObjectURL(url); }
 }
@@ -7082,7 +7095,20 @@ async function statementText(file){
     content.items.forEach(item=>{ const y = Math.round(item.transform[5]/2)*2; (byY[y] = byY[y]||[]).push(item); });
     Object.keys(byY).sort((a,b)=> b-a).forEach(y=>{ const line = byY[y].sort((a,b)=> a.transform[4]-b.transform[4]).map(i=>i.str).join(' ').replace(/\s+/g,' ').trim(); if(line) lines.push(line); });
   }
-  if(lines.join('').replace(/\s/g,'').length < 40) return {error: 'This PDF looks like a scanned picture, so its text cannot be read. Download the statement again from your bank\u2019s website or app, or add the entries with +.'};
+  if(lines.join('').replace(/\s/g,'').length < 40){
+    // A scanned or "saved as PDF" picture: each page (up to 6) is drawn on the phone and read as a picture.
+    const images = [];
+    for(let p=1; p<=Math.min(pdf.numPages, 6); p++){
+      const page = await pdf.getPage(p);
+      const v1 = page.getViewport({scale: 1});
+      const viewport = page.getViewport({scale: Math.min(2.5, 1600 / Math.max(v1.width, v1.height))});
+      const c = document.createElement('canvas'); c.width = Math.round(viewport.width); c.height = Math.round(viewport.height);
+      const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+      await page.render({canvasContext: ctx, viewport}).promise;
+      images.push({data: c.toDataURL('image/jpeg', 0.85).split(',')[1], mediaType: 'image/jpeg'});
+    }
+    return images.length ? {images} : {error: 'This PDF has no pages that could be read.'};
+  }
   return {text: lines.join('\n')};
 }
 async function readStatementOnServer(){
@@ -7099,10 +7125,15 @@ async function readStatementOnServer(){
     const target = [...state.accounts, ...state.cards].find(a=> a.id===reconTargetId) || {};
     const f = statementFirstDay();
     const fromDate = `${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,'0')}-01`;
-    resultsEl.innerHTML = `<p class="status-note">${t.image ? 'Reading the picture…' : 'Reading the statement…'} this takes a few seconds.</p>`;
-    const r = await readerCall('readStatement', {body: {accountId: reconTargetId, isCard: reconIsCard, bank: target.bank || target.name || '', fromDate, text: t.text || '', image: t.image || null}});
+    resultsEl.innerHTML = `<p class="status-note">${t.images ? (t.images.length > 1 ? 'Reading ' + t.images.length + ' pages…' : 'Reading the picture…') : 'Reading the statement…'} this takes a few seconds.</p>`;
+    const r = await readerCall('readStatement', {body: {accountId: reconTargetId, isCard: reconIsCard, bank: target.bank || target.name || '', fromDate, text: t.text || '', images: t.images || null}});
+    // A server older than this app (functions not deployed) answers without a version.
+    if(r.status !== 401 && r.status !== 403 && !(r.data && r.data.serverVersion)){
+      resultsEl.innerHTML = `<p class="status-note">${ownerView ? 'The server is older than this app, so it cannot read statements yet. On the PC run: firebase deploy --only functions' : 'Statement reading is being updated. Try again later today.'}</p>`;
+      return;
+    }
     if(!(r.status===200 && r.data.ok)){
-      const why = (r.data && r.data.error) || (r.status === 401 || r.status === 403 ? 'Sign in again, then try once more.' : r.status === 404 ? 'The statement reader is not set up on the server yet (deploy the functions).' : 'Could not read the statement just now. Try again in a moment.');
+      const why = (r.data && r.data.error) || (r.status === 401 || r.status === 403 ? 'Sign in again, then try once more.' : 'Could not read the statement just now. Try again in a moment.');
       resultsEl.innerHTML = `<p class="status-note">${storyEsc(why)}</p>${ownerView && r.data && r.data.detail ? `<p class="eng-sub" style="overflow-wrap:anywhere;">For you: ${storyEsc(r.data.detail)}</p>` : ''}`;
       return;
     }
