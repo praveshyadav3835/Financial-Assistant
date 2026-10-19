@@ -471,6 +471,16 @@
   @keyframes fmspin{to{transform:rotate(360deg);}}
   #gate .fm-multi{margin:0 0 10px !important;}
   #gate .fm-later{display:block; margin:14px auto 0; font-size:15px; color:var(--ink-soft);}
+  #gate .ob{max-width:480px; margin:0 auto; padding:calc(env(safe-area-inset-top,0px) + 34px) 22px calc(env(safe-area-inset-bottom,0px) + 28px);}
+  #gate .ob h2{font-size:24px; font-weight:600; margin:0 0 8px;}
+  #gate .ob-sub{font-size:15px; line-height:1.5; color:var(--ink-soft); margin:0 0 18px;}
+  #gate .ob-label{font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); margin:16px 0 8px;}
+  #gate .ob-chips{display:flex; flex-wrap:wrap; gap:8px;}
+  #gate .ob-chip{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px; padding:9px 14px; font-size:14.5px; cursor:pointer; min-height:40px;}
+  #gate .ob-chip.on{background:#3A6FF0; border-color:#3A6FF0; color:#fff; font-weight:600;}
+  #gate .ob-other{display:flex; gap:8px; margin-top:14px;} #gate .ob-other input{flex:1; min-width:0; background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:12px; padding:10px 12px; font-size:15px;} #gate .ob-other .btn-ghost{width:auto; margin:0; padding:10px 16px;}
+  #gate .ob-foot{position:sticky; bottom:0; padding:16px 0 4px; background:linear-gradient(transparent, var(--bg, #0d1117) 30%);}
+  #gate .ob-foot .btn-primary{margin-top:0; width:100%;} #gate .ob-foot .btn-primary:disabled{opacity:.45;}
   #gate .fm-title{font-size:22px; font-weight:600; text-align:center; margin:0 0 10px;}
   #gate .fm-acct{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid var(--line);}
   #gate .fm-name{font-size:15px; font-weight:600;}
@@ -549,6 +559,7 @@
       <div style="margin-top:18px;">
         <div id="signin-card-wrap"></div>
         <div id="reader-card-wrap"></div>
+        <div id="home-balance-wrap"></div>
         <div id="home-no-email-wrap"></div>
         <div id="heads-up-wrap"></div>
         <div id="pending-review-wrap"></div>
@@ -1222,7 +1233,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-17 · v102-statement-pictures</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-19 · v103-simple-onboarding</p>
   </div>
 </div>
 
@@ -1638,6 +1649,8 @@ const INTRO = [
    art: '<rect x="18" y="30" width="76" height="52" rx="10" fill="none" stroke="currentColor" stroke-width="5"/><path d="M20 36l36 26 36-26" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/><circle cx="98" cy="84" r="20" fill="var(--accent-c, #3A6FF0)"/><path d="M89 84l6 6 12-12" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>'},
   {t: 'Know where the month is going', p: 'See what is left of your budget, where the money went, and what is coming up, updated as you spend.',
    art: '<circle cx="60" cy="60" r="38" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="12"/><path d="M60 22a38 38 0 1 1-33 57" fill="none" stroke="var(--accent-c, #3A6FF0)" stroke-width="12" stroke-linecap="round"/><text x="60" y="68" text-anchor="middle" font-size="22" font-weight="700" fill="currentColor">72%</text>'},
+  {t: 'Yours, and nobody else\u2019s', p: 'Only your bank and card alert emails are read. Nothing is added without your tap, and only your household can open your data.',
+   art: '<rect x="30" y="54" width="60" height="44" rx="9" fill="none" stroke="currentColor" stroke-width="5"/><path d="M42 54V42a18 18 0 0 1 36 0v12" fill="none" stroke="currentColor" stroke-width="5"/><circle cx="60" cy="74" r="6" fill="var(--accent-c, #3A6FF0)"/><path d="M60 80v8" stroke="var(--accent-c, #3A6FF0)" stroke-width="5" stroke-linecap="round"/>'},
   {t: 'Run it together', p: 'Invite your partner. You both see the same accounts and budget, and the People Ledger keeps track of who owes whom.',
    art: '<circle cx="42" cy="44" r="15" fill="none" stroke="currentColor" stroke-width="5"/><path d="M16 94c2-18 13-28 26-28s24 10 26 28" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><circle cx="82" cy="44" r="15" fill="none" stroke="var(--accent-c, #3A6FF0)" stroke-width="5"/><path d="M60 94c2-18 11-28 22-28s22 10 24 28" fill="none" stroke="var(--accent-c, #3A6FF0)" stroke-width="5" stroke-linecap="round"/>'}
 ];
@@ -1660,18 +1673,101 @@ function introGo(i){
   document.querySelectorAll('[data-introdot]').forEach((d, k)=> d.classList.toggle('on', k === introAt));
   const last = introAt === INTRO.length - 1;
   const next = document.getElementById('intro-next');
-  next.innerHTML = last ? `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="vertical-align:-3px; margin-right:8px;"><path fill="#fff" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z"/><path fill="#fff" opacity=".85" d="M12 22c2.7 0 5-.9 6.6-2.5l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#fff" opacity=".7" d="M6.4 13.9a6 6 0 0 1 0-3.8V7.5H3.1a10 10 0 0 0 0 9z"/><path fill="#fff" opacity=".55" d="M12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.5l3.3 2.6C7.2 7.8 9.4 6 12 6z"/></svg>Continue with Google` : 'Next';
-  document.getElementById('intro-note').style.visibility = last ? 'visible' : 'hidden';
+  next.innerHTML = 'Next';
+  document.getElementById('intro-note').style.visibility = 'hidden';
   document.getElementById('intro-skip').style.visibility = last ? 'hidden' : 'visible';
 }
 function wireIntro(){
   introAt = 0; introGo(0);
-  document.getElementById('intro-next').addEventListener('click', ()=> introAt === INTRO.length - 1 ? (introPreview ? (introPreview = false, afterSetupSteps(true)) : signInOneStep()) : introGo(introAt + 1));
+  document.getElementById('intro-next').addEventListener('click', ()=> introAt === INTRO.length - 1 ? showBankPicker(false) : introGo(introAt + 1));
   document.getElementById('intro-skip').addEventListener('click', ()=> introGo(INTRO.length - 1));
   document.querySelectorAll('[data-introdot]').forEach(d=> d.addEventListener('click', ()=> introGo(+d.getAttribute('data-introdot'))));
   const vp = document.querySelector('.intro-viewport'); let x0 = null, y0 = null;
   vp.addEventListener('touchstart', e=>{ x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, {passive: true});
   vp.addEventListener('touchend', e=>{ if(x0 === null) return; const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null; if(Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) introGo(introAt + (dx < 0 ? 1 : -1)); }, {passive: true});
+}
+// ---------- which banks: one screen, chips, then one Google step
+const ONBOARD_BANKS = ['SBI','HDFC Bank','ICICI Bank','Axis Bank','Kotak','IDFC FIRST Bank','IndusInd Bank','Bank of Baroda','PNB','Canara Bank','Union Bank','Yes Bank','AU Bank','Federal Bank','Indian Bank'];
+const ONBOARD_CARDS = ['SBI Card','HDFC','ICICI','Axis','IDFC FIRST','Kotak','OneCard','Amex','AU','IndusInd'];
+const GOOGLE_G = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="vertical-align:-3px; margin-right:8px;"><path fill="#fff" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z"/><path fill="#fff" opacity=".85" d="M12 22c2.7 0 5-.9 6.6-2.5l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#fff" opacity=".7" d="M6.4 13.9a6 6 0 0 1 0-3.8V7.5H3.1a10 10 0 0 0 0 9z"/><path fill="#fff" opacity=".55" d="M12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.5l3.3 2.6C7.2 7.8 9.4 6 12 6z"/></svg>';
+function onboardPicks(){ try{ return JSON.parse(localStorage.getItem('fa-onboard-picks')) || null; }catch(e){ return null; } }
+function showBankPicker(signedIn){
+  const g = document.getElementById('gate'); if(!g) return;
+  const had = onboardPicks() || {banks: [], cards: []};
+  const chip = (name, kind)=> `<button class="ob-chip ${(had[kind]||[]).includes(name) ? 'on' : ''}" data-obkind="${kind}" data-obname="${storyEsc(name)}">${storyEsc(name)}</button>`;
+  g.innerHTML = `<div class="ob">
+    <h2>Which banks do you use?</h2>
+    <p class="ob-sub">Pick every bank account and credit card you use. Their alert emails are read for you.</p>
+    <div class="ob-label">Bank accounts</div>
+    <div class="ob-chips">${ONBOARD_BANKS.map(b=> chip(b, 'banks')).join('')}</div>
+    <div class="ob-label">Credit cards</div>
+    <div class="ob-chips">${ONBOARD_CARDS.map(b=> chip(b, 'cards')).join('')}</div>
+    <div class="ob-other"><input id="ob-other" maxlength="30" placeholder="Another bank? Type its name"><button class="btn-ghost" id="ob-other-add">Add</button></div>
+    <div class="ob-foot">
+      <button class="btn-primary" id="ob-go" disabled>${signedIn ? 'Start' : GOOGLE_G + 'Continue with Google'}</button>
+      <p class="gate-note">${signedIn ? '' : 'One Google step signs you in and lets the app read only your bank and card alert emails.'}</p>
+    </div>
+  </div>`;
+  g.classList.remove('hide'); g.scrollTop = 0;
+  const picks = {banks: [...(had.banks||[])], cards: [...(had.cards||[])]};
+  const sync = ()=>{
+    const n = picks.banks.length + picks.cards.length;
+    document.getElementById('ob-go').disabled = n === 0;
+    try{ localStorage.setItem('fa-onboard-picks', JSON.stringify(picks)); }catch(e){}
+  };
+  const wire = el=> el.addEventListener('click', ()=>{
+    const k = el.getAttribute('data-obkind'), nm = el.getAttribute('data-obname');
+    const list = picks[k]; const at = list.indexOf(nm);
+    if(at >= 0) list.splice(at, 1); else list.push(nm);
+    el.classList.toggle('on', at < 0); sync();
+  });
+  g.querySelectorAll('[data-obname]').forEach(wire);
+  document.getElementById('ob-other-add').addEventListener('click', ()=>{
+    const v = document.getElementById('ob-other').value.trim(); if(!v) return;
+    if(!picks.banks.includes(v)) picks.banks.push(v);
+    const b = document.createElement('div'); b.innerHTML = `<button class="ob-chip on" data-obkind="banks" data-obname="${storyEsc(v)}">${storyEsc(v)}</button>`;
+    g.querySelectorAll('.ob-chips')[0].appendChild(b.firstChild); wire(g.querySelector(`.ob-chips [data-obname="${CSS.escape(v)}"]`));
+    document.getElementById('ob-other').value = ''; sync();
+  });
+  sync();
+  document.getElementById('ob-go').addEventListener('click', ()=>{
+    if(introPreview){ introPreview = false; afterSetupSteps(true); return; }
+    if(signedIn) autoSetup(); else signInOneStep();
+  });
+}
+// Set-up with no form: the household is named after the person, and each picked bank and card
+// becomes an account (balance asked later, on Home). Then the first month is brought in.
+async function autoSetup(){
+  if(setupBusy || !authUser) return;
+  const picks = onboardPicks() || {banks: [], cards: []};
+  if(!(picks.banks.length + picks.cards.length)){ showBankPicker(true); return; }
+  const myName = myFirstName() || (myEmail().split('@')[0]);
+  const hhName = myName + "'s household";
+  const btn = document.getElementById('ob-go'); if(btn){ btn.disabled = true; btn.textContent = 'Setting up…'; }
+  setupBusy = true;
+  const s = JSON.parse(JSON.stringify(STARTER));
+  const now = new Date().toISOString();
+  picks.banks.forEach(b=> s.accounts.push({id: genId('acct'), name: b, tag: '', em: '', bank: b, owner: 'self', ownerName: '', openedAt: now, opening: 0, needsBalance: true}));
+  picks.cards.forEach(c=> s.cards.push({id: genId('card'), name: /card/i.test(c) ? c : c + ' Card', tag: '', em: '', bank: c.replace(/\s*card$/i, ''), owner: 'self', ownerName: '', openedAt: now, openingDue: 0, needsBalance: true}));
+  try{
+    if(!setupHid) setupHid = db.collection('households').doc().id;
+    await db.collection('households').doc(setupHid).set({name:hhName, owner:authUser.uid, members:[authUser.uid], memberEmails:[myEmail()], invites:[], createdAt:now});
+    currentHid = setupHid;
+    await writeFullStateToCloud(pluckFullState(s));
+    await db.collection('users').doc(authUser.uid).set({householdId:setupHid, email:myEmail(), name:myName, joinedAt:now});
+  }catch(e){
+    console.error('Set-up failed', e);
+    currentHid = null; setupBusy = false;
+    if(isDeniedError(e)){ showGate('closed'); return; }
+    if(btn){ btn.disabled = false; btn.textContent = 'Start'; }
+    showToast('Could not finish set-up. Check your connection and try again.', 4000);
+    return;
+  }
+  setupBusy = false;
+  try{ localStorage.removeItem('fa-onboard-picks'); }catch(e){}
+  const hid = setupHid; setupHid = null;
+  await openHousehold(hid, {state:s, name:myName, householdName:hhName});
+  await afterSetupSteps();
 }
 // One Google screen: sign in and let the app read bank alerts. Falls back to the plain sign-in
 // if the server cannot be reached.
@@ -1718,13 +1814,13 @@ function claimIfPending(){
   let flag = null; try{ flag = sessionStorage.getItem('fa-first-month'); }catch(e){}
   if(!flag || !authUser) return;
   try{ sessionStorage.removeItem('fa-first-month'); }catch(e){}
-  readerCall('claimInbox', {body: {}}).catch(e=> console.error('claimInbox failed', e));
+  readerCall('claimInbox', {body: {}}).catch(e=> console.warn('claimInbox failed', e));
 }
 // After set-up: tie the inbox to the household, then offer this month's statement.
 async function afterSetupSteps(preview){
   let info = {noAlertAccounts: [], claimed: false};
   if(!preview){
-    try{ const r = await readerCall('claimInbox', {body: {}}); if(r.status === 200 && r.data.ok) info = r.data; }catch(e){ console.error('claimInbox failed', e); }
+    try{ const r = await readerCall('claimInbox', {body: {}}); if(r.status === 200 && r.data.ok) info = r.data; }catch(e){ console.warn('claimInbox failed', e); }
     try{ sessionStorage.removeItem('fa-first-month'); }catch(e){}
     if(readerStatus) readerStatus.noAlertAccounts = info.noAlertAccounts || [];
     else readerStatus = {inboxes: [], noAlertAccounts: info.noAlertAccounts || []};
@@ -1742,7 +1838,7 @@ async function afterSetupSteps(preview){
       try{
         const r = await readerCall('manualFetch', {method:'GET', query:'after=' + encodeURIComponent(statementFirstDayIso())});
         if(r.status === 200 && r.data && r.data.ok) found = r.data.totalFound || 0;
-      }catch(e){ console.error('First check failed', e); }
+      }catch(e){ console.warn('First check failed', e); }
     }
   }
   showFirstMonth(needStmt.length ? 'import' : 'done', {found, connected, needStmt, preview});
@@ -1916,8 +2012,11 @@ async function settleHousehold(){
   let found;
   try{ found = await lookUpHousehold(); }
   catch(e){ console.error('Could not look up the household', e); showGate('offline'); return false; }
-  if(found.hid){ await openHousehold(found.hid); claimIfPending(); return false; }
-  showGate(found.closed ? 'closed' : 'setup', {invite: found.invite});
+  if(found.hid){ try{ localStorage.removeItem('fa-onboard-picks'); }catch(e){} await openHousehold(found.hid); claimIfPending(); return false; }
+  if(found.closed){ showGate('closed'); return false; }
+  if(found.invite){ showGate('setup', {invite: found.invite}); return false; }
+  // a new person: no form. The banks picked before Google become the accounts.
+  if(onboardPicks()) autoSetup(); else showBankPicker(true);
   return false;
 }
 
@@ -1993,7 +2092,7 @@ async function joinInvitedHousehold(inv){
   setupBusy = false;
   await openHousehold(inv.householdId, {name:myName, householdName:inv.householdName || ''});
   showToast('You have joined ' + (inv.householdName || 'the household'), 3000);
-  try{ await readerCall('claimInbox', {body: {}}); }catch(e){ console.error('claimInbox failed', e); }
+  try{ await readerCall('claimInbox', {body: {}}); }catch(e){ console.warn('claimInbox failed', e); }
 }
 
 // ---- Household section in Settings: members and invitations ----
@@ -3855,7 +3954,19 @@ function accountsWithoutEmail(){
   return [...known, ...[...state.accounts, ...state.cards].filter(a=> !knownIds.has(a.id) && a.id!=='cash_wallet' && a.id!=='sinking_fund' && !ok.has(a.id) && !fromEmail.has(a.id) && (byHand[a.id]||0) >= 2)
     .map(a=> ({id:a.id, name:a.name, n:byHand[a.id]}))];
 }
+function renderBalanceNeeded(){
+  const wrap = document.getElementById('home-balance-wrap'); if(!wrap) return;
+  const list = [...state.accounts.map(a=> ({a, card:false})), ...state.cards.map(c=> ({a:c, card:true}))].filter(x=> x.a.needsBalance);
+  if(!list.length){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `<div class="card queue-card" style="margin-bottom:14px;">
+    <div class="name" style="font-weight:600;">Add today\u2019s balance</div>
+    <div class="eng-sub" style="margin:4px 0 6px;">So the app shows the right money in each account. For a card, enter what is due today.</div>
+    ${list.map(x=> `<div class="eng-line"><span>${storyEsc(x.a.name)}</span><button class="link-btn" data-needbal="${storyEsc(x.a.id)}" data-iscard="${x.card?1:0}">Set</button></div>`).join('')}
+  </div>`;
+  wrap.querySelectorAll('[data-needbal]').forEach(b=> b.addEventListener('click', ()=> openAdjustBalance(b.getAttribute('data-needbal'), b.getAttribute('data-iscard') === '1')));
+}
 function renderNoEmailCard(){
+  renderBalanceNeeded();
   ['no-email-wrap', 'home-no-email-wrap'].forEach(id=> renderNoEmailCardIn(document.getElementById(id), id));
 }
 function renderNoEmailCardIn(wrap, wid){
@@ -6324,6 +6435,7 @@ document.getElementById('adjustbal-save').addEventListener('click', async ()=>{
       ts: new Date().toISOString(), oldValue: current, newValue: target, diff, remarks
     });
   }
+  { const t = [...state.accounts, ...state.cards].find(x=> x.id === adjustTargetId); if(t && t.needsBalance) delete t.needsBalance; }
   await saveState();
   render();
   document.getElementById('adjustbal-backdrop').classList.remove('open');
