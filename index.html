@@ -1234,7 +1234,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-20 · v105-statement-check</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-20 · v106-whole-statement</p>
   </div>
 </div>
 
@@ -2863,7 +2863,7 @@ function toggleMask(){
 }
 document.getElementById('mask-toggle-btn').addEventListener('click', toggleMask);
 // The owner sees whether the server has been deployed with what this app needs.
-const APP_NEEDS_SERVER = 'v105';
+const APP_NEEDS_SERVER = 'v106';
 async function checkServerVersion(){
   const el = document.getElementById('server-version-line'); if(!el || !ownerView) return;
   el.textContent = 'Server: checking…';
@@ -7141,6 +7141,7 @@ async function readStatementOnServer(){
     const res = matchStatementRows(stRows, null);
     res.held = r.data.held || 0;
     res.unchecked = !!r.data.unchecked;
+    res.partial = r.data.partial || null;
     renderStatementImport(res);
   }catch(e){
     console.error('Statement reading failed', e);
@@ -7203,6 +7204,7 @@ function renderStatementImport(res){
   }
   resultsEl.innerHTML = `<div class="recon-group-title">${rows.length} not in the app yet · ${from.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}${end ? ' to ' + end.toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : ''}</div>` +
     rows.map((r,i)=> `<label class="recon-row" style="cursor:pointer;"><div><div class="d">${storyEsc(r.desc||'(no description)')}</div><div class="m">${r.date.toLocaleDateString('en-IN')} · ${r.isOut?'paid':'received'} ${fmt(r.amount)}</div></div><input type="checkbox" data-stmtpick="${i}" checked style="width:22px; height:22px;"></label>`).join('') +
+    (res.partial ? `<p class="section-sub" style="margin-top:10px; color:var(--debt);">Only ${res.partial.got} of about ${res.partial.want} entries on this statement could be read. Try uploading it again, or add the rest with +.</p>` : '') +
     (res.unchecked ? `<p class="section-sub" style="margin-top:10px;">Some entries could not be checked against the statement\u2019s balance, so look at each one carefully on Home.</p>` : '') +
     (res.held ? `<p class="section-sub" style="margin-top:10px;">${res.held} line${res.held===1?'':'s'} did not match the statement\u2019s own balance, so ${res.held===1?'it was':'they were'} left out. Add ${res.held===1?'it':'them'} with + if needed.</p>` : '') +
     `<button class="btn-primary" id="stmt-send-btn" style="margin-top:12px;">Send to Home for checking</button>`;
