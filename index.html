@@ -226,11 +226,40 @@
   nav.tabbar{position:fixed; left:0; right:0; bottom:0; max-width:480px; margin:0 auto; background:var(--nav); border-top:1px solid var(--line); border-radius:26px 26px 0 0; display:flex; padding:10px 8px calc(env(safe-area-inset-bottom,0px) + 10px); box-shadow:0 -10px 30px rgba(0,0,0,0.18); z-index:40; transition:background .25s ease;}
   nav.tabbar button{flex:1; background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:10.5px; font-weight:400; color:var(--ink-soft); padding:6px 2px; cursor:pointer; opacity:.75; transition:color .15s ease, opacity .15s ease;}
   nav.tabbar button.active{color:var(--ink); opacity:1; font-weight:500;}
-  nav.tabbar button:nth-child(2){margin-right:36px;}
-  nav.tabbar button:nth-child(3){margin-left:36px;}
+  nav.tabbar button:nth-child(2){margin-right:62px;}
+  nav.tabbar button:nth-child(3){margin-left:62px;}
   nav.tabbar svg{width:22px; height:22px;}
-  .fab{position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom,0px) + 30px); margin-left:-30px; width:60px; height:60px; border-radius:50%; background:var(--accent-grad); color:#fff; border:none; font-size:34px; font-weight:400; line-height:1; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 6px var(--nav), var(--accent-glow); cursor:pointer; z-index:41; padding:0 0 3px; transition:transform .12s ease;}
+  .fab{position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom,0px) + 34px); margin-left:-60px; width:54px; height:54px; border-radius:50%; background:var(--accent-grad); color:#fff; border:none; font-size:34px; font-weight:400; line-height:1; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 6px var(--nav), var(--accent-glow); cursor:pointer; z-index:41; padding:0 0 3px; transition:transform .12s ease;}
   .fab:active{transform:scale(0.93);}
+  /* the + and the mic sit side by side in the middle of the bar, both raised */
+  #fab-voice{margin-left:6px; background:linear-gradient(140deg,#B48CFF,#7444E6); box-shadow:0 0 0 6px var(--nav), 0 8px 22px rgba(116,68,230,0.40); padding:0;}
+  #fab-voice svg{width:25px; height:25px;}
+  .fab-label{position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom,0px) + 13px); width:54px; text-align:center; font-size:10.5px; color:var(--ink-soft); z-index:41; pointer-events:none;}
+  #fab-add-label{margin-left:-60px;} #fab-voice-label{margin-left:6px;}
+  /* Speak panel: the app stays visible, dimmed, behind it */
+  #voice-backdrop{background:rgba(5,8,11,0.42); z-index:72;}
+  .voice-sheet{padding-top:16px; text-align:center;}
+  .voice-top{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px;}
+  .voice-x{width:40px; height:40px; border-radius:50%; border:1px solid var(--line); background:none; color:var(--ink); font-size:18px; cursor:pointer;}
+  .voice-lang{border:1px solid var(--line); background:none; color:var(--ink-soft); border-radius:14px; padding:6px 11px; font-size:12px; cursor:pointer;}
+  #voice-status{flex:1; font-size:13px; color:var(--ink-soft);}
+  .voice-mic{width:74px; height:74px; margin:6px auto 12px; border-radius:50%; border:none; background:linear-gradient(140deg,#B48CFF,#7444E6); color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative;}
+  .voice-mic svg{width:32px; height:32px;}
+  .voice-mic.on::before,.voice-mic.on::after{content:''; position:absolute; inset:0; border-radius:50%; background:rgba(150,100,255,0.35); animation:voicePulse 1.4s ease-out infinite; z-index:-1;}
+  .voice-mic.on::after{animation-delay:.7s;}
+  @keyframes voicePulse{from{transform:scale(1); opacity:.9;} to{transform:scale(1.9); opacity:0;}}
+  #voice-text{width:100%; box-sizing:border-box; min-height:58px; resize:none; font:inherit; font-size:18px; line-height:1.35; text-align:center; color:var(--ink); background:var(--card, transparent); border:1px solid var(--line); border-radius:16px; padding:12px;}
+  .voice-chips{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:12px 0 4px;}
+  .voice-chip{border:1px solid var(--line); border-radius:14px; padding:7px 12px; font-size:13px; color:var(--ink); background:none;}
+  .voice-chip b{font-weight:600;} .voice-chip.check{border-color:#E0A23B; color:#E0A23B;}
+  button.voice-chip{cursor:pointer;}
+  .voice-note{font-size:12px; color:var(--ink-soft); margin:0 0 10px; line-height:1.4;}
+  .voice-ok{width:64px; height:64px; border-radius:50%; border:none; background:var(--accent-grad); color:#fff; font-size:28px; margin:12px auto 0; display:flex; align-items:center; justify-content:center; cursor:pointer;}
+  #voice-undo{position:fixed; left:16px; right:16px; margin:0 auto; width:fit-content; white-space:nowrap; bottom:calc(env(safe-area-inset-bottom,0px) + 104px); background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:16px; padding:10px 14px; display:none; align-items:center; gap:14px; z-index:80; box-shadow:0 8px 24px rgba(0,0,0,0.3); font-size:13.5px; max-width:92vw;}
+  #voice-undo.show{display:flex;}
+  #voice-undo button{background:none; border:none; color:var(--peri); font-weight:600; font-size:14px; cursor:pointer;}
+  .spoken-tag{display:inline-block; font-size:10px; font-weight:500; color:#9A6BFF; border:1px solid rgba(154,107,255,0.5); border-radius:8px; padding:0 6px; margin-left:6px; vertical-align:2px;}
+  .check-mark{color:#E0A23B;}
 
   /* ---- Sheets and full-screen pages ---- */
   .sheet-backdrop{position:fixed; inset:0; background:rgba(5,8,11,0.62); display:none; align-items:flex-end; justify-content:center; z-index:70;}
@@ -684,7 +713,26 @@
   </nav>
   <!-- The + sits in the middle of the bar. Kept outside <nav> so the tab-switch handler never treats it as a tab. -->
   <button class="fab" id="fab-add" title="Add a transaction" aria-label="Add a transaction">+</button>
+  <button class="fab" id="fab-voice" title="Speak an entry" aria-label="Speak an entry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/></svg></button>
+  <span class="fab-label" id="fab-add-label">Add</span><span class="fab-label" id="fab-voice-label">Speak</span>
 </div>
+
+<!-- SPEAK PANEL: one tap on the mic opens it and starts listening. Only the words are kept, never the sound. -->
+<div class="sheet-backdrop" id="voice-backdrop">
+  <div class="sheet voice-sheet">
+    <div class="voice-top">
+      <button class="voice-x" id="voice-cancel" aria-label="Cancel">✕</button>
+      <div id="voice-status">Listening…</div>
+      <button class="voice-lang" id="voice-lang-btn" aria-label="Voice language">हिंदी</button>
+    </div>
+    <button class="voice-mic" id="voice-mic" aria-label="Listen again"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/></svg></button>
+    <p class="voice-note hide" id="voice-note">Your phone turns speech into text using Google's (or Apple's) speech service. We keep only the text, never the recording.</p>
+    <textarea id="voice-text" rows="2" placeholder="Say it, like “50 Blinkit” or “dhai sau diye doodh wale ko”"></textarea>
+    <div class="voice-chips" id="voice-chips"></div>
+    <button class="voice-ok" id="voice-ok" aria-label="Save">✓</button>
+  </div>
+</div>
+<div id="voice-undo"><span id="voice-undo-text"></span><button id="voice-undo-btn">Undo</button></div>
 
 <!-- ADD TRANSACTION SHEET -->
 <div class="sheet-backdrop" id="tx-backdrop">
@@ -1205,6 +1253,13 @@
       <button data-v="light"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px; margin-right:6px;"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg>Light</button>
     </div>
 
+    <div class="divider-label">Voice entry</div>
+    <div class="seg" id="voice-lang-seg" style="margin-bottom:6px;">
+      <button data-v="hi-IN">हिंदी (Hindi)</button>
+      <button data-v="en-IN">English</button>
+    </div>
+    <p class="section-sub" style="margin:0 0 6px;">The language you speak in when you tap the mic. Hindi also understands English numbers and shop names.</p>
+
     <div id="household-section" class="hide">
       <div class="divider-label">Household</div>
       <div class="card" id="household-box" style="margin-bottom:6px;"></div>
@@ -1234,7 +1289,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-20 · v107-statement-diag</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-25 · v108-voice-entry</p>
   </div>
 </div>
 
@@ -1510,6 +1565,8 @@ function normalizeState(){
   if(!Array.isArray(state.hiddenMailKinds)) state.hiddenMailKinds = [];
   if(!Array.isArray(state.hideKindDeclined)) state.hideKindDeclined = [];
   if(!Array.isArray(state.gapsSeen)) state.gapsSeen = [];
+  if(!state.voiceWords || typeof state.voiceWords !== 'object' || Array.isArray(state.voiceWords)) state.voiceWords = {};
+  if(!Array.isArray(state.spokenMatchDeclined)) state.spokenMatchDeclined = [];
   // A device that starts from the empty starting set must not treat that set as its own new
   // work: only what is added from here on is sent to the cloud.
   if(!stateFromStorage && typeof previousArrays !== 'undefined'){
@@ -2575,7 +2632,7 @@ const COLLECTION_FIELDS = {
   // correction, rejected, already logged) — the score sheet for the email reader.
   importOutcomes: 'importOutcome'
 };
-const META_FIELDS = ['budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','lastBudgetReviewMonth','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts','transferPairDeclined','noEmailOk','hiddenMailKinds','hideKindDeclined','gapsSeen'];
+const META_FIELDS = ['budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','lastBudgetReviewMonth','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts','transferPairDeclined','noEmailOk','hiddenMailKinds','hideKindDeclined','gapsSeen','voiceWords','spokenMatchDeclined'];
 let previousArrays = { transactions:[], personLedger:[], pendingImports:[], dismissedImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[], budgetMonths:[], importOutcomes:[] };
 
 // ---- Outbox for cloud writes that haven't been confirmed yet ----
@@ -7421,6 +7478,7 @@ function classifyImportCandidates(candidates, existingPending){
   // full transparency on what was found and why each was or wasn't queued.
   const pool = buildExistingCashEventsPool();
   const accepted = [];
+  existingPending = (existingPending||[]).filter(p=> !p.fromSpoken);
   return candidates.map(c=>{
     const ledgerMatch = pool.find(e=>isDuplicateOf(c,e,DUP_TOLERANCE_LEDGER_MIN,false));
     const isDupVsBatch = accepted.some(a=>isDuplicateOf(c,a,DUP_TOLERANCE_EMAIL_MIN,true)) || existingPending.some(p=>isDuplicateOf(c,p,DUP_TOLERANCE_EMAIL_MIN,true));
@@ -8077,25 +8135,32 @@ function renderPendingReview(){
   const pairs = findTransferPairs();
   const pairedIds = pairedImportIds(pairs);
   const pairsHtml = transferPairsHtml(pairs);
+  const spokenMatches = findSpokenMatches();
+  spokenMatches.forEach(m=>{ pairedIds.add(m.spoken.id); pairedIds.add(m.other.id); });
+  const matchHtml = spokenMatchesHtml(spokenMatches);
   const items = all.filter(i=> !i.possible && !pairedIds.has(i.id));
   const possibleHtml = possibles.length ? `<div class="card queue-card" style="margin-bottom:16px;">
     <div class="row" id="possible-toggle" style="cursor:pointer;"><div><div class="name">${possibles.length} possible transaction${possibles.length>1?'s':''} from other senders</div><div class="sub">Not from a bank, card or payment app address. Add one only if it is real.</div></div><span class="link-btn">${possibleOpen ? 'Hide' : 'Show'}</span></div>
     ${possibleOpen ? possibles.map(it=> `<div class="row" data-reviewimport="${it.id}" style="cursor:pointer;"><div style="min-width:0;"><div class="name">${storyEsc(it.payee)}</div><div class="sub" style="overflow-wrap:anywhere;">${new Date(it.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${storyEsc(it.sender||'')}</div></div><div style="text-align:right;"><div class="amt ${it.type==='income'?'pos':'neg'}">${fmt(it.amount)}</div><div class="sub" style="font-size:10.5px; color:var(--peri);">to check</div></div></div>`).join('') : ''}
   </div>` : '';
   if(!items.length){
-    wrap.innerHTML = pairsHtml + possibleHtml;
+    wrap.innerHTML = matchHtml + pairsHtml + possibleHtml;
     wireTransferPairs(wrap, pairs);
+    wireSpokenMatches(wrap);
     const tg = document.getElementById('possible-toggle'); if(tg) tg.addEventListener('click', ()=>{ possibleOpen = !possibleOpen; renderPendingReview(); });
     wrap.querySelectorAll('[data-reviewimport]').forEach(el=> el.addEventListener('click', ()=> openReviewImport(el.getAttribute('data-reviewimport'))));
     return;
   }
   const newCount = items.filter(i=>i.status==='pending').length;
   const dupCount = items.filter(i=>i.status==='duplicate').length;
+  const spokenNeedBank = all.filter(i=> i.fromSpoken && !i.accountId).length;
+  const anySpoken = items.some(i=> i.fromSpoken);
   wrap.innerHTML = `<div class="card queue-card" style="margin-bottom:16px;">
-    <div class="row"><div><div class="name"><span class="q-dot"></span>${items.length} transaction${items.length>1?'s':''} from your email</div><div class="sub">${newCount} to review${dupCount?`, ${dupCount} look like duplicates`:''}</div></div>
+    <div class="row"><div><div class="name"><span class="q-dot"></span>${items.length} transaction${items.length>1?'s':''} ${anySpoken ? 'waiting for you' : 'from your email'}</div><div class="sub">${newCount} to review${dupCount?`, ${dupCount} look like duplicates`:''}</div>${spokenNeedBank ? `<div class="sub" id="spoken-nudge" style="color:#9A6BFF;">${spokenNeedBank} spoken entr${spokenNeedBank===1?'y needs':'ies need'} a bank</div>` : ''}</div>
       <button class="link-btn" id="clear-all-pending-btn" style="color:var(--debt);">Clear all</button>
     </div>
     ${items.map(it=>{
+      if(it.fromSpoken) return spokenRowHtml(it);
       const meta = catMeta(it.category);
       const isDup = it.status==='duplicate';
       const acctObj = it.accountId ? [...state.accounts, ...state.cards].find(a=>a.id===validatedAccountId(it.accountId, it.sourceEmail)) : null;
@@ -8115,8 +8180,9 @@ function renderPendingReview(){
       </div>`;
     }).join('')}
   </div>` + possibleHtml;
-  wrap.innerHTML = pairsHtml + wrap.innerHTML;
+  wrap.innerHTML = matchHtml + pairsHtml + wrap.innerHTML;
   wireTransferPairs(wrap, pairs);
+  wireSpokenMatches(wrap);
   const tg = document.getElementById('possible-toggle'); if(tg) tg.addEventListener('click', ()=>{ possibleOpen = !possibleOpen; renderPendingReview(); });
   document.getElementById('clear-all-pending-btn').addEventListener('click', async ()=>{
     const clearing = state.pendingImports.filter(p=> !p.possible).length;
@@ -8316,8 +8382,8 @@ function openReviewImport(id){
     if(pr) riTransferTarget = imp.type==='income' ? pr.from : pr.to; }
   document.getElementById('ri-mode').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v==='regular'));
   document.getElementById('ri-person-dir').querySelectorAll('button').forEach(b=> b.classList.toggle('on', b.dataset.v === (imp.type==='income' ? 'received' : 'gave')));
-  const sourceLine = imp.fromStatement ? 'From your uploaded statement · ' + new Date(imp.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) + ' · “' + (imp.subject||'') + '”' : imp.fromSms ? 'From a pasted SMS · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + ' · “' + (imp.subject||'') + '”' : 'From ' + (imp.sourceEmail||'your email') + ' · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + (imp.sender ? ' · sent by ' + imp.sender : '') + (imp.subject ? ' · “' + imp.subject + '”' : '');
-  document.getElementById('ri-source-note').textContent = (imp.status==='duplicate' ? 'Possible duplicate. Check before adding. ' : '') + (imp.dirLearned ? 'Direction set as you corrected it before for this sender. ' : '')
+  const sourceLine = imp.fromSpoken ? 'You said: “' + (imp.heard||imp.subject||'') + '” · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + '. Choose the bank or card it was paid from.' : imp.fromStatement ? 'From your uploaded statement · ' + new Date(imp.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) + ' · “' + (imp.subject||'') + '”' : imp.fromSms ? 'From a pasted SMS · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + ' · “' + (imp.subject||'') + '”' : 'From ' + (imp.sourceEmail||'your email') + ' · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + (imp.sender ? ' · sent by ' + imp.sender : '') + (imp.subject ? ' · “' + imp.subject + '”' : '');
+  document.getElementById('ri-source-note').textContent = (imp.status==='duplicate' ? 'Possible duplicate. Check before adding. ' : '') + (imp.fromSpoken && imp.checkAmount ? 'Check the amount. ' : '') + (imp.fromSpoken && imp.checkDirection ? 'Check Spent or Received. ' : '') + (imp.dirLearned ? 'Direction set as you corrected it before for this sender. ' : '')
     + (imp.possible ? 'From an address that does not look like a bank, card or payment app. Add it only if it is a real transaction. ' : imp.unknownSender ? (imp.bankLike ? 'New address that looks like a bank. Check the account. ' : 'New address, not tied to any account. Check the account. ') : '') + sourceLine;
   document.getElementById('ri-payee').value = imp.payee;
   document.getElementById('ri-amount').value = imp.amount;
@@ -8336,6 +8402,7 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
   if(!riSelectedAccount){ alert('Please choose an account or card first.'); return; }
   const payee = document.getElementById('ri-payee').value.trim() || imp.payee;
   const mode = segValue('ri-mode');
+  voiceLearnFromCorrection(imp, amount);
 
   if(mode==='person'){
     if(!riSelectedPerson){ alert('Choose a person.'); return; }
@@ -8391,7 +8458,7 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
   const tx = {
     id: genId('tx'), ts: imp.ts, type: riSelectedType,
     account: riSelectedAccount, payee, category: riSelectedCat, amount,
-    household: riSelectedType==='expense' ? segValue('ri-household')==='yes' : false, remarks: imp.fromStatement ? 'Added from statement' : imp.fromSms ? 'Added from SMS' : 'Imported from email'
+    household: riSelectedType==='expense' ? segValue('ri-household')==='yes' : false, remarks: imp.fromSpoken ? 'Added by voice' : imp.fromStatement ? 'Added from statement' : imp.fromSms ? 'Added from SMS' : 'Imported from email'
   };
   state.transactions.push(tx);
   recordImportOutcome(imp, 'added', {type:riSelectedType, amount, payee, accountId:riSelectedAccount, category:riSelectedCat}, 'regular', null, tx.id);
@@ -8833,7 +8900,7 @@ document.getElementById('engine-copy-btn').addEventListener('click', async ()=>{
 // the real button on the screen. Anything typed is matched against these first (free, on the
 // phone). Only what does not match goes to the server, where AI answers from the same guide;
 // what the guide does not cover is kept for the app's owner, and his reply shows here.
-const HELP_TOPICS = [{"id": "start", "title": "What this app does", "keywords": ["start", "begin", "beginning", "new user", "intro", "overview", "tabs", "shuru", "what does this app do", "getting started", "guide"], "answer": "It keeps your household money in one place.\n• Home: this month's spending, entries waiting from your email, recent activity and the budget.\n• Accounts: every bank account and card with its balance.\n• People: money you lent or borrowed.\n• Insights: where the money went, savings, six months.\nSwipe left or right to move between them. The + button adds an entry.", "tour": [{"do": "tab:home", "sel": "nav.tabbar", "text": "Four tabs: Home, Accounts, People and Insights. You can also swipe sideways between them."}, {"sel": "#fab-add", "text": "The + button adds an expense, income, transfer or a people entry."}]}, {"id": "add-expense", "title": "Add an expense", "keywords": ["add", "expense", "spend", "spent", "paid", "pay", "entry", "log", "kharcha", "new transaction", "record"], "answer": "1. Tap + at the bottom.\n2. Expense is already picked. Type the amount on the keypad.\n3. Write who you paid (shop, person, bill).\n4. Pick a category and the account or card it was paid from.\n5. Tap Save.", "tour": [{"sel": "#fab-add", "text": "Tap + to add an entry."}, {"do": "open:add", "sel": "#tx-type", "text": "Expense is picked already. Income and Transfer are here too."}, {"do": "open:add", "sel": ".amount-display", "text": "Type the amount on the keypad below."}, {"do": "open:add", "sel": "#tx-payee", "text": "Write who you paid."}, {"do": "open:add", "sel": "#tx-save", "text": "Pick the category and account above, then Save."}]}, {"id": "add-income", "title": "Add income or a transfer", "keywords": ["income", "salary", "received", "credit", "transfer", "move", "own account", "card payment", "bill payment", "pay card"], "answer": "Tap +, then choose Income (money that came in) or Transfer (money moved between your own accounts, or paying your credit card bill). Type the amount, pick the accounts, and Save. A transfer is not spending.", "tour": [{"do": "open:add", "sel": "#tx-type", "text": "Choose Income or Transfer here."}]}, {"id": "people", "title": "Lend or borrow money (People)", "keywords": ["people", "person", "lend", "lent", "borrow", "loan", "owe", "friend", "udhaar", "give", "got", "repay", "settle", "ledger"], "answer": "People keeps track of money between you and others.\n• Tap + and choose People, or go to the People tab.\n• \"You gave\" means they owe you; \"You got\" means you owe them.\n• Tap a person's amount to add a payment. Tap their name to see every entry.\n• Edit (under the name) changes the name or note. When the balance is zero, Settle takes them off the list; the record is kept.", "tour": [{"do": "tab:people", "sel": "#add-person-btn", "text": "Add a new person here."}, {"do": "tab:people", "sel": ".person-block", "text": "Tap the amount to add a payment; tap the name to see the entries."}]}, {"id": "reimburse", "title": "Office reimbursement, or paid for someone", "keywords": ["reimbursement", "reimburse", "office", "company", "claim", "expense claim", "paid for", "on behalf", "split", "kisi ke liye", "office ka", "wapas", "refund from office", "dost ke liye"], "answer": "Money you pay for your office, a friend or family that will come back is kept in People, so it is not counted as your own spending.\n1. Go to the People tab and tap the + at the top (Add person). Name it, for example \"Office\".\n2. When you pay for the office, tap the amount next to Office and add it as You gave.\n3. When the office pays you back, add it as You got.\n4. The balance shows how much the office still owes you. When it reaches zero, tap Settle.", "tour": [{"do": "tab:people", "sel": "#add-person-btn", "text": "Add a new person here."}, {"do": "tab:people", "sel": ".person-block", "text": "Tap the amount to add a payment; tap the name to see the entries."}]}, {"id": "connect-gmail", "title": "Connect Gmail so entries come in by themselves", "keywords": ["gmail", "email", "mail", "connect", "automatic", "auto", "bank alert", "inbox", "link", "read email"], "answer": "When you sign in with Google, the same step connects your Gmail. To connect another inbox later:\n1. Open Settings (the gear on Home).\n2. Under Bank emails tap Connect another inbox.\n3. Choose that Google account and allow reading.\nThe app reads only your banks' alert mails, twice a day, and shows each transaction on Home for you to check. You can disconnect any time from the same place.", "tour": [{"do": "tab:home", "sel": "#open-tools-btn", "text": "Open Settings."}, {"do": "open:tools", "sel": "#reader-connect-btn", "text": "Tap Connect Gmail and allow reading your bank alerts."}]}, {"id": "review-email", "title": "Entries from email: add or reject", "keywords": ["review", "waiting", "pending", "approve", "reject", "not real", "from your email", "suggested", "imported", "check entry"], "answer": "Entries the app found in your bank mails wait on Home.\n• Tap one, check the amount, category and account, then Add.\n• If it isn't a real transaction, tap Not a transaction. If you already added it yourself, tap Already added.\n• If the direction is wrong, tap Wrong direction?; the app remembers it for that bank.", "tour": [{"do": "tab:home", "sel": "#pending-review-wrap", "text": "Entries from your email wait here. Tap one to add or reject it."}]}, {"id": "check-email", "title": "Check email now or for past dates", "keywords": ["check", "fetch", "now", "refresh", "sync", "past", "from date", "old", "missing", "month"], "answer": "Go to Accounts. In Check email pick a From date (from the 1st of this month) and a To date if you want, then tap Check. New entries appear on Home. The app also checks by itself at 8 am and 8 pm. For anything older, go to Accounts, tap the account, then Upload statement.", "tour": [{"do": "tab:money", "sel": ".email-fetch", "text": "Pick the dates and tap Check."}]}, {"id": "fix-balance", "title": "Balance is wrong: fix it", "keywords": ["balance", "wrong", "incorrect", "fix", "adjust", "mismatch", "not matching", "difference", "reconcile", "unaccounted"], "answer": "1. Go to Accounts and tap the account.\n2. Tap Incorrect balance? Edit.\n3. Type the balance your bank app shows and Save.\nIf an entry explains the difference, Fix balance shows it with Remove this entry.", "tour": [{"do": "tab:money", "sel": "[data-acctstatement]", "text": "Tap the account."}, {"do": "open:firstaccount", "sel": "#acctstatement-edit-link", "text": "Tap Edit and type the balance your bank shows."}]}, {"id": "paste-sms", "title": "My bank doesn't email: statement or SMS", "keywords": ["sms", "message", "text", "paste", "upi", "sbi", "kotak", "no email", "phonepe", "gpay", "paytm", "not coming", "statement", "upload", "pdf", "csv", "download statement", "bank statement", "upload statement", "import"], "answer": "Some banks don't email every transaction (for example SBI, Kotak, Indian Bank), or the app has not confirmed their alert address yet. Home shows a card for them.\n1. Download this month's statement from the bank's app or website (PDF or CSV).\n2. Go to Accounts, tap the account, then Upload statement (or tap Statement on the Home card). If the PDF has a password, type it; it stays on your phone.\n3. Entries from the 1st of this month that are not in the app go to Home for you to check. Your balances are not changed.\nOr copy the bank's SMS, tap +, then Paste a bank SMS instead.", "tour": [{"do": "open:add", "sel": "#tx-paste-sms", "text": "Tap here and paste the bank's SMS."}]}, {"id": "add-account", "title": "Add a bank account or credit card", "keywords": ["account", "card", "credit card", "bank", "add account", "new card", "wallet", "cash"], "answer": "Go to Accounts and tap + at the top. Choose bank account or credit card, write its name (include the bank's name, like \"HDFC Savings\"), the last digits and today's balance or amount due, then Save.", "tour": [{"do": "tab:money", "sel": "#add-account-btn", "text": "Tap + to add an account or card."}]}, {"id": "budget", "title": "Budget and categories", "keywords": ["budget", "category", "categories", "limit", "plan", "monthly", "rename category", "delete category"], "answer": "The budget is on Home, below Recent activity. Each category shows spending against its budget. Tap ✎ to rename, change or delete a category; + Add a category makes a new one; Edit budget opens the full planner.", "tour": [{"do": "tab:home", "sel": "#home-budget-panel", "text": "Your budget for this month. Tap ✎ on a category to change it."}, {"do": "tab:home", "sel": "#home-budget-edit-btn", "text": "Edit budget opens the full planner."}]}, {"id": "edit-entry", "title": "Change or delete an entry", "keywords": ["edit", "change", "delete", "remove", "mistake", "wrong entry", "correct", "update entry"], "answer": "Tap the entry (in Recent activity on Home, or in an account's list). Change what you need and Save, or tap Delete. A People entry opens from the person's list in the People tab.", "tour": [{"do": "tab:home", "sel": "#recent-list", "text": "Tap any entry to change or delete it."}]}, {"id": "insights", "title": "Insights: where the money went", "keywords": ["insight", "analysis", "report", "chart", "where", "savings", "saving", "trend", "category spend", "download", "pdf"], "answer": "The Insights tab shows spending by category, income, savings (investments count as saved), the month against your usual, the last six months and your top payees. Use the arrows to change the month; ⬇ PDF downloads it.", "tour": [{"do": "tab:insights", "sel": "#analysis-period-tabs", "text": "Choose week, month or a custom period."}]}, {"id": "invite", "title": "Add my partner to the household", "keywords": ["partner", "wife", "husband", "family", "share", "invite", "household", "together", "member"], "answer": "Open Settings, find Household, type your partner's Gmail address and tap Invite. When they sign in with that Google account, they see the same household.", "tour": [{"do": "open:tools", "sel": "#household-section", "text": "Type your partner's Gmail address and tap Invite."}]}, {"id": "privacy", "title": "Hide balances and privacy", "keywords": ["hide", "privacy", "private", "safe", "secure", "security", "mask", "data", "who can see"], "answer": "The eye button on Home hides every balance. Your data is in your own household; only people you invite can see it. The app reads only bank alert mails, never anything else, and you can disconnect Gmail any time in Settings.", "tour": [{"do": "tab:home", "sel": "#mask-toggle-btn", "text": "Tap the eye to hide or show balances."}]}, {"id": "theme", "title": "Dark or light look", "keywords": ["dark", "light", "theme", "colour", "color", "mode"], "answer": "Open Settings and choose Dark or Light under Appearance.", "tour": [{"do": "open:tools", "sel": "#theme-seg", "text": "Choose Dark or Light."}]}];
+const HELP_TOPICS = [{"id": "start", "title": "What this app does", "keywords": ["start", "begin", "beginning", "new user", "intro", "overview", "tabs", "shuru", "what does this app do", "getting started", "guide"], "answer": "It keeps your household money in one place.\n• Home: this month's spending, entries waiting from your email, recent activity and the budget.\n• Accounts: every bank account and card with its balance.\n• People: money you lent or borrowed.\n• Insights: where the money went, savings, six months.\nSwipe left or right to move between them. The + button adds an entry; the mic next to it lets you say one.", "tour": [{"do": "tab:home", "sel": "nav.tabbar", "text": "Four tabs: Home, Accounts, People and Insights. You can also swipe sideways between them."}, {"sel": "#fab-add", "text": "The + button adds an expense, income, transfer or a people entry."}]}, {"id": "add-expense", "title": "Add an expense", "keywords": ["add", "expense", "spend", "spent", "paid", "pay", "entry", "log", "kharcha", "new transaction", "record"], "answer": "1. Tap + at the bottom.\n2. Expense is already picked. Type the amount on the keypad.\n3. Write who you paid (shop, person, bill).\n4. Pick a category and the account or card it was paid from.\n5. Tap Save.", "tour": [{"sel": "#fab-add", "text": "Tap + to add an entry."}, {"do": "open:add", "sel": "#tx-type", "text": "Expense is picked already. Income and Transfer are here too."}, {"do": "open:add", "sel": ".amount-display", "text": "Type the amount on the keypad below."}, {"do": "open:add", "sel": "#tx-payee", "text": "Write who you paid."}, {"do": "open:add", "sel": "#tx-save", "text": "Pick the category and account above, then Save."}]}, {"id": "voice", "title": "Add an entry by speaking", "keywords": ["voice", "speak", "mic", "microphone", "bol", "bolo", "say", "spoken", "hindi", "talk", "awaaz"], "answer": "1. Tap the purple mic (Speak) at the bottom.\n2. Say it the way you would tell someone, like \"50 Blinkit\", \"dhai sau diye doodh wale ko\" or \"Ramesh se 500 mile\".\n3. It stops when you pause. The entry waits on Home, marked spoken. Tap it, pick the bank or card, and Add.\nIf a word was heard wrong, fix it in the box before ✓. Undo appears for 3 seconds after saving. Only the words are kept, never the recording. Change Hindi or English in Settings, under Voice entry.", "tour": [{"sel": "#fab-voice", "text": "Tap the mic and say the amount and who it was for."}, {"do": "open:tools", "sel": "#voice-lang-seg", "text": "Choose the language you speak in."}]}, {"id": "add-income", "title": "Add income or a transfer", "keywords": ["income", "salary", "received", "credit", "transfer", "move", "own account", "card payment", "bill payment", "pay card"], "answer": "Tap +, then choose Income (money that came in) or Transfer (money moved between your own accounts, or paying your credit card bill). Type the amount, pick the accounts, and Save. A transfer is not spending.", "tour": [{"do": "open:add", "sel": "#tx-type", "text": "Choose Income or Transfer here."}]}, {"id": "people", "title": "Lend or borrow money (People)", "keywords": ["people", "person", "lend", "lent", "borrow", "loan", "owe", "friend", "udhaar", "give", "got", "repay", "settle", "ledger"], "answer": "People keeps track of money between you and others.\n• Tap + and choose People, or go to the People tab.\n• \"You gave\" means they owe you; \"You got\" means you owe them.\n• Tap a person's amount to add a payment. Tap their name to see every entry.\n• Edit (under the name) changes the name or note. When the balance is zero, Settle takes them off the list; the record is kept.", "tour": [{"do": "tab:people", "sel": "#add-person-btn", "text": "Add a new person here."}, {"do": "tab:people", "sel": ".person-block", "text": "Tap the amount to add a payment; tap the name to see the entries."}]}, {"id": "reimburse", "title": "Office reimbursement, or paid for someone", "keywords": ["reimbursement", "reimburse", "office", "company", "claim", "expense claim", "paid for", "on behalf", "split", "kisi ke liye", "office ka", "wapas", "refund from office", "dost ke liye"], "answer": "Money you pay for your office, a friend or family that will come back is kept in People, so it is not counted as your own spending.\n1. Go to the People tab and tap the + at the top (Add person). Name it, for example \"Office\".\n2. When you pay for the office, tap the amount next to Office and add it as You gave.\n3. When the office pays you back, add it as You got.\n4. The balance shows how much the office still owes you. When it reaches zero, tap Settle.", "tour": [{"do": "tab:people", "sel": "#add-person-btn", "text": "Add a new person here."}, {"do": "tab:people", "sel": ".person-block", "text": "Tap the amount to add a payment; tap the name to see the entries."}]}, {"id": "connect-gmail", "title": "Connect Gmail so entries come in by themselves", "keywords": ["gmail", "email", "mail", "connect", "automatic", "auto", "bank alert", "inbox", "link", "read email"], "answer": "When you sign in with Google, the same step connects your Gmail. To connect another inbox later:\n1. Open Settings (the gear on Home).\n2. Under Bank emails tap Connect another inbox.\n3. Choose that Google account and allow reading.\nThe app reads only your banks' alert mails, twice a day, and shows each transaction on Home for you to check. You can disconnect any time from the same place.", "tour": [{"do": "tab:home", "sel": "#open-tools-btn", "text": "Open Settings."}, {"do": "open:tools", "sel": "#reader-connect-btn", "text": "Tap Connect Gmail and allow reading your bank alerts."}]}, {"id": "review-email", "title": "Entries from email: add or reject", "keywords": ["review", "waiting", "pending", "approve", "reject", "not real", "from your email", "suggested", "imported", "check entry"], "answer": "Entries the app found in your bank mails wait on Home.\n• Tap one, check the amount, category and account, then Add.\n• If it isn't a real transaction, tap Not a transaction. If you already added it yourself, tap Already added.\n• If the direction is wrong, tap Wrong direction?; the app remembers it for that bank.", "tour": [{"do": "tab:home", "sel": "#pending-review-wrap", "text": "Entries from your email wait here. Tap one to add or reject it."}]}, {"id": "check-email", "title": "Check email now or for past dates", "keywords": ["check", "fetch", "now", "refresh", "sync", "past", "from date", "old", "missing", "month"], "answer": "Go to Accounts. In Check email pick a From date (from the 1st of this month) and a To date if you want, then tap Check. New entries appear on Home. The app also checks by itself at 8 am and 8 pm. For anything older, go to Accounts, tap the account, then Upload statement.", "tour": [{"do": "tab:money", "sel": ".email-fetch", "text": "Pick the dates and tap Check."}]}, {"id": "fix-balance", "title": "Balance is wrong: fix it", "keywords": ["balance", "wrong", "incorrect", "fix", "adjust", "mismatch", "not matching", "difference", "reconcile", "unaccounted"], "answer": "1. Go to Accounts and tap the account.\n2. Tap Incorrect balance? Edit.\n3. Type the balance your bank app shows and Save.\nIf an entry explains the difference, Fix balance shows it with Remove this entry.", "tour": [{"do": "tab:money", "sel": "[data-acctstatement]", "text": "Tap the account."}, {"do": "open:firstaccount", "sel": "#acctstatement-edit-link", "text": "Tap Edit and type the balance your bank shows."}]}, {"id": "paste-sms", "title": "My bank doesn't email: statement or SMS", "keywords": ["sms", "message", "text", "paste", "upi", "sbi", "kotak", "no email", "phonepe", "gpay", "paytm", "not coming", "statement", "upload", "pdf", "csv", "download statement", "bank statement", "upload statement", "import"], "answer": "Some banks don't email every transaction (for example SBI, Kotak, Indian Bank), or the app has not confirmed their alert address yet. Home shows a card for them.\n1. Download this month's statement from the bank's app or website (PDF or CSV).\n2. Go to Accounts, tap the account, then Upload statement (or tap Statement on the Home card). If the PDF has a password, type it; it stays on your phone.\n3. Entries from the 1st of this month that are not in the app go to Home for you to check. Your balances are not changed.\nOr copy the bank's SMS, tap +, then Paste a bank SMS instead.", "tour": [{"do": "open:add", "sel": "#tx-paste-sms", "text": "Tap here and paste the bank's SMS."}]}, {"id": "add-account", "title": "Add a bank account or credit card", "keywords": ["account", "card", "credit card", "bank", "add account", "new card", "wallet", "cash"], "answer": "Go to Accounts and tap + at the top. Choose bank account or credit card, write its name (include the bank's name, like \"HDFC Savings\"), the last digits and today's balance or amount due, then Save.", "tour": [{"do": "tab:money", "sel": "#add-account-btn", "text": "Tap + to add an account or card."}]}, {"id": "budget", "title": "Budget and categories", "keywords": ["budget", "category", "categories", "limit", "plan", "monthly", "rename category", "delete category"], "answer": "The budget is on Home, below Recent activity. Each category shows spending against its budget. Tap ✎ to rename, change or delete a category; + Add a category makes a new one; Edit budget opens the full planner.", "tour": [{"do": "tab:home", "sel": "#home-budget-panel", "text": "Your budget for this month. Tap ✎ on a category to change it."}, {"do": "tab:home", "sel": "#home-budget-edit-btn", "text": "Edit budget opens the full planner."}]}, {"id": "edit-entry", "title": "Change or delete an entry", "keywords": ["edit", "change", "delete", "remove", "mistake", "wrong entry", "correct", "update entry"], "answer": "Tap the entry (in Recent activity on Home, or in an account's list). Change what you need and Save, or tap Delete. A People entry opens from the person's list in the People tab.", "tour": [{"do": "tab:home", "sel": "#recent-list", "text": "Tap any entry to change or delete it."}]}, {"id": "insights", "title": "Insights: where the money went", "keywords": ["insight", "analysis", "report", "chart", "where", "savings", "saving", "trend", "category spend", "download", "pdf"], "answer": "The Insights tab shows spending by category, income, savings (investments count as saved), the month against your usual, the last six months and your top payees. Use the arrows to change the month; ⬇ PDF downloads it.", "tour": [{"do": "tab:insights", "sel": "#analysis-period-tabs", "text": "Choose week, month or a custom period."}]}, {"id": "invite", "title": "Add my partner to the household", "keywords": ["partner", "wife", "husband", "family", "share", "invite", "household", "together", "member"], "answer": "Open Settings, find Household, type your partner's Gmail address and tap Invite. When they sign in with that Google account, they see the same household.", "tour": [{"do": "open:tools", "sel": "#household-section", "text": "Type your partner's Gmail address and tap Invite."}]}, {"id": "privacy", "title": "Hide balances and privacy", "keywords": ["hide", "privacy", "private", "safe", "secure", "security", "mask", "data", "who can see"], "answer": "The eye button on Home hides every balance. Your data is in your own household; only people you invite can see it. The app reads only bank alert mails, never anything else, and you can disconnect Gmail any time in Settings.", "tour": [{"do": "tab:home", "sel": "#mask-toggle-btn", "text": "Tap the eye to hide or show balances."}]}, {"id": "theme", "title": "Dark or light look", "keywords": ["dark", "light", "theme", "colour", "color", "mode"], "answer": "Open Settings and choose Dark or Light under Appearance.", "tour": [{"do": "open:tools", "sel": "#theme-seg", "text": "Choose Dark or Light."}]}];
 let helpLog = [];
 function helpTokens(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9ऀ-ॿ ]/g,' ').split(/\s+/).filter(w=> w.length > 1); }
 function matchHelpTopic(q){
@@ -9161,6 +9228,414 @@ setTimeout(()=> loadHelpMine(), 4000);
 
 
 
+
+// ---- VOICE ENTRY (PHASE A) ----
+// Tap the mic, say "50 Blinkit" or "dhai sau diye doodh wale ko". The phone's own speech
+// service turns it into words; only the words are kept, never the sound. The entry waits on
+// Home with the email entries, marked spoken, until a bank is picked and it is added.
+/*VOICE-PARSER-START*/
+// Spoken-entry parser: "50 Blinkit", "dhai sau diye doodh wale ko", "ब्लिंकिट पर पचास रुपये".
+// Runs on the phone; no server, no AI. Returns amount, direction, payee and what to check.
+const VOICE_NUM = (()=>{
+  const m = {};
+  const add = (n, words)=> words.split(/\s+/).filter(Boolean).forEach(w=> m[w] = n);
+  add(1,'ek एक one'); add(2,'do दो two'); add(3,'teen tin तीन three'); add(4,'char chaar चार four'); add(5,'paanch panch paach पांच पाँच five');
+  add(6,'chhe chhah chah che chhai छह छः छे six'); add(7,'saat sat सात seven'); add(8,'aath ath आठ eight'); add(9,'nau नौ nine'); add(10,'das dus दस ten');
+  add(11,'gyarah gyara gyaarah gyaraa ग्यारह eleven'); add(12,'barah bara baarah baara बारह twelve'); add(13,'terah tera तेरह thirteen'); add(14,'chaudah chauda chodah चौदह fourteen');
+  add(15,'pandrah pandra pundra पंद्रह पन्द्रह fifteen'); add(16,'solah sola सोलह sixteen'); add(17,'satrah satra सत्रह seventeen'); add(18,'atharah athara attharah अठारह eighteen');
+  add(19,'unnis unees unnees उन्नीस nineteen'); add(20,'bees bis बीस twenty');
+  add(21,'ikkis ikkees इक्कीस'); add(22,'bais baees baais बाईस'); add(23,'teis teyis tees? तेईस'); add(24,'chaubis chaubees चौबीस'); add(25,'pachchis pachees pachis pacchis पच्चीस');
+  add(26,'chhabbis chabbis छब्बीस'); add(27,'sattais sattaees sataees सत्ताईस'); add(28,'athais athaees atthaees अट्ठाईस'); add(29,'untis untees उनतीस'); add(30,'tees tis तीस thirty');
+  add(31,'ikattis iktees ikatees इकतीस'); add(32,'battis battees बत्तीस'); add(33,'taintis tetis taintees तैंतीस'); add(34,'chauntis chautees chautis चौंतीस'); add(35,'paintis paintees पैंतीस');
+  add(36,'chhattis chattis chhattees छत्तीस'); add(37,'saintis saintees सैंतीस'); add(38,'adtis artees artis adtees अड़तीस'); add(39,'untalis untaalis उनतालीस'); add(40,'chalis chaalees chaalis चालीस forty');
+  add(41,'iktalis iktaalis इकतालीस'); add(42,'bayalis bayaalis बयालीस'); add(43,'taintalis tentalis taintaalis तैंतालीस'); add(44,'chavalis chawalis chauvalis चवालीस'); add(45,'paintalis paintaalis पैंतालीस');
+  add(46,'chhiyalis chiyalis chhiyaalis छियालीस'); add(47,'saintalis saintaalis सैंतालीस'); add(48,'adtalis artalis artaalis अड़तालीस'); add(49,'unchas unchaas उनचास'); add(50,'pachas pachaas pachaass पचास fifty');
+  add(51,'ikyavan ikkyavan ikyawan इक्यावन'); add(52,'bavan baavan bawan बावन'); add(53,'tirpan tirepan trepan tirapan tirpun तिरपन'); add(54,'chauvan chouvan chovan chauwan चौवन'); add(55,'pachpan pachpun pachpan पचपन');
+  add(56,'chhappan chappan छप्पन'); add(57,'sattavan sattaavan sattawan सत्तावन'); add(58,'athavan atthavan atthawan अट्ठावन'); add(59,'unsath unsaath उनसठ'); add(60,'saath sath साठ sixty');
+  add(61,'iksath iksaath इकसठ'); add(62,'basath baasath बासठ'); add(63,'tirsath tirsaath तिरसठ'); add(64,'chausath chausaath चौंसठ'); add(65,'painsath painsaath पैंसठ');
+  add(66,'chhiyasath chiyasath छियासठ'); add(67,'sadsath sarsath सड़सठ'); add(68,'adsath arsath अड़सठ'); add(69,'unhattar unhatar उनहत्तर'); add(70,'sattar satar सत्तर seventy');
+  add(71,'ikhattar ikhatar इकहत्तर'); add(72,'bahattar bahatar बहत्तर'); add(73,'tihattar tihatar तिहत्तर'); add(74,'chauhattar chauhatar चौहत्तर'); add(75,'pachhattar pachattar pachhatar पचहत्तर');
+  add(76,'chhihattar chihattar छिहत्तर'); add(77,'sathattar satattar sathatar सतहत्तर'); add(78,'athattar athhattar अठहत्तर'); add(79,'unasi unaasi उनासी'); add(80,'assi asi अस्सी eighty');
+  add(81,'ikyasi ikyaasi इक्यासी'); add(82,'bayasi bayaasi बयासी'); add(83,'tirasi tiraasi तिरासी'); add(84,'chaurasi chauraasi चौरासी'); add(85,'pachasi pachaasi पचासी');
+  add(86,'chhiyasi chiyasi छियासी'); add(87,'sattasi sattaasi सत्तासी'); add(88,'athasi athaasi atthasi अट्ठासी'); add(89,'navasi nawasi navaasi नवासी'); add(90,'nabbe nabbey नब्बे ninety');
+  add(91,'ikyanve ikyaanve इक्यानवे'); add(92,'banve baanve बानवे'); add(93,'tiranve tiraanve तिरानवे'); add(94,'chauranve chauraanve चौरानवे'); add(95,'pachanve pachaanve पचानवे');
+  add(96,'chhiyanve chiyanve छियानवे'); add(97,'sattanve sattaanve सत्तानवे'); add(98,'atthanve athanve अट्ठानवे'); add(99,'ninyanve ninyaanve निन्यानवे');
+  delete m['tees?'];
+  return m;
+})();
+const VOICE_MULT = {sau:100, so:100, 'सौ':100, hundred:100, hazaar:1000, hazar:1000, hajar:1000, hajaar:1000, 'हज़ार':1000, 'हजार':1000, thousand:1000, lakh:100000, laakh:100000, lac:100000, 'लाख':100000};
+const VOICE_FRAC = {dedh:1.5, 'डेढ़':1.5, 'डेढ':1.5, dhai:2.5, adhai:2.5, 'ढाई':2.5, 'अढ़ाई':2.5};
+const VOICE_MOD = {sava:0.25, sawa:0.25, 'सवा':0.25, saadhe:0.5, sadhe:0.5, saade:0.5, sade:0.5, 'साढ़े':0.5, 'साढे':0.5, paune:-0.25, pone:-0.25, 'पौने':-0.25};
+const VOICE_SOUNDALIKE = [[49,59,69,79,89],[35,45,55,85],[54,84],[53,73]];
+const VOICE_OUT = ['diye','diya','diyo','de','kharch','kharcha','kharche','kiye','bheje','bheja','paid','pay','spent','gave','sent','दिए','दिये','दिया','खर्च','खर्चे','भेजे','भेजा','চুকিয়েছি','দিলাম','দিয়েছি'];
+const VOICE_IN = ['mile','mila','mili','aaye','aaya','aayi','aae','received','got','मिले','मिला','मिली','आए','आये','आया','পেলাম','পেয়েছি'];
+const VOICE_UNSURE = ['liye','liya','lie','लिए','लिये','लिया'];
+const VOICE_FILLER = ['rupees','rupee','rupaye','rupaiye','rupay','rupya','rupiya','rs','inr','₹','रुपये','रुपए','रुपया','टका','টাকা','taka','the','a','for','ke','ka','ki','wapas','वापस','mein','me','मे','में','ne','and','aur','और','hai','he','है','tha','थे','था','ji?'];
+const VOICE_BRANDS = [
+  ['Blinkit','blinkit blinket blink_it ब्लिंकिट ब्लिंकइट ব্লিঙ্কিট','Groceries'], ['Zomato','zomato zometo ज़ोमैटो जोमैटो जोमाटो জোমাটো','Food'], ['Swiggy','swiggy swiggi swigy स्विगी স্যুইগি সুইগি','Food'],
+  ['Zepto','zepto ज़ेप्टो जेप्टो জেপ্টো','Groceries'], ['Amazon','amazon amezon अमेज़न अमेजन अमेज़ॉन অ্যামাজন','Shopping'], ['Flipkart','flipkart फ्लिपकार्ट ফ্লিপকার্ট','Shopping'],
+  ['BigBasket','bigbasket big_basket बिगबास्केट বিগবাস্কেট','Groceries'], ['Instamart','instamart इंस्टामार्ट','Groceries'], ['Uber','uber उबर ऊबर উবার ওবার','Commute'], ['Ola','ola ओला ওলা','Commute'],
+  ['Rapido','rapido रैपिडो रापिडो র‍্যাপিডো র্যাপিডো','Commute'], ['Myntra','myntra मिंत्रा मिन्त्रा','Shopping'], ['Meesho','meesho मीशो','Shopping'], ['Nykaa','nykaa nyka नायका','Shopping'],
+  ['DMart','dmart d-mart डीमार्ट','Groceries'], ['Paytm','paytm पेटीएम','Other'], ['PhonePe','phonepe phone_pe फोनपे','Other'], ['Netflix','netflix नेटफ्लिक्स','Entertainment'],
+  ['Jio','jio जियो','Utilities'], ['Airtel','airtel एयरटेल','Utilities'], ["Domino's",'dominos domino डोमिनोज़ डोमिनोज','Food'], ['Starbucks','starbucks स्टारबक्स','Food'], ["McDonald's",'mcdonalds mcdonald मैकडॉनल्ड्स','Food'], ['IRCTC','irctc आईआरसीटीसी','Travel']
+];
+const VOICE_WALA = {doodh:'Milk', dudh:'Milk', 'दूध':'Milk', sabzi:'Vegetables', sabji:'Vegetables', 'सब्ज़ी':'Vegetables', 'सब्जी':'Vegetables', chai:'Food', 'चाय':'Food', press:'Laundry', dhobi:'Laundry', 'धोबी':'Laundry', kirana:'Groceries', 'किराना':'Groceries', phal:'Fruits', fruit:'Fruits', 'फल':'Fruits', paani:'Water', pani:'Water', 'पानी':'Water', akhbar:'Newspaper', paper:'Newspaper', 'अखबार':'Newspaper', auto:'Commute', 'ऑटो':'Commute', rickshaw:'Commute', kachra:'Utilities', istri:'Laundry'};
+const VOICE_BEFORE = ['ko','pe','par','se','को','पे','पर','से','কে','থেকে'];
+const VOICE_AFTER = ['to','at','on','from'];
+function voiceLev(a, b){
+  const d = Array.from({length: a.length + 1}, (_, i)=> [i]);
+  for(let j=1; j<=b.length; j++) d[0][j] = j;
+  for(let i=1; i<=a.length; i++) for(let j=1; j<=b.length; j++) d[i][j] = Math.min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1] + (a[i-1]===b[j-1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+function voiceTokens(text){
+  return String(text||'').toLowerCase().replace(/₹/g,' ₹ ').replace(/(\d),(?=\d)/g,'$1').replace(/[“”"'!?;:()]/g,' ').replace(/(\d)\s*(k)\b/g,'$1 hazaar').split(/[\s,।]+/).filter(Boolean);
+}
+function voiceIsNumberWord(t, learned){ return (learned && learned[t] !== undefined) || VOICE_NUM[t] !== undefined || VOICE_MULT[t] !== undefined || VOICE_FRAC[t] !== undefined || VOICE_MOD[t] !== undefined; }
+function voiceInGroup(n){ const k = n >= 100 ? n % 100 : n; return VOICE_SOUNDALIKE.some(g=> g.includes(k)); }
+// learned: words this household corrected before, e.g. {'tirpan': 53}
+function parseSpoken(text, opts){
+  opts = opts || {};
+  const learned = opts.learned || {};
+  const toks = voiceTokens(text);
+  const out = {heard: String(text||'').trim(), amount: null, type: 'expense', payee: '', category: null, checkAmount: false, checkDirection: false, amountWord: null, used: new Set()};
+  // ---- amount from digits (with an optional multiplier after it: "2 sau", "5 hazaar")
+  for(let i=0; i<toks.length; i++){
+    const m = toks[i].replace(/^(rs\.?|inr|₹)/,'').match(/^(\d+(?:\.\d+)?)$/);
+    if(!m) continue;
+    let v = parseFloat(m[1]); out.used.add(i);
+    const nx = toks[i+1];
+    if(nx && VOICE_MULT[nx]){ v *= VOICE_MULT[nx]; out.used.add(i+1); }
+    out.amount = v; break;
+  }
+  // ---- amount from words
+  if(out.amount === null){
+    let total = 0, cur = 0, mod = 0, frac = null, any = false, last = null, words = [];
+    const flush = ()=>{ total += cur; cur = 0; };
+    for(let i=0; i<toks.length; i++){
+      let t = toks[i];
+      let n = learned[t] !== undefined ? learned[t] : VOICE_NUM[t];
+      if(n === undefined && !VOICE_MULT[t] && VOICE_FRAC[t] === undefined && VOICE_MOD[t] === undefined && !any){
+        // closest spelling, only for words long enough not to clash with ordinary words
+        if(t.length >= 4 && !VOICE_OUT.includes(t) && !VOICE_IN.includes(t) && !VOICE_FILLER.includes(t) && !voiceBrand(t)){
+          let best = null, bd = 9;
+          for(const w in VOICE_NUM){ if(w.length < 4) continue; const dd = voiceLev(t, w); if(dd < bd){ bd = dd; best = w; } }
+          if(best && bd <= (t.length >= 7 ? 2 : 1)){ n = VOICE_NUM[best]; out.checkAmount = true; }
+        }
+      }
+      if(n !== undefined){
+        out.used.add(i); words.push(t);
+        if(mod){ n = n + mod; mod = 0; }
+        if(last === 'small' && cur > 0 && cur < 100){ cur = (cur % 10 === 0 && cur >= 20 && n < 10) ? cur + n : cur * 100 + n; }
+        else cur += n;
+        any = true; last = 'small'; continue;
+      }
+      if(VOICE_FRAC[t] !== undefined){ out.used.add(i); frac = VOICE_FRAC[t]; any = true; last = 'frac'; continue; }
+      if(VOICE_MOD[t] !== undefined){ out.used.add(i); mod = VOICE_MOD[t]; any = true; last = 'mod'; continue; }
+      if(VOICE_MULT[t]){
+        out.used.add(i);
+        const mul = VOICE_MULT[t];
+        let base = cur || (frac !== null ? frac : (mod ? 1 + mod : 1)); if(frac !== null && cur){ base = cur * frac; }
+        if(mod && !cur){ mod = 0; }
+        frac = null; cur = base * mul; any = true; last = 'mult';
+        if(mul >= 1000) flush();
+        continue;
+      }
+      if(any && !VOICE_FILLER.includes(t)) { if(cur || total) break; }
+    }
+    flush();
+    if(any && total > 0){ out.amount = Math.round(total * 100) / 100; out.amountWord = words.length === 1 ? words[0] : null; if(words.length === 1 && learned[words[0]] !== undefined) out.checkAmount = false; }
+  }
+  if(out.amount !== null && voiceInGroup(Math.round(out.amount)) && !(out.amountWord && learned[out.amountWord] !== undefined)) out.checkAmount = true;
+  if(opts.confidence !== undefined && opts.confidence !== null && opts.confidence < 0.7) out.checkAmount = true;
+  // ---- direction
+  const joined = ' ' + toks.join(' ') + ' ';
+  const has = list=> toks.some((t, i)=> list.includes(t) && !(t === 'de' && toks[i+1] !== 'diye' && toks[i+1] !== 'diya'));
+  const isIn = has(VOICE_IN) || / wapas aa/.test(joined) || / वापस आ/.test(joined);
+  const isOut = has(VOICE_OUT);
+  const unsure = toks.some((t, i)=> VOICE_UNSURE.includes(t) && !(i > 0 && (toks[i-1] === 'ke' || toks[i-1] === 'के')));
+  if(isIn && !isOut){ out.type = 'income'; }
+  else if(isOut){ out.type = 'expense'; }
+  else { out.type = 'expense'; out.checkDirection = true; if(unsure) out.checkDirection = true; }
+  // ---- who
+  const skip = i=> out.used.has(i) || VOICE_FILLER.includes(toks[i]) || VOICE_OUT.includes(toks[i]) || VOICE_IN.includes(toks[i]) || VOICE_UNSURE.includes(toks[i]) || VOICE_BEFORE.includes(toks[i]) || VOICE_AFTER.includes(toks[i]) || /^\d/.test(toks[i]) || toks[i] === 'paid' || toks[i] === 'diye';
+  let who = [];
+  const brandHit = (()=>{ for(let i=0; i<toks.length; i++){ const b = voiceBrand(toks[i]) || (toks[i+1] ? voiceBrand(toks[i] + ' ' + toks[i+1]) : null); if(b) return b; } return null; })();
+  if(!brandHit){
+    // before ko / pe / par / se / ke liye
+    for(let i=0; i<toks.length && !who.length; i++){
+      const t = toks[i];
+      const isLiye = (t === 'ke' || t === 'के') && (toks[i+1] === 'liye' || toks[i+1] === 'लिए' || toks[i+1] === 'liya');
+      if(VOICE_BEFORE.includes(t) || isLiye){
+        const w = []; for(let j=i-1; j>=0 && w.length < 3; j--){ if(skip(j)) break; w.unshift(toks[j]); }
+        if(w.length) who = w;
+      }
+    }
+    // after to / at / on / from
+    for(let i=0; i<toks.length && !who.length; i++){
+      if(VOICE_AFTER.includes(toks[i])){ const w = []; for(let j=i+1; j<toks.length && w.length < 3; j++){ if(skip(j)) break; w.push(toks[j]); } if(w.length) who = w; }
+    }
+    // otherwise the words that are not numbers or fillers
+    if(!who.length){ for(let j=0; j<toks.length && who.length < 3; j++){ if(!skip(j)) who.push(toks[j]); } }
+  }
+  if(brandHit){ out.payee = brandHit[0]; out.category = brandHit[2]; }
+  else if(who.length){
+    const words = who.map(w=> /^wa?l[ea]$|^wali$|^वाले$|^वाला$|^वाली$/.test(w) ? (/[ऀ-ॿ]/.test(w) ? 'वाला' : 'wala') : w);
+    const isWala = words.some(w=> w === 'wala' || w === 'वाला');
+    out.payee = words.map(w=> /[a-z]/.test(w) ? w.charAt(0).toUpperCase() + w.slice(1) : w).join(' ').replace(/ Wala$/, ' wala').replace(/ Ji$/, ' ji');
+    if(isWala){ const key = words.find(w=> VOICE_WALA[w]); if(key) out.category = VOICE_WALA[key]; }
+    if(isWala || brandHit) out.checkDirection = out.checkDirection && out.type === 'expense' && !isWala ? true : (isOut || isIn ? false : (isWala ? false : out.checkDirection));
+  }
+  // merchants and "wala" payees are paid, not paying: no direction to check
+  if(brandHit && !isIn && !unsure) out.checkDirection = false;
+  if(unsure && !isOut && !isIn) out.checkDirection = true;
+  delete out.used;
+  return out;
+}
+function voiceBrand(t){
+  const s = String(t||'').toLowerCase().trim().replace(/\s+/g,'_');
+  for(const b of VOICE_BRANDS){ if(b[1].split(' ').includes(s)) return b; }
+  return null;
+}
+/*VOICE-PARSER-END*/
+function voiceLang(){ try{ return localStorage.getItem('fa-voice-lang') || 'hi-IN'; }catch(e){ return 'hi-IN'; } }
+function setVoiceLang(v){ try{ localStorage.setItem('fa-voice-lang', v); }catch(e){} renderVoiceLang(); }
+function renderVoiceLang(){
+  const v = voiceLang();
+  document.querySelectorAll('#voice-lang-seg button').forEach(b=> b.classList.toggle('on', b.dataset.v === v));
+  const lb = document.getElementById('voice-lang-btn'); if(lb) lb.textContent = v === 'hi-IN' ? 'हिंदी' : 'English';
+}
+document.querySelectorAll('#voice-lang-seg button').forEach(b=> b.addEventListener('click', ()=> setVoiceLang(b.dataset.v)));
+renderVoiceLang();
+function voiceSupported(){ return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
+const VOICE_CAT_RULES = {Groceries:/grocer|kirana|ration/i, Milk:/milk|dairy|grocer/i, Vegetables:/vegetable|sabzi|fruit|grocer/i, Fruits:/fruit|vegetable|grocer/i,
+  Food:/food|dining|restaurant|eat/i, Commute:/transport|commute|cab|travel/i, Travel:/travel|transport/i, Shopping:/shop/i, Utilities:/utilit|bill/i,
+  Water:/utilit|bill|home/i, Newspaper:/utilit|bill|home/i, Entertainment:/entertain|subscri|ott/i, Laundry:/home help|laundry|household/i, Other:/^$/};
+function voiceCategory(payee, guess){
+  const learned = payee ? suggestForPayee(payee) : null;
+  if(learned && learned.category) return learned.category;
+  if(!guess) return null;
+  const cats = (state.budget||[]).map(b=> b.cat).filter(Boolean);
+  const exact = cats.find(c=> c.toLowerCase() === guess.toLowerCase()); if(exact) return exact;
+  const re = VOICE_CAT_RULES[guess]; if(!re) return null;
+  return cats.find(c=> re.test(c)) || null;
+}
+let voiceRec = null;
+const voiceSt = {conf: null, typeOverride: null, err: null, manual: false, cancelled: false, silenceT: null, listening: false};
+const voiceBackdrop = document.getElementById('voice-backdrop');
+const voiceText = document.getElementById('voice-text');
+function voiceStatus(t){ document.getElementById('voice-status').textContent = t; }
+function voiceParse(){ return parseSpoken(voiceText.value, {confidence: voiceSt.conf, learned: state.voiceWords || {}}); }
+function renderVoiceChips(){
+  const el = document.getElementById('voice-chips');
+  const txt = voiceText.value.trim();
+  if(!txt){ el.innerHTML = ''; return; }
+  const p = voiceParse();
+  const type = voiceSt.typeOverride || p.type;
+  el.innerHTML = `<span class="voice-chip ${p.checkAmount?'check':''}" id="voice-chip-amount">Amount <b>${p.amount!==null ? fmt(p.amount) : '?'}</b>${p.checkAmount?' · check':''}</span>`
+    + `<button class="voice-chip ${p.checkDirection && !voiceSt.typeOverride?'check':''}" id="voice-chip-type">${type==='income' ? 'Received' : 'Spent'}${p.checkDirection && !voiceSt.typeOverride?' · check':''}</button>`
+    + `<span class="voice-chip" id="voice-chip-to">${type==='income' ? 'From' : 'To'} <b>${storyEsc(p.payee || '?')}</b></span>`;
+  document.getElementById('voice-chip-type').addEventListener('click', ()=>{ voiceSt.typeOverride = type === 'income' ? 'expense' : 'income'; renderVoiceChips(); });
+}
+function voiceStop(silent){
+  clearTimeout(voiceSt.silenceT);
+  if(voiceRec){ const r = voiceRec; if(silent) voiceRec = null; try{ silent ? r.abort() : r.stop(); }catch(e){} }
+  voiceSt.listening = false;
+  document.getElementById('voice-mic').classList.remove('on');
+}
+function openVoice(){
+  if(!voiceSupported()){
+    // No speech on this browser: the add form opens with the keyboard ready.
+    openAddTxSheet();
+    setTimeout(()=>{ const p = document.getElementById('tx-payee'); if(p) p.focus(); }, 120);
+    return;
+  }
+  voiceStop(true);
+  voiceSt.conf = null; voiceSt.typeOverride = null; voiceSt.err = null; voiceSt.manual = false; voiceSt.cancelled = false;
+  voiceText.value = '';
+  renderVoiceChips(); renderVoiceLang();
+  let seen = false; try{ seen = localStorage.getItem('fa-voice-note-seen') === '1'; localStorage.setItem('fa-voice-note-seen', '1'); }catch(e){}
+  document.getElementById('voice-note').classList.toggle('hide', seen);
+  voiceBackdrop.classList.add('open');
+  startVoiceListening();
+}
+function startVoiceListening(){
+  const R = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!R) return;
+  voiceStop(true);
+  const rec = new R();
+  rec.lang = voiceLang(); rec.continuous = false; rec.interimResults = true; rec.maxAlternatives = 1;
+  voiceRec = rec; voiceSt.err = null; voiceSt.manual = false; voiceSt.cancelled = false; voiceSt.listening = true;
+  voiceStatus('Listening…');
+  document.getElementById('voice-mic').classList.add('on');
+  try{ if(navigator.vibrate) navigator.vibrate(15); }catch(e){}
+  rec.onresult = e=>{
+    if(rec !== voiceRec) return;
+    let txt = '', conf = null;
+    for(let i=0; i<e.results.length; i++){ const r = e.results[i]; txt += r[0].transcript; if(r.isFinal && r[0].confidence > 0) conf = r[0].confidence; }
+    voiceText.value = txt.trim(); voiceSt.conf = conf;
+    renderVoiceChips();
+    // about a second of silence ends it
+    clearTimeout(voiceSt.silenceT);
+    voiceSt.silenceT = setTimeout(()=>{ if(rec === voiceRec){ try{ rec.stop(); }catch(err){} } }, 1100);
+  };
+  rec.onerror = e=>{ if(rec === voiceRec) voiceSt.err = e.error || 'error'; };
+  rec.onend = ()=>{
+    if(rec !== voiceRec) return;
+    voiceRec = null; voiceStop(false);
+    if(voiceSt.cancelled || !voiceBackdrop.classList.contains('open')) return;
+    const txt = voiceText.value.trim();
+    if(voiceSt.manual){ voiceStatus('Check the words, then tap ✓.'); return; }
+    if(voiceSt.err && voiceSt.err !== 'no-speech'){
+      voiceStatus(txt ? 'Listening stopped. Check the words, then tap ✓.' : voiceSt.err === 'not-allowed' || voiceSt.err === 'service-not-allowed' ? 'The microphone is not allowed. Allow it, or type below.' : 'Could not listen. Tap the mic to try again, or type below.');
+      return;
+    }
+    if(!txt){ voiceStatus('Didn’t hear anything. Tap the mic to try again, or type below.'); return; }
+    voiceSave();
+  };
+  try{ rec.start(); }catch(e){ voiceRec = null; voiceStop(false); voiceStatus('Tap the mic to start, or type below.'); }
+}
+async function voiceSave(){
+  const txt = voiceText.value.trim();
+  if(!txt){ voiceStatus('Say it or type it first.'); return; }
+  const p = voiceParse();
+  if(p.amount === null || !(p.amount > 0)){ voiceStatus('No amount heard. Say it again, or type it below.'); renderVoiceChips(); return; }
+  if(!currentHid){ voiceStatus('Sign in first, then try again.'); return; }
+  const type = voiceSt.typeOverride || p.type;
+  const payee = p.payee || 'Spoken entry';
+  // No undefined values: the cloud refuses the whole write.
+  const cand = {id: genId('sp'), gmailMessageId: null, sourceEmail: null, ts: new Date().toISOString(), amount: p.amount, type, payee,
+    category: voiceCategory(p.payee, p.category), accountId: null, sender: 'Spoken', subject: txt.slice(0, 140), heard: txt.slice(0, 240),
+    status: 'pending', fromSpoken: true, checkAmount: !!p.checkAmount, checkDirection: voiceSt.typeOverride ? false : !!p.checkDirection, amountWord: p.amountWord || null};
+  const [entry] = classifyImportCandidates([cand], []);
+  if(!Array.isArray(state.pendingImports)) state.pendingImports = [];
+  state.pendingImports.push(entry);
+  voiceSt.cancelled = true;
+  voiceBackdrop.classList.remove('open');
+  render();
+  showVoiceUndo(entry);
+  await saveState();
+}
+let voiceUndoT = null;
+function showVoiceUndo(entry){
+  const bar = document.getElementById('voice-undo');
+  document.getElementById('voice-undo-text').textContent = 'Saved for checking: ' + entry.payee + ' ' + fmt(entry.amount);
+  bar.classList.add('show'); bar.dataset.id = entry.id;
+  clearTimeout(voiceUndoT);
+  voiceUndoT = setTimeout(()=> bar.classList.remove('show'), 3000);
+}
+document.getElementById('voice-undo-btn').addEventListener('click', async ()=>{
+  const bar = document.getElementById('voice-undo');
+  const id = bar.dataset.id; bar.classList.remove('show'); clearTimeout(voiceUndoT);
+  state.pendingImports = (state.pendingImports||[]).filter(p=> p.id !== id);
+  render();
+  await saveState();
+  showToast('Removed');
+});
+document.getElementById('fab-voice').addEventListener('click', ()=> openVoice());
+document.getElementById('voice-mic').addEventListener('click', ()=>{ if(voiceSt.listening) voiceStop(false); else startVoiceListening(); });
+document.getElementById('voice-ok').addEventListener('click', ()=>{ voiceSt.cancelled = true; voiceStop(true); voiceSave(); });
+document.getElementById('voice-cancel').addEventListener('click', ()=>{ voiceSt.cancelled = true; voiceStop(true); voiceBackdrop.classList.remove('open'); });
+document.getElementById('voice-lang-btn').addEventListener('click', ()=>{ setVoiceLang(voiceLang() === 'hi-IN' ? 'en-IN' : 'hi-IN'); if(voiceSt.listening || !voiceText.value.trim()) startVoiceListening(); });
+voiceText.addEventListener('input', ()=>{ if(voiceSt.listening){ voiceSt.manual = true; voiceStop(false); } voiceSt.cancelled = false; renderVoiceChips(); });
+voiceBackdrop.addEventListener('click', e=>{ if(e.target === voiceBackdrop){ voiceSt.cancelled = true; voiceStop(true); voiceBackdrop.classList.remove('open'); } });
+// closed any other way (the phone's back button): stop listening
+new MutationObserver(()=>{ if(!voiceBackdrop.classList.contains('open') && voiceSt.listening){ voiceSt.cancelled = true; voiceStop(true); } }).observe(voiceBackdrop, {attributes: true, attributeFilter: ['class']});
+// A correction to a one-word amount is remembered for this household ("tirpan" is 53 here).
+function voiceLearnWord(word, amount){
+  if(!word || !(amount > 0)) return;
+  if(!state.voiceWords || typeof state.voiceWords !== 'object') state.voiceWords = {};
+  state.voiceWords[String(word).toLowerCase()] = Math.round(amount * 100) / 100;
+}
+function voiceLearnFromCorrection(imp, amount){
+  if(imp && imp.fromSpoken && imp.amountWord && Math.abs((amount||0) - (imp.amount||0)) >= 1) voiceLearnWord(imp.amountWord, amount);
+}
+function spokenRowHtml(it){
+  const meta = catMeta(it.category);
+  const marks = [it.checkAmount ? 'check amount' : '', it.checkDirection ? 'check direction' : ''].filter(Boolean);
+  const fill = ['bank' + (it.category ? '' : ' and category') + ' to fill'];
+  return `<div class="row" data-reviewimport="${it.id}" style="cursor:pointer;">
+    <div style="display:flex; align-items:center; gap:11px; min-width:0; ${it.status==='duplicate'?'opacity:0.55;':''}">
+      <div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
+      <div style="min-width:0;"><div class="name">${storyEsc(it.payee)}<span class="spoken-tag">spoken</span></div><div class="sub" style="overflow-wrap:anywhere;">Heard: “${storyEsc(it.heard || it.subject || '')}”</div><div class="sub" style="color:var(--debt);">${fill.join('')}</div></div>
+    </div>
+    <div style="text-align:right;">
+      <div class="amt ${it.type==='income'?'pos':'neg'}" style="font-size:17px;">${fmt(it.amount)}</div>
+      <div class="sub" style="font-size:10.5px; color:${marks.length ? '#E0A23B' : it.status==='duplicate' ? 'var(--sage)' : 'var(--peri)'};">${marks.length ? marks.map(m=> '✓? ' + m).join('<br>') : it.status==='duplicate' ? 'already added — tap to check' : 'to review'}</div>
+    </div>
+  </div>`;
+}
+// A spoken entry and a bank email for the same money: suggested, never joined on its own.
+function voiceSoundAlike(a, b){
+  a = Math.round(a); b = Math.round(b);
+  if(a === b || Math.floor(a/100) !== Math.floor(b/100)) return false;
+  return VOICE_SOUNDALIKE.some(g=> g.includes(a % 100) && g.includes(b % 100));
+}
+function voiceSamePayee(a, b){
+  const n = x=> String(x||'').toLowerCase().replace(/[^a-z0-9ऀ-ॿ]/g, '');
+  const x = n(a), y = n(b);
+  return x.length >= 3 && y.length >= 3 && (x.includes(y) || y.includes(x));
+}
+function findSpokenMatches(){
+  const declined = new Set(state.spokenMatchDeclined || []);
+  const pend = state.pendingImports || [];
+  const others = pend.filter(p=> !p.fromSpoken && !p.possible);
+  const used = new Set(), out = [];
+  pend.filter(p=> p.fromSpoken).forEach(sp=>{
+    const t = new Date(sp.ts).getTime();
+    const c = others.filter(o=> !used.has(o.id) && !declined.has(sp.id + '|' + o.id) && o.type === sp.type && Math.abs(new Date(o.ts).getTime() - t) <= 48*3600*1000
+      && (Math.abs((o.amount||0) - (sp.amount||0)) < 1 || (voiceSoundAlike(o.amount, sp.amount) && voiceSamePayee(o.payee, sp.payee))));
+    if(!c.length) return;
+    c.sort((a, b)=> Math.abs(new Date(a.ts).getTime() - t) - Math.abs(new Date(b.ts).getTime() - t));
+    used.add(c[0].id); out.push({spoken: sp, other: c[0]});
+  });
+  return out;
+}
+function spokenMatchesHtml(list){
+  return list.map(m=>{
+    const o = m.other, sp = m.spoken;
+    const src = o.fromStatement ? 'statement' : o.fromSms ? 'SMS' : 'email';
+    const acct = o.accountId ? [...state.accounts, ...state.cards].find(a=> a.id === validatedAccountId(o.accountId, o.sourceEmail)) : null;
+    return `<div class="card queue-card spoken-match" style="margin-bottom:16px;">
+      <div class="name" style="margin-bottom:6px;">Looks like your spoken entry “${storyEsc(sp.payee)} ${fmt(sp.amount)}”. Same one?</div>
+      <div class="sub">From ${src}: ${storyEsc(o.payee||'')} · ${fmt(o.amount)} · ${new Date(o.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}${acct ? ' · ' + storyEsc(acct.name) : ''}</div>
+      <div class="sub">You said: “${storyEsc(sp.heard||'')}”</div>
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <button class="btn-primary" style="flex:1; margin:0;" data-spokenyes="${sp.id}|${o.id}">Yes, same</button>
+        <button class="btn-ghost" style="flex:1; margin:0;" data-spokenno="${sp.id}|${o.id}">No</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function wireSpokenMatches(wrap){
+  wrap.querySelectorAll('[data-spokenyes]').forEach(b=> b.addEventListener('click', ()=>{ const [a, c] = b.getAttribute('data-spokenyes').split('|'); acceptSpokenMatch(a, c); }));
+  wrap.querySelectorAll('[data-spokenno]').forEach(b=> b.addEventListener('click', ()=>{ const [a, c] = b.getAttribute('data-spokenno').split('|'); declineSpokenMatch(a, c); }));
+}
+// Yes: one entry stays. The email's amount, bank and date win; the spoken name and category
+// fill in only what the email does not have.
+async function acceptSpokenMatch(spId, otherId){
+  const sp = (state.pendingImports||[]).find(p=> p.id === spId), o = (state.pendingImports||[]).find(p=> p.id === otherId);
+  if(!sp || !o) return;
+  if(Math.abs((o.amount||0) - (sp.amount||0)) >= 1 && sp.amountWord) voiceLearnWord(sp.amountWord, o.amount);
+  const generic = !o.payee || /^(unknown|upi|from statement|spoken entry|transaction|payment)$/i.test(String(o.payee).trim());
+  if(generic && sp.payee && sp.payee !== 'Spoken entry') o.payee = sp.payee;
+  if(!o.category && sp.category) o.category = sp.category;
+  o.heard = sp.heard || null;
+  recordImportOutcome(sp, 'already_logged', null, null, 'same as ' + (o.fromStatement ? 'statement' : o.fromSms ? 'SMS' : 'email'), null);
+  state.pendingImports = state.pendingImports.filter(p=> p.id !== spId);
+  render();
+  await saveState();
+  showToast('Kept as one entry');
+}
+// No: both stay, nothing asked.
+async function declineSpokenMatch(spId, otherId){
+  if(!Array.isArray(state.spokenMatchDeclined)) state.spokenMatchDeclined = [];
+  state.spokenMatchDeclined.push(spId + '|' + otherId);
+  if(state.spokenMatchDeclined.length > 300) state.spokenMatchDeclined = state.spokenMatchDeclined.slice(-300);
+  render();
+  await saveState();
+}
+
 (async function init(){
   try{
     const q = new URLSearchParams(location.search);
@@ -9173,6 +9648,7 @@ setTimeout(()=> loadHelpMine(), 4000);
   if(!currentHid) showGate('checking'); // a device with no household yet: nothing to show until sign-in is settled
   renderGreeting();
   render();
+  try{ if(new URLSearchParams(location.search).get('voice')==='1'){ history.replaceState(null, '', location.pathname); openVoice(); } }catch(e){}
   initCloudSync(()=>{ render(); });
   if(gmailJustConnected) showToast(gmailJustConnected + ' connected. Its bank alerts are read from now on.', 5000);
 
