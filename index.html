@@ -784,13 +784,22 @@
         <button data-v="gave" class="on">You gave</button>
         <button data-v="received">You got</button>
       </div>
+      <div class="seg hide" id="tx-person-kind" style="margin-top:8px;">
+        <button data-v="paid">Paid for my expense</button>
+        <button data-v="lent">Gave me money</button>
+      </div>
+      <p class="section-sub hide" id="tx-person-kind-hint" style="margin:6px 0 0;"></p>
       <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">Person</label>
       <div class="acct-row" id="tx-person-row"></div>
-      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;" id="tx-person-cat-label">Category <span style="font-weight:400;">(optional)</span></label>
+      <div id="tx-person-cat-wrap">
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;" id="tx-person-cat-label">What was it for?</label>
       <div class="pick-summary" id="tx-person-cat-summary"></div>
       <div class="cat-grid hide" id="tx-person-cat-grid"></div>
+      </div>
+      <div id="tx-person-acct-wrap">
       <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">Account</label>
       <div class="acct-row" id="tx-person-acct-row"></div>
+      </div>
       <div class="field"><label>Note (optional)</label><input id="tx-person-note" placeholder="e.g. metro card recharge"></div>
       <p class="section-sub" id="tx-person-note-sub">Not counted as spending or income.</p>
     </div>
@@ -830,13 +839,18 @@
         <button data-v="gave" class="on">You gave</button>
         <button data-v="received">You got</button>
       </div>
+      <div class="seg hide" id="person-kind" style="margin-top:8px;">
+        <button data-v="paid">Paid for my expense</button>
+        <button data-v="lent">Gave me money</button>
+      </div>
+      <p class="section-sub hide" id="person-kind-hint" style="margin:6px 0 0;"></p>
     </div>
     <div class="field">
       <label id="person-acct-label">Account</label>
       <div class="acct-row" id="person-acct-row"></div>
     </div>
     <div class="field">
-      <label>Category <span style="font-weight:400;">(optional)</span></label>
+      <label>What was it for?</label>
       <div class="pick-summary" id="person-cat-summary"></div>
       <div class="cat-grid hide" id="person-cat-grid"></div>
       <p class="section-sub" id="person-cat-sub"></p>
@@ -895,6 +909,11 @@
         <button data-v="gave" class="on">You gave</button>
         <button data-v="received">You got</button>
       </div>
+      <div class="seg hide" id="editpe-kind" style="margin-top:8px;">
+        <button data-v="paid">Paid for my expense</button>
+        <button data-v="lent">Gave me money</button>
+      </div>
+      <p class="section-sub hide" id="editpe-kind-hint" style="margin:6px 0 0;"></p>
     </div>
     <div class="field">
       <label>Account</label>
@@ -902,7 +921,7 @@
     </div>
     <div class="field"><label>Amount (₹)</label><input id="editpe-amount" type="number" inputmode="decimal"></div>
     <div class="field">
-      <label>Category <span style="font-weight:400;">(optional)</span></label>
+      <label>What was it for?</label>
       <div class="pick-summary" id="editpe-cat-summary"></div>
       <div class="cat-grid hide" id="editpe-cat-grid"></div>
       <p class="section-sub" id="editpe-cat-sub"></p>
@@ -1289,7 +1308,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-25 · v108-voice-entry</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-25 · v109-paid-for-me</p>
   </div>
 </div>
 
@@ -3083,8 +3102,7 @@ function openBudgetDetail(cat){
   const inThisMonth = ts=>{ const d = new Date(ts); return d.getMonth()===nowD.getMonth() && d.getFullYear()===nowD.getFullYear(); };
   const catTx = state.transactions.filter(t=>t.type!=='transfer' && inThisMonth(t.ts) && findBudgetRowForCategory(t.category)===b)
     .sort((a,c)=> new Date(c.ts)-new Date(a.ts));
-  const catPeople = state.personLedger.filter(e=> e.type==='received' && e.category && inThisMonth(e.ts) && findBudgetRowForCategory(e.category)===b)
-    .sort((a,c)=> new Date(c.ts)-new Date(a.ts));
+  const catPeople = [];
   const rowsHtml = catTx.map(t=>`
     <div class="tx-item" data-editbudgettx="${t.id}" style="cursor:pointer;">
       <div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
@@ -3517,7 +3535,7 @@ function allBalanceTargets(){
   return [...state.accounts.map(a=>({id:a.id, name:a.name, em:a.em, isCard:false, balance:accountBalance(a)})),
           ...state.cards.map(c=>({id:c.id, name:c.name, em:c.em, isCard:true, balance:cardDue(c)}))];
 }
-function targetName(id){ const t = allBalanceTargets().find(x=>x.id===id); return t? t.name : id; }
+function targetName(id){ if(!id) return 'not from your accounts'; const t = allBalanceTargets().find(x=>x.id===id); return t? t.name : id; }
 
 function totals(){
   const excluded = ['cash_wallet','sinking_fund'];
@@ -3561,13 +3579,7 @@ function budgetEntriesForMonth(year, month){
   // something you consumed (type 'received' — you now owe them). The reverse ('gave' — you
   // fronted cash for THEM) is never your expense, no matter what category it's tagged with —
   // that's you lending money, not you spending it; it stays off the budget entirely.
-  state.personLedger.forEach(e=>{
-    if(e.type!=='received' || !e.category) return;
-    const d = new Date(e.ts);
-    if(d<start || d>=end) return;
-    const person = state.people.find(p=>p.id===e.personId);
-    push(findBudgetRowForCategory(e.category), {amount:Math.abs(e.delta), payee:person?person.name:'', ts:e.ts});
-  });
+  // (These now arrive above, as the expense each such entry carries: see syncPaidForMe.)
   return out;
 }
 function budgetActualsForMonth(year, month){
@@ -3579,6 +3591,7 @@ function budgetActualsForMonth(year, month){
 // "Actual" on every budget row means THIS calendar month only. It used to add up everything
 // ever logged, which was only right while the app had a single month of history.
 function recomputeBudgetActuals(){
+  if(syncPaidForMe() && typeof saveState === 'function' && !recomputeBudgetActuals._saving){ recomputeBudgetActuals._saving = true; setTimeout(()=>{ recomputeBudgetActuals._saving = false; saveState(); }, 0); }
   const now = new Date();
   const actuals = budgetActualsForMonth(now.getFullYear(), now.getMonth());
   state.budget.forEach(b=> b.actual = actuals[b.cat] || 0);
@@ -4651,6 +4664,80 @@ function wireSeg(id, onChange){
 }
 function segValue(id){ return document.querySelector('#'+id+' button.on').dataset.v; }
 
+// ---- "YOU GOT": PAID FOR MY EXPENSE, OR GAVE ME MONEY ----
+// Paid for my expense: someone paid a shop for you. It is your spending in the category you
+// pick, no money moved in your own accounts, and you owe them. Gave me money: plain udhaar;
+// it came into one of your accounts, no category, not spending.
+const PERSON_SHEETS = {
+  tx:     {dir:'tx-person-dir', kind:'tx-person-kind', hint:'tx-person-kind-hint', cat:()=> document.getElementById('tx-person-cat-wrap'), acct:()=> document.getElementById('tx-person-acct-wrap'), sub:'tx-person-note-sub', getCat:()=> txPersonSelectedCat, person:()=> txSelectedPerson},
+  person: {dir:'person-dir', kind:'person-kind', hint:'person-kind-hint', cat:()=> document.getElementById('person-cat-summary').closest('.field'), acct:()=> document.getElementById('person-acct-row').closest('.field'), sub:'person-cat-sub', getCat:()=> personSelectedCat, person:()=> activePerson},
+  editpe: {dir:'editpe-dir', kind:'editpe-kind', hint:'editpe-kind-hint', cat:()=> document.getElementById('editpe-cat-summary').closest('.field'), acct:()=> document.getElementById('editpe-acct-row').closest('.field'), sub:'editpe-cat-sub', getCat:()=> editPeSelectedCat, person:()=> editingPersonEntry ? editingPersonEntry.personId : null}
+};
+function personKind(which){ const b = document.querySelector('#' + PERSON_SHEETS[which].kind + ' button.on'); return b ? b.dataset.v : null; }
+function setPersonKind(which, v){ document.querySelectorAll('#' + PERSON_SHEETS[which].kind + ' button').forEach(b=> b.classList.toggle('on', b.dataset.v === v)); }
+function applyPersonKind(which){
+  const c = PERSON_SHEETS[which];
+  if(which === 'editpe' && editingPersonEntry && editingPersonEntry.type === 'opening'){
+    document.getElementById(c.kind).classList.add('hide'); document.getElementById(c.hint).classList.add('hide');
+    c.cat().classList.remove('hide'); c.acct().classList.remove('hide'); return;
+  }
+  const dirBtn = document.querySelector('#' + c.dir + ' button.on');
+  const dir = dirBtn ? dirBtn.dataset.v : 'gave';
+  const kind = personKind(which);
+  const pid = c.person(); const p = pid ? state.people.find(x=> x.id === pid) : null; const name = p ? p.name : 'They';
+  const showCat = dir === 'received' && kind === 'paid';
+  const showAcct = dir === 'gave' || kind === 'lent';
+  document.getElementById(c.kind).classList.toggle('hide', dir !== 'received');
+  c.cat().classList.toggle('hide', !showCat);
+  c.acct().classList.toggle('hide', !showAcct);
+  const hint = document.getElementById(c.hint);
+  let h = '';
+  if(dir === 'received' && !kind) h = `Did ${name} pay for something of yours, or give you money?`;
+  if(which === 'editpe' && showCat && editingPersonEntry && editingPersonEntry.account && editingPersonEntry.type === 'received' && editingPersonEntry.category)
+    h = `This entry also added ${fmt(Math.abs(editingPersonEntry.delta))} to ${targetName(editingPersonEntry.account)}. Saving takes that out again, because ${name} paid the shop directly.`;
+  hint.textContent = h; hint.classList.toggle('hide', !h);
+  const sub = document.getElementById(c.sub);
+  if(sub){
+    const cat = c.getCat();
+    sub.textContent = dir === 'gave' ? 'Not your spending. You paid, so they owe you.'
+      : kind === 'paid' ? (cat ? `Counts as ${cat.split(' (')[0]} spending. No money moved in your accounts; you owe ${name}.` : 'Choose what it was for. It counts as your spending there.')
+      : kind === 'lent' ? `Not spending. The money came into the account you choose; you owe ${name}.` : '';
+  }
+}
+// What to save for the entry, or an error to show.
+function personEntryFields(which, dir, acct, cat){
+  if(dir === 'gave') return {account: acct || null, category: null, needAcct: true};
+  const kind = personKind(which);
+  if(!kind) return {error: 'Choose: Paid for my expense, or Gave me money.'};
+  if(kind === 'paid') return cat ? {account: null, category: cat} : {error: 'Choose what it was for.'};
+  return {account: acct || null, category: null, needAcct: true};
+}
+Object.keys(PERSON_SHEETS).forEach(w=>{
+  document.querySelectorAll('#' + PERSON_SHEETS[w].kind + ' button').forEach(b=> b.addEventListener('click', ()=>{
+    setPersonKind(w, b.dataset.v);
+    if(w === 'tx') renderTxPersonChips(); else if(w === 'person'){ renderPersonAcctChips(); renderPersonCatPicker(); } else { renderEditPeAcctChips(); renderEditPeCatPicker(); }
+  }));
+});
+// Every "paid for my expense" entry is also an expense (same date, amount and category, no
+// account), so Home, Insights, Recent activity and the category lists all show it. Kept in
+// step with the People entry: change or delete that, and the expense follows.
+function syncPaidForMe(){
+  const want = new Map();
+  (state.personLedger||[]).forEach(e=>{ if(e.type === 'received' && e.category) want.set('pfm_' + e.id, e); });
+  let changed = false;
+  const keep = (state.transactions||[]).filter(t=>{ if(t.fromPeople && !want.has(t.id)){ changed = true; return false; } return true; });
+  if(changed) state.transactions = keep;
+  const byId = new Map(state.transactions.map(t=> [t.id, t]));
+  want.forEach((e, id)=>{
+    const p = state.people.find(x=> x.id === e.personId); const name = p ? p.name : 'Someone';
+    const note = e.remarks && !/^You got$/i.test(e.remarks) ? ' · ' + e.remarks : '';
+    const f = {ts: e.ts, type: 'expense', account: null, payee: name + ' paid', category: e.category, amount: Math.abs(e.delta), household: true, remarks: 'Paid by ' + name + ' for you' + note, fromPeople: e.id};
+    const t = byId.get(id);
+    if(!t){ state.transactions.push({id, ...f}); changed = true; }
+    else Object.keys(f).forEach(k=>{ if(t[k] !== f[k]){ t[k] = f[k]; changed = true; } });
+  });
+  return changed;
+}
 wireSeg('tx-type', (v)=>{
   const isTransfer = v==='transfer';
   const isPerson = v==='person';
@@ -4667,8 +4754,8 @@ wireSeg('ri-person-dir', ()=>{
   const imp = state.pendingImports.find(p=>p.id===activeImportId);
   if(imp) renderReviewChips(imp);
 });
-wireSeg('tx-person-dir', ()=> renderTxPersonChips());
-wireSeg('person-dir', ()=> { renderPersonAcctChips(); renderPersonCatPicker(); });
+wireSeg('tx-person-dir', ()=>{ setPersonKind('tx', null); renderTxPersonChips(); });
+wireSeg('person-dir', ()=> { setPersonKind('person', null); renderPersonAcctChips(); renderPersonCatPicker(); });
 wireSeg('ap-dir');
 renderKeypad();
 
@@ -4727,6 +4814,7 @@ function renderTxPersonChips(){
         ? "Not counted in your budget. You paid, so it is a loan, not your expense."
         : "Choose a category above to count this as spending (only when they paid for you).";
   }
+  applyPersonKind('tx');
 
   const targets = [...state.accounts, ...state.cards];
   if(!targets.find(a=>a.id===txSelectedPersonAcct)) txSelectedPersonAcct = targets[0] ? targets[0].id : null;
@@ -4757,7 +4845,7 @@ function openAddTxSheet(presetAccountId){
   document.getElementById('tx-date').value = new Date().toISOString().slice(0,10);
   userTouchedCategory = false; userTouchedAccount = false;
   catPickerOpen = false; acctPickerOpen = false;
-  txSelectedPerson = null; txSelectedPersonAcct = null;
+  txSelectedPerson = null; txSelectedPersonAcct = null; setPersonKind('tx', null);
   txPersonSelectedCat = null; txPersonCatPickerOpen = false;
   if(presetAccountId){
     txSelectedAccount = presetAccountId;
@@ -4804,13 +4892,15 @@ document.getElementById('tx-save').addEventListener('click', async ()=>{
     state.transactions.push({id:genId('tx'), ts, type:'transfer', from:txFrom, to:txTo, amount, remarks:document.getElementById('tx-transfer-note').value.trim()});
   } else if(type==='person'){
     if(!txSelectedPerson){ alert('Choose a person.'); return; }
-    if(!txSelectedPersonAcct){ alert('Choose an account.'); return; }
     const dir = segValue('tx-person-dir');
+    const pf = personEntryFields('tx', dir, txSelectedPersonAcct, txPersonSelectedCat);
+    if(pf.error){ alert(pf.error); return; }
+    if(pf.needAcct && !pf.account){ alert('Choose an account.'); return; }
     const delta = dir==='gave' ? amount : -amount;
-    const remarks = document.getElementById('tx-person-note').value.trim() || (dir==='gave' ? 'You gave' : 'You got');
-    state.personLedger.push({id:genId('pl'), personId:txSelectedPerson, ts, type:dir, delta, account:txSelectedPersonAcct, remarks, category:txPersonSelectedCat||null});
+    const remarks = document.getElementById('tx-person-note').value.trim() || (dir==='gave' ? 'You gave' : pf.category ? 'Paid for you' : 'You got');
+    state.personLedger.push({id:genId('pl'), personId:txSelectedPerson, ts, type:dir, delta, account:pf.account, remarks, category:pf.category});
     recomputeBudgetActuals();
-    lastPersonSaveCountedSpend = (dir==='received' && txPersonSelectedCat) ? txPersonSelectedCat : null;
+    lastPersonSaveCountedSpend = pf.category || null;
   } else {
     const payeeInput = document.getElementById('tx-payee').value.trim();
     const payee = payeeInput || (type==='income'?'Income':'Expense');
@@ -4916,6 +5006,7 @@ function renderEditChips(){
   document.getElementById('edit-acct-row').classList.toggle('hide', !editAcctPickerOpen);
 }
 function openEditTx(tx){
+  if(tx && tx.fromPeople){ const pe = state.personLedger.find(e=> e.id === tx.fromPeople); if(pe){ openEditPersonEntry(pe); return; } }
   editingTx = tx;
   editSelectedCat = tx.category;
   editSelectedAccount = tx.account;
@@ -5059,6 +5150,7 @@ function renderPersonCatPicker(){
         ? "Not counted in your budget. You paid, so it is a loan, not your expense."
         : "Choose a category to count this as spending (only when they paid for you).";
   }
+  applyPersonKind('person');
 }
 function openPersonSheet(id){
   activePerson = id;
@@ -5068,6 +5160,7 @@ function openPersonSheet(id){
   document.getElementById('person-remarks').value='';
   personSelectedAccount = 'cash_wallet';
   personSelectedCat = null;
+  setPersonKind('person', null);
   personCatPickerOpen = false;
   renderPersonAcctChips();
   renderPersonCatPicker();
@@ -5080,9 +5173,12 @@ document.getElementById('person-save').addEventListener('click', async ()=>{
   const amount = parseFloat(document.getElementById('person-amount').value);
   if(!amount || amount<=0){ alert('Enter a valid amount.'); return; }
   const dir = segValue('person-dir');
+  const pf = personEntryFields('person', dir, personSelectedAccount, personSelectedCat);
+  if(pf.error){ alert(pf.error); return; }
+  if(pf.needAcct && !pf.account){ alert('Choose an account.'); return; }
   const delta = dir==='gave' ? amount : -amount;
-  const remarks = document.getElementById('person-remarks').value.trim() || (dir==='gave' ? 'You gave' : 'You got');
-  state.personLedger.push({id:'pl_'+Date.now(), personId:activePerson, ts:new Date().toISOString(), type:dir, delta, account:personSelectedAccount, remarks, category:personSelectedCat||null});
+  const remarks = document.getElementById('person-remarks').value.trim() || (dir==='gave' ? 'You gave' : pf.category ? 'Paid for you' : 'You got');
+  state.personLedger.push({id:genId('pl'), personId:activePerson, ts:new Date().toISOString(), type:dir, delta, account:pf.account, remarks, category:pf.category});
   recomputeBudgetActuals();
   await saveState();
   render();
@@ -5134,6 +5230,7 @@ function renderEditPeCatPicker(){
         ? "Not counted in your budget. You paid, so it is a loan, not your expense."
         : "Choose a category to count this as spending (only when they paid for you).";
   }
+  applyPersonKind('editpe');
 }
 function openEditPersonEntry(entry){
   editingPersonEntry = entry;
@@ -5147,6 +5244,7 @@ function openEditPersonEntry(entry){
   editPeSelectedAccount = entry.account || null;
   editPeSelectedCat = entry.category || null;
   editPeCatPickerOpen = false;
+  setPersonKind('editpe', entry.type === 'received' ? (entry.category ? 'paid' : 'lent') : null);
   const sel = document.getElementById('editpe-person');
   const people = [...state.people].sort((a,b)=> (a.name||'').localeCompare(b.name||''));
   sel.innerHTML = people.map(p=> `<option value="${p.id}" ${p.id===entry.personId?'selected':''}>${storyEsc(p.name)}${isSettledPerson(p)?' (settled)':''}</option>`).join('') + '<option value="__new">+ New person…</option>';
@@ -5167,7 +5265,7 @@ document.getElementById('editpe-person').addEventListener('change', e=>{
   document.getElementById('editpe-newperson').classList.toggle('hide', e.target.value !== '__new');
   if(e.target.value === '__new') document.getElementById('editpe-newperson').focus();
 });
-wireSeg('editpe-dir', ()=>{ renderEditPeCatPicker(); renderEditPeConvert(); });
+wireSeg('editpe-dir', ()=>{ setPersonKind('editpe', null); renderEditPeCatPicker(); renderEditPeConvert(); });
 // The person an entry belongs to, as chosen in the sheet (a new name makes a new person).
 function editPeChosenPerson(){
   const v = document.getElementById('editpe-person').value;
@@ -5206,11 +5304,14 @@ document.getElementById('editpe-save').addEventListener('click', async ()=>{
   const dir = segValue('editpe-dir');
   const toPerson = editPeChosenPerson();
   if(!toPerson) return;
+  const isOpening = editingPersonEntry.type === 'opening';
+  const pf = isOpening ? {account: editPeSelectedAccount || null, category: editPeSelectedCat || null} : personEntryFields('editpe', dir, editPeSelectedAccount, editPeSelectedCat);
+  if(pf.error){ alert(pf.error); return; }
   editingPersonEntry.personId = toPerson.id;
-  editingPersonEntry.type = dir;
+  if(!isOpening) editingPersonEntry.type = dir;
   editingPersonEntry.delta = dir==='gave' ? amount : -amount;
-  editingPersonEntry.account = editPeSelectedAccount || undefined;
-  editingPersonEntry.category = editPeSelectedCat || null;
+  editingPersonEntry.account = pf.account || null; // never undefined: the cloud refuses it
+  editingPersonEntry.category = pf.category || null;
   editingPersonEntry.remarks = document.getElementById('editpe-remarks').value.trim();
   recomputeBudgetActuals();
   await saveState();
@@ -7453,7 +7554,7 @@ function buildExistingCashEventsPool(){
   // between two of your own accounts, or a People Ledger entry (e.g. "took ₹5,000 from a friend").
   // All three must count when checking whether a fetched email describes something already
   // recorded. Payee is included on every entry now — needed for the corroboration check above.
-  const fromTx = state.transactions.filter(t=>t.type!=='transfer').map(t=>({amount:t.amount, ts:t.ts, account:t.account, payee:t.payee}));
+  const fromTx = state.transactions.filter(t=>t.type!=='transfer' && !t.fromPeople).map(t=>({amount:t.amount, ts:t.ts, account:t.account, payee:t.payee}));
   const fromTransfers = state.transactions.filter(t=>t.type==='transfer').flatMap(t=>[
     {amount:t.amount, ts:t.ts, account:t.from, payee:null}, {amount:t.amount, ts:t.ts, account:t.to, payee:null}
   ]);
@@ -7755,8 +7856,8 @@ function computeLearningMatches(){
   // deliberately not used here: a manual entry's timestamp is "when you tapped save," which
   // can be hours after the email's actual send time.
   const cutoff = new Date(HISTORY_START_DATE);
-  const manualTx = state.transactions.filter(t =>
-    t.type !== 'transfer' && new Date(t.ts) >= cutoff && t.remarks !== 'Imported from email'
+ const manualTx = state.transactions.filter(t =>
+    t.type !== 'transfer' && !t.fromPeople && new Date(t.ts) >= cutoff && t.remarks !== 'Imported from email'
   );
   const candidates = state.pendingImports || [];
   const pairs = [];
@@ -7881,7 +7982,7 @@ function findTransferPairs(){
   pending.forEach(p=>{
     if(used.has(p.id)) return;
     const acct = importAccount(p), isOut = p.type==='expense';
-    const near = state.transactions.filter(t=> !usedTx.has(t.id) && Math.abs((t.amount||0)-p.amount)<1 && withinPairWindow(t.ts, p.ts) && !declined.has(pairKey(p.id, t.id)));
+ const near = state.transactions.filter(t=> !t.fromPeople && !usedTx.has(t.id) && Math.abs((t.amount||0)-p.amount)<1 && withinPairWindow(t.ts, p.ts) && !declined.has(pairKey(p.id, t.id)));
     const tr = nearestTo(near.filter(t=> t.type==='transfer' && (isOut ? t.from===acct : t.to===acct)), p.ts);
     if(tr){
       used.add(p.id); usedTx.add(tr.id);
