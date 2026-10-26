@@ -231,6 +231,23 @@
   nav.tabbar svg{width:22px; height:22px;}
   .fab{position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom,0px) + 34px); margin-left:-60px; width:54px; height:54px; border-radius:50%; background:var(--accent-grad); color:#fff; border:none; font-size:34px; font-weight:400; line-height:1; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 6px var(--nav), var(--accent-glow); cursor:pointer; z-index:41; padding:0 0 3px; transition:transform .12s ease;}
   .fab:active{transform:scale(0.93);}
+  /* add form + review sheet: one line of chips instead of stacked fields */
+  .tx-chips{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:0 0 12px;}
+  .tx-chip{border:1px solid var(--line); background:var(--paper-dim); color:var(--ink); border-radius:16px; padding:8px 12px; font:inherit; font-size:13px; cursor:pointer; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .tx-chip.open{border-color:var(--peri); color:var(--peri);}
+  .tx-chip-hint{text-align:center; font-size:11.5px; color:var(--ink-soft); margin:-6px 0 6px;}
+  .ri-top{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;}
+  .ri-top .ri-dir-row{display:flex; align-items:center; gap:10px; margin:0;}
+  .ri-top .ri-dir-row p{margin:0;}
+  .ri-icon-btn{width:36px; height:36px; border-radius:50%; border:1px solid var(--line); background:none; color:var(--ink); font-size:16px; cursor:pointer;}
+  .ri-menu{border:1px solid var(--line); border-radius:16px; padding:6px 10px 10px; margin-bottom:10px;}
+  .ri-menu .btn-ghost{margin-top:6px;}
+  .ri-card{background:var(--paper-dim); border:1px solid var(--line); border-radius:20px; padding:14px 14px 4px; margin-bottom:12px;}
+  .ri-card .pick-summary{background:none; border:none; border-top:1px solid var(--line); border-radius:0; padding:10px 2px; margin:0;}
+  .ri-card .field{margin:0;}
+  #ri-amount{font-size:30px; font-weight:500; border:none; background:none; padding:0; color:var(--ink); width:100%;}
+  #ri-payee{font-size:16px; border:none; background:none; padding:2px 0 10px; color:var(--ink); width:100%;}
+  #ri-alert{color:#E0A23B; margin:0 0 10px;}
   /* the + and the mic sit side by side in the middle of the bar, both raised */
   #fab-voice{margin-left:6px; background:linear-gradient(140deg,#B48CFF,#7444E6); box-shadow:0 0 0 6px var(--nav), 0 8px 22px rgba(116,68,230,0.40); padding:0;}
   #fab-voice svg{width:25px; height:25px;}
@@ -737,7 +754,7 @@
 <!-- ADD TRANSACTION SHEET -->
 <div class="sheet-backdrop" id="tx-backdrop">
   <div class="sheet">
-    <h3 id="tx-heading">Add transaction</h3>
+    <h3 id="tx-heading" class="hide">Add transaction</h3>
 
     <div class="verb-pills" id="tx-type">
       <button data-v="expense" class="on spent">Expense</button>
@@ -749,25 +766,26 @@
     <div class="amount-display">
       <span class="rs">₹</span><span class="val" id="amount-val">0</span>
     </div>
+    <div class="tx-chip-hint hide" id="tx-chip-hint">Suggested from your past entries</div>
+    <div class="tx-chips" id="tx-chips"></div>
+    <div class="cat-grid hide" id="cat-grid"></div>
+    <div class="pick-list hide" id="acct-row"></div>
+    <div class="field hide" id="tx-date-panel"><input id="tx-date" type="date"></div>
     <div class="keypad" id="keypad"></div>
 
-    <div class="field">
-      <label>Date</label>
-      <input id="tx-date" type="date">
-    </div>
-
     <div id="tx-single-fields">
-      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;" id="cat-label">Category</label>
-      <div class="pick-summary" id="cat-summary"></div>
-      <div class="cat-grid hide" id="cat-grid"></div>
-
-      <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;" id="acct-label">Paid from</label>
-      <div class="pick-summary" id="acct-summary"></div>
-      <div class="pick-list hide" id="acct-row"></div>
-
-      <div class="field">
-        <label><span id="payee-label">Paid to</span> <span style="font-weight:400;">(optional)</span></label>
-        <input id="tx-payee" placeholder="e.g. Swiggy, Mukul the delivery guy">
+      <div class="hide">
+        <label id="cat-label">Category</label><div class="pick-summary" id="cat-summary"></div>
+        <label id="acct-label">Paid from</label><div class="pick-summary" id="acct-summary"></div>
+      </div>
+      <button class="link-btn" id="tx-more-link" type="button" style="display:block; margin:0 auto 12px;">+ Payee, note, paste SMS</button>
+      <div id="tx-more" class="hide">
+        <div class="field">
+          <label><span id="payee-label">Paid to</span> <span style="font-weight:400;">(optional)</span></label>
+          <input id="tx-payee" placeholder="e.g. Swiggy, Mukul the delivery guy">
+        </div>
+        <div class="field"><label>Note (optional)</label><input id="tx-note" placeholder=""></div>
+        <button class="link-btn" id="tx-paste-sms" type="button" style="display:block; margin:0 auto 12px;">Paste a bank SMS instead</button>
       </div>
     </div>
 
@@ -784,10 +802,6 @@
         <button data-v="gave" class="on">You gave</button>
         <button data-v="received">You got</button>
       </div>
-      <div class="seg hide" id="tx-person-kind" style="margin-top:8px;">
-        <button data-v="paid">Paid for my expense</button>
-        <button data-v="lent">Gave me money</button>
-      </div>
       <p class="section-sub hide" id="tx-person-kind-hint" style="margin:6px 0 0;"></p>
       <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">Person</label>
       <div class="acct-row" id="tx-person-row"></div>
@@ -801,10 +815,10 @@
       <div class="acct-row" id="tx-person-acct-row"></div>
       </div>
       <div class="field"><label>Note (optional)</label><input id="tx-person-note" placeholder="e.g. metro card recharge"></div>
-      <p class="section-sub" id="tx-person-note-sub">Not counted as spending or income.</p>
+      <p class="section-sub hide" id="tx-person-note-sub"></p>
     </div>
 
-    <div class="toggle-row" id="tx-household-row">
+    <div class="toggle-row hide" id="tx-household-row">
       <div class="seg seg-lg" id="tx-household">
         <button data-v="yes" class="on">Household</button>
         <button data-v="no">Personal</button>
@@ -812,8 +826,7 @@
     </div>
 
     <button class="btn-primary" id="tx-save">Add</button>
-    <button class="btn-ghost" id="tx-cancel">Cancel</button>
-    <button class="link-btn" id="tx-paste-sms" type="button" style="display:block; margin:10px auto 0;">Paste a bank SMS instead</button>
+    <button class="btn-ghost hide" id="tx-cancel">Cancel</button>
   </div>
 </div>
 
@@ -839,10 +852,6 @@
         <button data-v="gave" class="on">You gave</button>
         <button data-v="received">You got</button>
       </div>
-      <div class="seg hide" id="person-kind" style="margin-top:8px;">
-        <button data-v="paid">Paid for my expense</button>
-        <button data-v="lent">Gave me money</button>
-      </div>
       <p class="section-sub hide" id="person-kind-hint" style="margin:6px 0 0;"></p>
     </div>
     <div class="field">
@@ -853,7 +862,7 @@
       <label>What was it for?</label>
       <div class="pick-summary" id="person-cat-summary"></div>
       <div class="cat-grid hide" id="person-cat-grid"></div>
-      <p class="section-sub" id="person-cat-sub"></p>
+      <p class="section-sub hide" id="person-cat-sub"></p>
     </div>
     <div class="field"><label>Amount (₹)</label><input id="person-amount" type="number" inputmode="decimal" placeholder="0"></div>
     <div class="field"><label>Notes (optional)</label><input id="person-remarks" placeholder=""></div>
@@ -909,10 +918,6 @@
         <button data-v="gave" class="on">You gave</button>
         <button data-v="received">You got</button>
       </div>
-      <div class="seg hide" id="editpe-kind" style="margin-top:8px;">
-        <button data-v="paid">Paid for my expense</button>
-        <button data-v="lent">Gave me money</button>
-      </div>
       <p class="section-sub hide" id="editpe-kind-hint" style="margin:6px 0 0;"></p>
     </div>
     <div class="field">
@@ -924,7 +929,7 @@
       <label>What was it for?</label>
       <div class="pick-summary" id="editpe-cat-summary"></div>
       <div class="cat-grid hide" id="editpe-cat-grid"></div>
-      <p class="section-sub" id="editpe-cat-sub"></p>
+      <p class="section-sub hide" id="editpe-cat-sub"></p>
     </div>
     <div class="field"><label>Notes</label><input id="editpe-remarks" placeholder=""></div>
     <button class="btn-primary" id="editpe-save">Save changes</button>
@@ -937,22 +942,34 @@
 <!-- REVIEW PENDING IMPORT SHEET -->
 <div class="sheet-backdrop" id="reviewimport-backdrop">
   <div class="sheet">
-    <h3>Review this transaction</h3>
-    <p class="section-sub" id="ri-source-note">From your email</p>
-    <div class="ri-dir-row">
-      <p class="section-sub" id="ri-direction-note" style="font-weight:700; color:var(--ink);"></p>
-      <button class="link-btn" id="ri-flip-dir" type="button">Wrong direction?</button>
+    <div class="ri-top">
+      <div class="ri-dir-row">
+        <p class="section-sub" id="ri-direction-note" style="font-weight:700; color:var(--ink);"></p>
+        <button class="link-btn" id="ri-flip-dir" type="button">Wrong direction?</button>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="ri-icon-btn" id="ri-info-btn" type="button" aria-label="Where this came from">ⓘ</button>
+        <button class="ri-icon-btn" id="ri-more-btn" type="button" aria-label="More">⋯</button>
+      </div>
     </div>
+    <div class="ri-menu hide" id="ri-menu">
+      <button class="btn-ghost" id="ri-already-logged-btn">Already added</button>
+      <button class="btn-ghost" id="ri-dismiss-btn" style="color:var(--debt); border-color:var(--debt);">Not a transaction</button>
+    </div>
+    <p class="section-sub hide" id="ri-source-note">From your email</p>
+    <p class="section-sub hide" id="ri-info"></p>
+    <p class="section-sub hide" id="ri-alert"></p>
 
-    <label style="display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">Type</label>
-    <div class="seg" id="ri-mode" style="margin-bottom:14px;">
+    <div class="seg" id="ri-mode" style="margin-bottom:12px;">
       <button data-v="regular" class="on" id="ri-mode-regular-btn">Expense</button>
       <button data-v="transfer" id="ri-mode-transfer-btn">Transfer</button>
       <button data-v="person" id="ri-mode-person-btn">People</button>
     </div>
 
+    <div class="ri-card">
+    <div style="display:flex; align-items:baseline; gap:4px;"><span style="font-size:22px; color:var(--ink-soft);">₹</span><input id="ri-amount" type="number" inputmode="decimal" aria-label="Amount"></div>
+    <label id="ri-payee-label" class="hide">Paid to</label><input id="ri-payee" aria-label="Paid to" placeholder="Who">
     <div class="field" id="ri-cat-field">
-      <label>Category</label>
       <div class="pick-summary" id="ri-cat-summary"></div>
       <div class="cat-grid hide" id="ri-cat-grid"></div>
     </div>
@@ -961,7 +978,7 @@
       <label id="ri-transfer-label">To</label>
       <div class="pick-summary" id="ri-transfer-summary"></div>
       <div class="pick-list hide" id="ri-transfer-row"></div>
-      <p class="section-sub" id="ri-transfer-sub">Added as a transfer, not spending. Your budget is not affected.</p>
+      <p class="section-sub hide" id="ri-transfer-sub"></p>
     </div>
 
     <div class="field" id="ri-person-field">
@@ -974,27 +991,24 @@
         <button data-v="gave" class="on">You gave</button>
         <button data-v="received">You got</button>
       </div>
-      <p class="section-sub" id="ri-person-cat-sub"></p>
+      <p class="section-sub hide" id="ri-person-cat-sub"></p>
     </div>
 
     <div class="field">
-      <label>Account</label>
       <div class="pick-summary" id="ri-acct-summary"></div>
       <div class="pick-list hide" id="ri-acct-row"></div>
       <div class="section-sub" id="ri-acct-note" style="color:var(--debt); margin-top:4px;"></div>
     </div>
-    <div class="field" id="ri-household-row">
+    </div>
+    <div class="field hide" id="ri-household-row">
       <div class="seg seg-lg" id="ri-household">
         <button data-v="yes" class="on">Household</button>
         <button data-v="no">Personal</button>
       </div>
     </div>
-    <div class="field"><label id="ri-payee-label">Paid to</label><input id="ri-payee"></div>
-    <div class="field"><label>Amount (₹)</label><input id="ri-amount" type="number" inputmode="decimal"></div>
+    <div class="tx-chips" id="ri-chips"></div>
     <button class="btn-primary" id="ri-approve-btn">Add</button>
-    <button class="btn-ghost" id="ri-already-logged-btn">Already added</button>
-    <button class="btn-ghost" id="ri-dismiss-btn" style="color:var(--debt); border-color:var(--debt);">Not a transaction</button>
-    <button class="btn-ghost" id="ri-cancel-btn">Cancel</button>
+    <button class="btn-ghost hide" id="ri-cancel-btn">Cancel</button>
   </div>
 </div>
 
@@ -1308,7 +1322,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-25 · v109-paid-for-me</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-26 · v110-slim-forms</p>
   </div>
 </div>
 
@@ -4370,8 +4384,72 @@ function renderTxFormLists(){
   const saveBtn = document.getElementById('tx-save');
   const amt = parseFloat(txAmount)||0;
   saveBtn.textContent = amt>0 ? `Add ${fmt(amt)}` : 'Add';
+  renderTxChips();
 }
 function txCurrentType(){ return document.querySelector('#tx-type button.on').dataset.v; }
+// ---- chip row (v110): Category · Account · Date · Household, each guessed from past entries
+let txDatePickerOpen = false, txGuessUsed = false;
+function txDateIso(d){ return d.toISOString().slice(0,10); }
+function txDateLabel(){
+  const v = document.getElementById('tx-date').value;
+  const today = new Date(); const yest = new Date(Date.now() - 864e5);
+  if(!v || v === txDateIso(today)) return 'Today';
+  if(v === txDateIso(yest)) return 'Yesterday';
+  return new Date(v + 'T12:00:00').toLocaleDateString('en-IN', {day:'numeric', month:'short'});
+}
+function txShortCat(c){ return String(c||'Category').split(' (')[0].split(',')[0]; }
+// Best guess with no payee yet: the category and account used last for this kind of entry.
+function txLastUsed(type){
+  const targets = type==='expense' ? [...state.accounts, ...state.cards] : state.accounts;
+  const ids = new Set(targets.map(a=> a.id));
+  return [...state.transactions].filter(t=> t.type===type && !t.fromPeople && t.category && ids.has(t.account)).sort((a,b)=> new Date(b.ts)-new Date(a.ts))[0] || null;
+}
+function applyTxGuess(type){
+  if(type!=='expense' && type!=='income'){ txGuessUsed = false; return; }
+  const last = txLastUsed(type);
+  txGuessUsed = false;
+  if(!last) return;
+  if(!userTouchedCategory){ txSelectedCat = last.category; txGuessUsed = true; }
+  if(!userTouchedAccount){ txSelectedAccount = last.account; txGuessUsed = true; }
+}
+function renderTxChips(){
+  const type = txCurrentType();
+  const chips = [];
+  if(type==='expense' || type==='income'){
+    const acct = [...state.accounts, ...state.cards].find(a=> a.id===txSelectedAccount);
+    chips.push(`<button class="tx-chip ${catPickerOpen?'open':''}" data-txchip="cat" type="button">${storyEsc(txShortCat(txSelectedCat))} ▾</button>`);
+    chips.push(`<button class="tx-chip ${acctPickerOpen?'open':''}" data-txchip="acct" type="button">${storyEsc(acct ? acct.name : 'Account')} ▾</button>`);
+  }
+  chips.push(`<button class="tx-chip ${txDatePickerOpen?'open':''}" data-txchip="date" type="button">${txDateLabel()} ▾</button>`);
+  if(type==='expense') chips.push(`<button class="tx-chip" data-txchip="hh" type="button">${segValue('tx-household')==='yes' ? 'Household' : 'Personal'} ▾</button>`);
+  const el = document.getElementById('tx-chips');
+  el.innerHTML = chips.join('');
+  el.querySelectorAll('[data-txchip]').forEach(b=> b.addEventListener('click', ()=>{
+    const k = b.dataset.txchip;
+    if(k==='cat'){ catPickerOpen = !catPickerOpen; acctPickerOpen = false; txDatePickerOpen = false; }
+    else if(k==='acct'){ acctPickerOpen = !acctPickerOpen; catPickerOpen = false; txDatePickerOpen = false; }
+    else if(k==='date'){ txDatePickerOpen = !txDatePickerOpen; catPickerOpen = false; acctPickerOpen = false; }
+    else if(k==='hh'){ const v = segValue('tx-household')==='yes' ? 'no' : 'yes'; document.querySelectorAll('#tx-household button').forEach(x=> x.classList.toggle('on', x.dataset.v===v)); }
+    renderTxFormLists();
+    if(k==='date' && txDatePickerOpen){ const d = document.getElementById('tx-date'); try{ d.showPicker && d.showPicker(); }catch(e){} }
+  }));
+  document.getElementById('tx-chip-hint').classList.toggle('hide', !(txGuessUsed && (type==='expense' || type==='income')));
+  document.getElementById('tx-date-panel').classList.toggle('hide', !txDatePickerOpen);
+  if(type!=='expense' && type!=='income'){ document.getElementById('cat-grid').classList.add('hide'); document.getElementById('acct-row').classList.add('hide'); }
+}
+document.getElementById('tx-date').addEventListener('change', ()=>{ txDatePickerOpen = false; renderTxChips(); });
+document.getElementById('tx-more-link').addEventListener('click', ()=>{
+  const more = document.getElementById('tx-more'); more.classList.toggle('hide');
+  if(!more.classList.contains('hide')) document.getElementById('tx-payee').focus();
+});
+// An explanation is shown once, as a toast after saving, to someone new to the app (it stays in Help).
+function explainOnce(key, msg){
+  if(isLegacy()) return false;
+  let seen = false; try{ seen = localStorage.getItem('fa-explained-' + key) === '1'; localStorage.setItem('fa-explained-' + key, '1'); }catch(e){}
+  if(seen) return false;
+  showToast(msg, 4500); return true;
+}
+
 
 const CATEGORY_KEYWORDS = [
   [/swiggy|zomato|domino|pizza|restaurant|dining|cafe|starbucks|barista/i, /food|dining/i],
@@ -4668,56 +4746,40 @@ function segValue(id){ return document.querySelector('#'+id+' button.on').datase
 // Paid for my expense: someone paid a shop for you. It is your spending in the category you
 // pick, no money moved in your own accounts, and you owe them. Gave me money: plain udhaar;
 // it came into one of your accounts, no category, not spending.
+const BORROWED = 'Borrowed';
 const PERSON_SHEETS = {
-  tx:     {dir:'tx-person-dir', kind:'tx-person-kind', hint:'tx-person-kind-hint', cat:()=> document.getElementById('tx-person-cat-wrap'), acct:()=> document.getElementById('tx-person-acct-wrap'), sub:'tx-person-note-sub', getCat:()=> txPersonSelectedCat, person:()=> txSelectedPerson},
-  person: {dir:'person-dir', kind:'person-kind', hint:'person-kind-hint', cat:()=> document.getElementById('person-cat-summary').closest('.field'), acct:()=> document.getElementById('person-acct-row').closest('.field'), sub:'person-cat-sub', getCat:()=> personSelectedCat, person:()=> activePerson},
-  editpe: {dir:'editpe-dir', kind:'editpe-kind', hint:'editpe-kind-hint', cat:()=> document.getElementById('editpe-cat-summary').closest('.field'), acct:()=> document.getElementById('editpe-acct-row').closest('.field'), sub:'editpe-cat-sub', getCat:()=> editPeSelectedCat, person:()=> editingPersonEntry ? editingPersonEntry.personId : null}
+  tx:     {dir:'tx-person-dir', hint:'tx-person-kind-hint', cat:()=> document.getElementById('tx-person-cat-wrap'), acct:()=> document.getElementById('tx-person-acct-wrap'), sub:'tx-person-note-sub', getCat:()=> txPersonSelectedCat, person:()=> txSelectedPerson},
+  person: {dir:'person-dir', hint:'person-kind-hint', cat:()=> document.getElementById('person-cat-summary').closest('.field'), acct:()=> document.getElementById('person-acct-row').closest('.field'), sub:'person-cat-sub', getCat:()=> personSelectedCat, person:()=> activePerson},
+  editpe: {dir:'editpe-dir', hint:'editpe-kind-hint', cat:()=> document.getElementById('editpe-cat-summary').closest('.field'), acct:()=> document.getElementById('editpe-acct-row').closest('.field'), sub:'editpe-cat-sub', getCat:()=> editPeSelectedCat, person:()=> editingPersonEntry ? editingPersonEntry.personId : null}
 };
-function personKind(which){ const b = document.querySelector('#' + PERSON_SHEETS[which].kind + ' button.on'); return b ? b.dataset.v : null; }
-function setPersonKind(which, v){ document.querySelectorAll('#' + PERSON_SHEETS[which].kind + ' button').forEach(b=> b.classList.toggle('on', b.dataset.v === v)); }
+function isBorrowedCat(c){ return !c || c === BORROWED; }
+// You got + Borrowed (the default): udhaar into an account, not spending.
+// You got + any other category: they paid for your expense; spending there, no account moves.
 function applyPersonKind(which){
   const c = PERSON_SHEETS[which];
   if(which === 'editpe' && editingPersonEntry && editingPersonEntry.type === 'opening'){
-    document.getElementById(c.kind).classList.add('hide'); document.getElementById(c.hint).classList.add('hide');
+    document.getElementById(c.hint).classList.add('hide');
     c.cat().classList.remove('hide'); c.acct().classList.remove('hide'); return;
   }
   const dirBtn = document.querySelector('#' + c.dir + ' button.on');
   const dir = dirBtn ? dirBtn.dataset.v : 'gave';
-  const kind = personKind(which);
+  const borrowed = isBorrowedCat(c.getCat());
   const pid = c.person(); const p = pid ? state.people.find(x=> x.id === pid) : null; const name = p ? p.name : 'They';
-  const showCat = dir === 'received' && kind === 'paid';
-  const showAcct = dir === 'gave' || kind === 'lent';
-  document.getElementById(c.kind).classList.toggle('hide', dir !== 'received');
-  c.cat().classList.toggle('hide', !showCat);
-  c.acct().classList.toggle('hide', !showAcct);
+  c.cat().classList.toggle('hide', dir !== 'received');
+  c.acct().classList.toggle('hide', !(dir === 'gave' || borrowed));
   const hint = document.getElementById(c.hint);
   let h = '';
-  if(dir === 'received' && !kind) h = `Did ${name} pay for something of yours, or give you money?`;
-  if(which === 'editpe' && showCat && editingPersonEntry && editingPersonEntry.account && editingPersonEntry.type === 'received' && editingPersonEntry.category)
+  if(which === 'editpe' && dir === 'received' && !borrowed && editingPersonEntry && editingPersonEntry.account && editingPersonEntry.type === 'received' && editingPersonEntry.category)
     h = `This entry also added ${fmt(Math.abs(editingPersonEntry.delta))} to ${targetName(editingPersonEntry.account)}. Saving takes that out again, because ${name} paid the shop directly.`;
   hint.textContent = h; hint.classList.toggle('hide', !h);
-  const sub = document.getElementById(c.sub);
-  if(sub){
-    const cat = c.getCat();
-    sub.textContent = dir === 'gave' ? 'Not your spending. You paid, so they owe you.'
-      : kind === 'paid' ? (cat ? `Counts as ${cat.split(' (')[0]} spending. No money moved in your accounts; you owe ${name}.` : 'Choose what it was for. It counts as your spending there.')
-      : kind === 'lent' ? `Not spending. The money came into the account you choose; you owe ${name}.` : '';
-  }
+  const sub = document.getElementById(c.sub); if(sub) sub.classList.add('hide');
 }
-// What to save for the entry, or an error to show.
 function personEntryFields(which, dir, acct, cat){
-  if(dir === 'gave') return {account: acct || null, category: null, needAcct: true};
-  const kind = personKind(which);
-  if(!kind) return {error: 'Choose: Paid for my expense, or Gave me money.'};
-  if(kind === 'paid') return cat ? {account: null, category: cat} : {error: 'Choose what it was for.'};
-  return {account: acct || null, category: null, needAcct: true};
+  if(dir === 'gave' || isBorrowedCat(cat)) return {account: acct || null, category: null, needAcct: true};
+  return {account: null, category: cat};
 }
-Object.keys(PERSON_SHEETS).forEach(w=>{
-  document.querySelectorAll('#' + PERSON_SHEETS[w].kind + ' button').forEach(b=> b.addEventListener('click', ()=>{
-    setPersonKind(w, b.dataset.v);
-    if(w === 'tx') renderTxPersonChips(); else if(w === 'person'){ renderPersonAcctChips(); renderPersonCatPicker(); } else { renderEditPeAcctChips(); renderEditPeCatPicker(); }
-  }));
-});
+function personCatOptions(){ return [BORROWED, ...new Set([...state.budget.filter(b=>!b.income).map(b=>b.cat), OTHER_EXPENSE_CAT])]; }
+function setPersonKind(){}
 // Every "paid for my expense" entry is also an expense (same date, amount and category, no
 // account), so Home, Insights, Recent activity and the category lists all show it. Kept in
 // step with the People entry: change or delete that, and the expense follows.
@@ -4744,7 +4806,8 @@ wireSeg('tx-type', (v)=>{
   document.getElementById('tx-single-fields').classList.toggle('hide', isTransfer || isPerson);
   document.getElementById('tx-transfer-fields').classList.toggle('hide', !isTransfer);
   document.getElementById('tx-person-fields').classList.toggle('hide', !isPerson);
-  document.getElementById('tx-household-row').classList.toggle('hide', isTransfer || isPerson);
+  catPickerOpen = false; acctPickerOpen = false;
+  if(!isTransfer && !isPerson) applyTxGuess(v);
   if(isPerson) renderTxPersonChips();
   renderTxFormLists();
 });
@@ -4787,7 +4850,7 @@ function renderTxPersonChips(){
   // someone" was actually for (e.g. "Parties"). It never counts toward budget actuals, same
   // as the rest of a People Ledger entry — that stays a receivable/payable, not spending,
   // until it's settled one way or the other.
-  const catOptions = [...new Set([...state.budget.filter(b=>!b.income).map(b=>b.cat), OTHER_EXPENSE_CAT])];
+  const catOptions = personCatOptions();
   document.getElementById('tx-person-cat-grid').innerHTML = catOptions.map(c=>{
     const meta = catMeta(c);
     return `<div class="cat-chip ${c===txPersonSelectedCat?'on':''}" data-txpersoncat="${c}"><div class="em" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="lb">${c.split(' (')[0].split(',')[0]}</div></div>`;
@@ -4801,7 +4864,7 @@ function renderTxPersonChips(){
       `<div class="ps-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="ps-name">${txPersonSelectedCat}</div><div class="ps-change">${txPersonCatPickerOpen?'Cancel':'Change'}</div>`;
   } else {
     document.getElementById('tx-person-cat-summary').innerHTML =
-      `<div class="ps-icon" style="background:var(--paper-dim);">＋</div><div class="ps-name" style="color:var(--ink-soft);">Not tagged</div><div class="ps-change">${txPersonCatPickerOpen?'Cancel':'Add'}</div>`;
+      `<div class="ps-icon" style="background:var(--paper-dim);">＋</div><div class="ps-name">Borrowed <span style="color:var(--ink-soft); font-weight:400;">(not spending)</span></div><div class="ps-change">${txPersonCatPickerOpen?'Cancel':'Change'}</div>`;
   }
   document.getElementById('tx-person-cat-summary').onclick = ()=>{ txPersonCatPickerOpen = !txPersonCatPickerOpen; renderTxPersonChips(); };
   document.getElementById('tx-person-cat-grid').classList.toggle('hide', !txPersonCatPickerOpen);
@@ -4837,15 +4900,17 @@ function openAddTxSheet(presetAccountId){
   document.getElementById('tx-single-fields').classList.remove('hide');
   document.getElementById('tx-transfer-fields').classList.add('hide');
   document.getElementById('tx-person-fields').classList.add('hide');
-  document.getElementById('tx-household-row').classList.remove('hide');
   txSelectedCat = null; txSelectedAccount = null; txFrom = null; txTo = null;
   txAmount=''; updateAmountDisplay();
   document.getElementById('tx-payee').value='';
+  document.getElementById('tx-note').value='';
+  document.getElementById('tx-more').classList.add('hide');
+  txDatePickerOpen = false;
   document.getElementById('tx-transfer-note').value='';
   document.getElementById('tx-date').value = new Date().toISOString().slice(0,10);
   userTouchedCategory = false; userTouchedAccount = false;
   catPickerOpen = false; acctPickerOpen = false;
-  txSelectedPerson = null; txSelectedPersonAcct = null; setPersonKind('tx', null);
+  txSelectedPerson = null; txSelectedPersonAcct = null;
   txPersonSelectedCat = null; txPersonCatPickerOpen = false;
   if(presetAccountId){
     txSelectedAccount = presetAccountId;
@@ -4853,6 +4918,7 @@ function openAddTxSheet(presetAccountId){
     if(state.accounts.find(a=>a.id===presetAccountId)) txFrom = presetAccountId;
     else if(state.cards.find(c=>c.id===presetAccountId)) txTo = presetAccountId;
   }
+  applyTxGuess('expense');
   renderTxFormLists();
   txBackdrop.classList.add('open');
 }
@@ -4866,9 +4932,8 @@ document.getElementById('tx-payee').addEventListener('blur', ()=>{
   if(!userTouchedCategory && learned.category){ txSelectedCat = learned.category; applied = true; }
   if(!userTouchedAccount && learned.accountId){ txSelectedAccount = learned.accountId; applied = true; }
   if(applied){
-    catPickerOpen = false; acctPickerOpen = false;
+    catPickerOpen = false; acctPickerOpen = false; txGuessUsed = true;
     renderTxFormLists();
-    showToast('Filled in from past transactions. Check and save.');
   }
 });
 document.getElementById('tx-cancel').addEventListener('click', ()=> txBackdrop.classList.remove('open'));
@@ -4910,7 +4975,7 @@ document.getElementById('tx-save').addEventListener('click', async ()=>{
       account: txSelectedAccount,
       payee, category: txSelectedCat, amount,
       household: type==='expense' ? segValue('tx-household')==='yes' : false,
-      remarks: whoami ? ('Added by '+whoami) : ''
+      remarks: [document.getElementById('tx-note').value.trim(), whoami ? ('Added by '+whoami) : ''].filter(Boolean).join(' · ')
     };
     state.transactions.push(tx);
     const budgetCat = state.budget.find(b=>b.cat===tx.category);
@@ -4920,7 +4985,12 @@ document.getElementById('tx-save').addEventListener('click', async ()=>{
   await saveState();
   render();
   txBackdrop.classList.remove('open');
-  showToast(type==='transfer' ? 'Transfer added' : type==='person' ? (lastPersonSaveCountedSpend ? `Added as ${lastPersonSaveCountedSpend} spending. They paid, so you'll pay them back.` : 'Added. Not counted as spending.') : type==='income' ? 'Income added' : 'Added');
+  { const pn = (state.people.find(p=> p.id===txSelectedPerson)||{}).name || 'them';
+    const shown = type==='transfer' ? explainOnce('transfer', 'Transfer added. Money moved between your own accounts is not spending.')
+      : type==='person' ? (segValue('tx-person-dir')==='gave' ? explainOnce('pe-gave', `Added. Not your spending: you paid, so ${pn} owes you.`)
+        : lastPersonSaveCountedSpend ? explainOnce('pe-paid', `Added as ${txShortCat(lastPersonSaveCountedSpend)} spending. No account changed; you owe ${pn}.`)
+        : explainOnce('pe-borrowed', `Added. Borrowed money is not spending; you owe ${pn}. Pay back with You gave.`)) : false;
+    if(!shown) showToast(type==='transfer' ? 'Transfer added' : type==='person' ? (lastPersonSaveCountedSpend ? `Added as ${txShortCat(lastPersonSaveCountedSpend)} spending` : 'Added') : type==='income' ? 'Income added' : 'Added'); }
 });
 
 // ---- EDIT TRANSACTION ----
@@ -5123,7 +5193,7 @@ function renderPersonAcctChips(){
   });
 }
 function renderPersonCatPicker(){
-  const catOptions = [...new Set([...state.budget.filter(b=>!b.income).map(b=>b.cat), OTHER_EXPENSE_CAT])];
+  const catOptions = personCatOptions();
   document.getElementById('person-cat-grid').innerHTML = catOptions.map(c=>{
     const meta = catMeta(c);
     return `<div class="cat-chip ${c===personSelectedCat?'on':''}" data-personcat="${c}"><div class="em" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="lb">${c.split(' (')[0].split(',')[0]}</div></div>`;
@@ -5137,7 +5207,7 @@ function renderPersonCatPicker(){
       `<div class="ps-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="ps-name">${personSelectedCat}</div><div class="ps-change">${personCatPickerOpen?'Cancel':'Change'}</div>`;
   } else {
     document.getElementById('person-cat-summary').innerHTML =
-      `<div class="ps-icon" style="background:var(--paper-dim);">＋</div><div class="ps-name" style="color:var(--ink-soft);">Not tagged</div><div class="ps-change">${personCatPickerOpen?'Cancel':'Add'}</div>`;
+      `<div class="ps-icon" style="background:var(--paper-dim);">＋</div><div class="ps-name">Borrowed <span style="color:var(--ink-soft); font-weight:400;">(not spending)</span></div><div class="ps-change">${personCatPickerOpen?'Cancel':'Change'}</div>`;
   }
   document.getElementById('person-cat-summary').onclick = ()=>{ personCatPickerOpen = !personCatPickerOpen; renderPersonCatPicker(); };
   document.getElementById('person-cat-grid').classList.toggle('hide', !personCatPickerOpen);
@@ -5203,7 +5273,7 @@ function renderEditPeAcctChips(){
   });
 }
 function renderEditPeCatPicker(){
-  const catOptions = [...new Set([...state.budget.filter(b=>!b.income).map(b=>b.cat), OTHER_EXPENSE_CAT])];
+  const catOptions = personCatOptions();
   document.getElementById('editpe-cat-grid').innerHTML = catOptions.map(c=>{
     const meta = catMeta(c);
     return `<div class="cat-chip ${c===editPeSelectedCat?'on':''}" data-editpecat="${c}"><div class="em" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="lb">${c.split(' (')[0].split(',')[0]}</div></div>`;
@@ -5217,7 +5287,7 @@ function renderEditPeCatPicker(){
       `<div class="ps-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="ps-name">${editPeSelectedCat}</div><div class="ps-change">${editPeCatPickerOpen?'Cancel':'Change'}</div>`;
   } else {
     document.getElementById('editpe-cat-summary').innerHTML =
-      `<div class="ps-icon" style="background:var(--paper-dim);">＋</div><div class="ps-name" style="color:var(--ink-soft);">Not tagged</div><div class="ps-change">${editPeCatPickerOpen?'Cancel':'Add'}</div>`;
+      `<div class="ps-icon" style="background:var(--paper-dim);">＋</div><div class="ps-name">Borrowed <span style="color:var(--ink-soft); font-weight:400;">(not spending)</span></div><div class="ps-change">${editPeCatPickerOpen?'Cancel':'Change'}</div>`;
   }
   document.getElementById('editpe-cat-summary').onclick = ()=>{ editPeCatPickerOpen = !editPeCatPickerOpen; renderEditPeCatPicker(); };
   document.getElementById('editpe-cat-grid').classList.toggle('hide', !editPeCatPickerOpen);
@@ -8319,6 +8389,7 @@ function renderReviewChips(imp){
   const flipEl = document.getElementById('ri-flip-dir');
   if(flipEl) flipEl.textContent = riSelectedType!==imp.type ? 'Undo' : 'Wrong direction?';
   document.getElementById('ri-payee-label').textContent = isCredit ? 'Received from' : 'Paid to';
+  document.getElementById('ri-payee').placeholder = isCredit ? 'Received from' : 'Paid to';
   const regularBtn = document.getElementById('ri-mode-regular-btn');
   if(regularBtn) regularBtn.textContent = isCredit ? 'Income' : 'Expense';
   const personBtn = document.getElementById('ri-mode-person-btn');
@@ -8331,7 +8402,11 @@ function renderReviewChips(imp){
   document.getElementById('ri-cat-field').classList.toggle('hide', effectiveMode==='person' || effectiveMode==='transfer');
   document.getElementById('ri-transfer-field').classList.toggle('hide', effectiveMode!=='transfer');
   document.getElementById('ri-person-field').classList.toggle('hide', effectiveMode!=='person');
-  document.getElementById('ri-household-row').classList.toggle('hide', riSelectedType!=='expense' || effectiveMode!=='regular');
+  { const showHh = riSelectedType==='expense' && effectiveMode==='regular';
+    const chips = document.getElementById('ri-chips');
+    chips.innerHTML = showHh ? `<button class="tx-chip" id="ri-hh-chip" type="button">${segValue('ri-household')==='yes' ? 'Household' : 'Personal'} ▾</button>` : '';
+    const hc = document.getElementById('ri-hh-chip');
+    if(hc) hc.addEventListener('click', ()=>{ const v = segValue('ri-household')==='yes' ? 'no' : 'yes'; document.querySelectorAll('#ri-household button').forEach(x=> x.classList.toggle('on', x.dataset.v===v)); renderReviewChips(imp); }); }
 
   if(effectiveMode==='transfer'){
     // Always show every card and account here, regardless of what got auto-detected as the
@@ -8486,6 +8561,14 @@ function openReviewImport(id){
   const sourceLine = imp.fromSpoken ? 'You said: “' + (imp.heard||imp.subject||'') + '” · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + '. Choose the bank or card it was paid from.' : imp.fromStatement ? 'From your uploaded statement · ' + new Date(imp.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) + ' · “' + (imp.subject||'') + '”' : imp.fromSms ? 'From a pasted SMS · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + ' · “' + (imp.subject||'') + '”' : 'From ' + (imp.sourceEmail||'your email') + ' · ' + new Date(imp.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + (imp.sender ? ' · sent by ' + imp.sender : '') + (imp.subject ? ' · “' + imp.subject + '”' : '');
   document.getElementById('ri-source-note').textContent = (imp.status==='duplicate' ? 'Possible duplicate. Check before adding. ' : '') + (imp.fromSpoken && imp.checkAmount ? 'Check the amount. ' : '') + (imp.fromSpoken && imp.checkDirection ? 'Check Spent or Received. ' : '') + (imp.dirLearned ? 'Direction set as you corrected it before for this sender. ' : '')
     + (imp.possible ? 'From an address that does not look like a bank, card or payment app. Add it only if it is a real transaction. ' : imp.unknownSender ? (imp.bankLike ? 'New address that looks like a bank. Check the account. ' : 'New address, not tied to any account. Check the account. ') : '') + sourceLine;
+  { const warn = (imp.status==='duplicate' ? 'Possible duplicate. Check before adding. ' : '') + (imp.fromSpoken && imp.checkAmount ? 'Check the amount. ' : '') + (imp.fromSpoken && imp.checkDirection ? 'Check Spent or Received. ' : '')
+      + (imp.dirLearned ? 'Direction set as you corrected it before for this sender. ' : '')
+      + (imp.possible ? 'From an address that does not look like a bank, card or payment app. Add it only if it is real. ' : imp.unknownSender ? (imp.bankLike ? 'New address that looks like a bank. Check the account. ' : 'New address, not tied to any account. Check the account. ') : '')
+      + (imp.fromSpoken ? 'You said: “' + (imp.heard||imp.subject||'') + '”' : '');
+    const al = document.getElementById('ri-alert'); al.textContent = warn.trim(); al.classList.toggle('hide', !warn.trim()); }
+  document.getElementById('ri-source-note').classList.add('hide');
+  document.getElementById('ri-info').textContent = sourceLine; document.getElementById('ri-info').classList.add('hide');
+  document.getElementById('ri-menu').classList.add('hide');
   document.getElementById('ri-payee').value = imp.payee;
   document.getElementById('ri-amount').value = imp.amount;
   document.querySelectorAll('#ri-household button').forEach(b=> b.classList.toggle('on', b.dataset.v==='no'));
@@ -8493,6 +8576,8 @@ function openReviewImport(id){
   reviewImportBackdrop.classList.add('open');
 }
 document.getElementById('ri-cancel-btn').addEventListener('click', ()=> reviewImportBackdrop.classList.remove('open'));
+document.getElementById('ri-info-btn').addEventListener('click', ()=> document.getElementById('ri-info').classList.toggle('hide'));
+document.getElementById('ri-more-btn').addEventListener('click', ()=> document.getElementById('ri-menu').classList.toggle('hide'));
 reviewImportBackdrop.addEventListener('click', e=>{ if(e.target===reviewImportBackdrop) reviewImportBackdrop.classList.remove('open'); });
 
 document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
@@ -8551,7 +8636,7 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
     await saveState();
     render();
     reviewImportBackdrop.classList.remove('open');
-    showToast(half ? 'Transfer added. The email for the other side was cleared too.' : removedHalf ? 'Transfer added. The double entry was removed.' : 'Transfer added');
+    if(!explainOnce('transfer', 'Transfer added. Money moved between your own accounts is not spending.')) showToast(half ? 'Transfer added. The email for the other side was cleared too.' : removedHalf ? 'Transfer added. The double entry was removed.' : 'Transfer added');
     return;
   }
 
@@ -9001,7 +9086,7 @@ document.getElementById('engine-copy-btn').addEventListener('click', async ()=>{
 // the real button on the screen. Anything typed is matched against these first (free, on the
 // phone). Only what does not match goes to the server, where AI answers from the same guide;
 // what the guide does not cover is kept for the app's owner, and his reply shows here.
-const HELP_TOPICS = [{"id": "start", "title": "What this app does", "keywords": ["start", "begin", "beginning", "new user", "intro", "overview", "tabs", "shuru", "what does this app do", "getting started", "guide"], "answer": "It keeps your household money in one place.\n• Home: this month's spending, entries waiting from your email, recent activity and the budget.\n• Accounts: every bank account and card with its balance.\n• People: money you lent or borrowed.\n• Insights: where the money went, savings, six months.\nSwipe left or right to move between them. The + button adds an entry; the mic next to it lets you say one.", "tour": [{"do": "tab:home", "sel": "nav.tabbar", "text": "Four tabs: Home, Accounts, People and Insights. You can also swipe sideways between them."}, {"sel": "#fab-add", "text": "The + button adds an expense, income, transfer or a people entry."}]}, {"id": "add-expense", "title": "Add an expense", "keywords": ["add", "expense", "spend", "spent", "paid", "pay", "entry", "log", "kharcha", "new transaction", "record"], "answer": "1. Tap + at the bottom.\n2. Expense is already picked. Type the amount on the keypad.\n3. Write who you paid (shop, person, bill).\n4. Pick a category and the account or card it was paid from.\n5. Tap Save.", "tour": [{"sel": "#fab-add", "text": "Tap + to add an entry."}, {"do": "open:add", "sel": "#tx-type", "text": "Expense is picked already. Income and Transfer are here too."}, {"do": "open:add", "sel": ".amount-display", "text": "Type the amount on the keypad below."}, {"do": "open:add", "sel": "#tx-payee", "text": "Write who you paid."}, {"do": "open:add", "sel": "#tx-save", "text": "Pick the category and account above, then Save."}]}, {"id": "voice", "title": "Add an entry by speaking", "keywords": ["voice", "speak", "mic", "microphone", "bol", "bolo", "say", "spoken", "hindi", "talk", "awaaz"], "answer": "1. Tap the purple mic (Speak) at the bottom.\n2. Say it the way you would tell someone, like \"50 Blinkit\", \"dhai sau diye doodh wale ko\" or \"Ramesh se 500 mile\".\n3. It stops when you pause. The entry waits on Home, marked spoken. Tap it, pick the bank or card, and Add.\nIf a word was heard wrong, fix it in the box before ✓. Undo appears for 3 seconds after saving. Only the words are kept, never the recording. Change Hindi or English in Settings, under Voice entry.", "tour": [{"sel": "#fab-voice", "text": "Tap the mic and say the amount and who it was for."}, {"do": "open:tools", "sel": "#voice-lang-seg", "text": "Choose the language you speak in."}]}, {"id": "add-income", "title": "Add income or a transfer", "keywords": ["income", "salary", "received", "credit", "transfer", "move", "own account", "card payment", "bill payment", "pay card"], "answer": "Tap +, then choose Income (money that came in) or Transfer (money moved between your own accounts, or paying your credit card bill). Type the amount, pick the accounts, and Save. A transfer is not spending.", "tour": [{"do": "open:add", "sel": "#tx-type", "text": "Choose Income or Transfer here."}]}, {"id": "people", "title": "Lend or borrow money (People)", "keywords": ["people", "person", "lend", "lent", "borrow", "loan", "owe", "friend", "udhaar", "give", "got", "repay", "settle", "ledger"], "answer": "People keeps track of money between you and others.\n• Tap + and choose People, or go to the People tab.\n• \"You gave\" means they owe you; \"You got\" means you owe them.\n• Tap a person's amount to add a payment. Tap their name to see every entry.\n• Edit (under the name) changes the name or note. When the balance is zero, Settle takes them off the list; the record is kept.", "tour": [{"do": "tab:people", "sel": "#add-person-btn", "text": "Add a new person here."}, {"do": "tab:people", "sel": ".person-block", "text": "Tap the amount to add a payment; tap the name to see the entries."}]}, {"id": "reimburse", "title": "Office reimbursement, or paid for someone", "keywords": ["reimbursement", "reimburse", "office", "company", "claim", "expense claim", "paid for", "on behalf", "split", "kisi ke liye", "office ka", "wapas", "refund from office", "dost ke liye"], "answer": "Money you pay for your office, a friend or family that will come back is kept in People, so it is not counted as your own spending.\n1. Go to the People tab and tap the + at the top (Add person). Name it, for example \"Office\".\n2. When you pay for the office, tap the amount next to Office and add it as You gave.\n3. When the office pays you back, add it as You got.\n4. The balance shows how much the office still owes you. When it reaches zero, tap Settle.", "tour": [{"do": "tab:people", "sel": "#add-person-btn", "text": "Add a new person here."}, {"do": "tab:people", "sel": ".person-block", "text": "Tap the amount to add a payment; tap the name to see the entries."}]}, {"id": "connect-gmail", "title": "Connect Gmail so entries come in by themselves", "keywords": ["gmail", "email", "mail", "connect", "automatic", "auto", "bank alert", "inbox", "link", "read email"], "answer": "When you sign in with Google, the same step connects your Gmail. To connect another inbox later:\n1. Open Settings (the gear on Home).\n2. Under Bank emails tap Connect another inbox.\n3. Choose that Google account and allow reading.\nThe app reads only your banks' alert mails, twice a day, and shows each transaction on Home for you to check. You can disconnect any time from the same place.", "tour": [{"do": "tab:home", "sel": "#open-tools-btn", "text": "Open Settings."}, {"do": "open:tools", "sel": "#reader-connect-btn", "text": "Tap Connect Gmail and allow reading your bank alerts."}]}, {"id": "review-email", "title": "Entries from email: add or reject", "keywords": ["review", "waiting", "pending", "approve", "reject", "not real", "from your email", "suggested", "imported", "check entry"], "answer": "Entries the app found in your bank mails wait on Home.\n• Tap one, check the amount, category and account, then Add.\n• If it isn't a real transaction, tap Not a transaction. If you already added it yourself, tap Already added.\n• If the direction is wrong, tap Wrong direction?; the app remembers it for that bank.", "tour": [{"do": "tab:home", "sel": "#pending-review-wrap", "text": "Entries from your email wait here. Tap one to add or reject it."}]}, {"id": "check-email", "title": "Check email now or for past dates", "keywords": ["check", "fetch", "now", "refresh", "sync", "past", "from date", "old", "missing", "month"], "answer": "Go to Accounts. In Check email pick a From date (from the 1st of this month) and a To date if you want, then tap Check. New entries appear on Home. The app also checks by itself at 8 am and 8 pm. For anything older, go to Accounts, tap the account, then Upload statement.", "tour": [{"do": "tab:money", "sel": ".email-fetch", "text": "Pick the dates and tap Check."}]}, {"id": "fix-balance", "title": "Balance is wrong: fix it", "keywords": ["balance", "wrong", "incorrect", "fix", "adjust", "mismatch", "not matching", "difference", "reconcile", "unaccounted"], "answer": "1. Go to Accounts and tap the account.\n2. Tap Incorrect balance? Edit.\n3. Type the balance your bank app shows and Save.\nIf an entry explains the difference, Fix balance shows it with Remove this entry.", "tour": [{"do": "tab:money", "sel": "[data-acctstatement]", "text": "Tap the account."}, {"do": "open:firstaccount", "sel": "#acctstatement-edit-link", "text": "Tap Edit and type the balance your bank shows."}]}, {"id": "paste-sms", "title": "My bank doesn't email: statement or SMS", "keywords": ["sms", "message", "text", "paste", "upi", "sbi", "kotak", "no email", "phonepe", "gpay", "paytm", "not coming", "statement", "upload", "pdf", "csv", "download statement", "bank statement", "upload statement", "import"], "answer": "Some banks don't email every transaction (for example SBI, Kotak, Indian Bank), or the app has not confirmed their alert address yet. Home shows a card for them.\n1. Download this month's statement from the bank's app or website (PDF or CSV).\n2. Go to Accounts, tap the account, then Upload statement (or tap Statement on the Home card). If the PDF has a password, type it; it stays on your phone.\n3. Entries from the 1st of this month that are not in the app go to Home for you to check. Your balances are not changed.\nOr copy the bank's SMS, tap +, then Paste a bank SMS instead.", "tour": [{"do": "open:add", "sel": "#tx-paste-sms", "text": "Tap here and paste the bank's SMS."}]}, {"id": "add-account", "title": "Add a bank account or credit card", "keywords": ["account", "card", "credit card", "bank", "add account", "new card", "wallet", "cash"], "answer": "Go to Accounts and tap + at the top. Choose bank account or credit card, write its name (include the bank's name, like \"HDFC Savings\"), the last digits and today's balance or amount due, then Save.", "tour": [{"do": "tab:money", "sel": "#add-account-btn", "text": "Tap + to add an account or card."}]}, {"id": "budget", "title": "Budget and categories", "keywords": ["budget", "category", "categories", "limit", "plan", "monthly", "rename category", "delete category"], "answer": "The budget is on Home, below Recent activity. Each category shows spending against its budget. Tap ✎ to rename, change or delete a category; + Add a category makes a new one; Edit budget opens the full planner.", "tour": [{"do": "tab:home", "sel": "#home-budget-panel", "text": "Your budget for this month. Tap ✎ on a category to change it."}, {"do": "tab:home", "sel": "#home-budget-edit-btn", "text": "Edit budget opens the full planner."}]}, {"id": "edit-entry", "title": "Change or delete an entry", "keywords": ["edit", "change", "delete", "remove", "mistake", "wrong entry", "correct", "update entry"], "answer": "Tap the entry (in Recent activity on Home, or in an account's list). Change what you need and Save, or tap Delete. A People entry opens from the person's list in the People tab.", "tour": [{"do": "tab:home", "sel": "#recent-list", "text": "Tap any entry to change or delete it."}]}, {"id": "insights", "title": "Insights: where the money went", "keywords": ["insight", "analysis", "report", "chart", "where", "savings", "saving", "trend", "category spend", "download", "pdf"], "answer": "The Insights tab shows spending by category, income, savings (investments count as saved), the month against your usual, the last six months and your top payees. Use the arrows to change the month; ⬇ PDF downloads it.", "tour": [{"do": "tab:insights", "sel": "#analysis-period-tabs", "text": "Choose week, month or a custom period."}]}, {"id": "invite", "title": "Add my partner to the household", "keywords": ["partner", "wife", "husband", "family", "share", "invite", "household", "together", "member"], "answer": "Open Settings, find Household, type your partner's Gmail address and tap Invite. When they sign in with that Google account, they see the same household.", "tour": [{"do": "open:tools", "sel": "#household-section", "text": "Type your partner's Gmail address and tap Invite."}]}, {"id": "privacy", "title": "Hide balances and privacy", "keywords": ["hide", "privacy", "private", "safe", "secure", "security", "mask", "data", "who can see"], "answer": "The eye button on Home hides every balance. Your data is in your own household; only people you invite can see it. The app reads only bank alert mails, never anything else, and you can disconnect Gmail any time in Settings.", "tour": [{"do": "tab:home", "sel": "#mask-toggle-btn", "text": "Tap the eye to hide or show balances."}]}, {"id": "theme", "title": "Dark or light look", "keywords": ["dark", "light", "theme", "colour", "color", "mode"], "answer": "Open Settings and choose Dark or Light under Appearance.", "tour": [{"do": "open:tools", "sel": "#theme-seg", "text": "Choose Dark or Light."}]}];
+const HELP_TOPICS = [{"id": "start", "title": "What this app does", "keywords": ["start", "begin", "beginning", "new user", "intro", "overview", "tabs", "shuru", "what does this app do", "getting started", "guide"], "answer": "It keeps your household money in one place.\n• Home: this month's spending, entries waiting from your email, recent activity and the budget.\n• Accounts: every bank account and card with its balance.\n• People: money you lent or borrowed.\n• Insights: where the money went, savings, six months.\nSwipe left or right to move between them. The + button adds an entry; the mic next to it lets you say one.", "tour": [{"do": "tab:home", "sel": "nav.tabbar", "text": "Four tabs: Home, Accounts, People and Insights. You can also swipe sideways between them."}, {"sel": "#fab-add", "text": "The + button adds an expense, income, transfer or a people entry."}]}, {"id": "add-expense", "title": "Add an expense", "keywords": ["add", "expense", "spend", "spent", "paid", "pay", "entry", "log", "kharcha", "new transaction", "record"], "answer": "1. Tap + at the bottom.\n2. Expense is already picked. Type the amount on the keypad.\n3. Under the amount, the category, account, date and Household are guessed from your past entries. Tap any of them to change it.\n4. To write who you paid or a note, tap + Payee, note, paste SMS.\n5. Tap Add.", "tour": [{"sel": "#fab-add", "text": "Tap + to add an entry."}, {"do": "open:add", "sel": "#tx-type", "text": "Expense is picked already. Income and Transfer are here too."}, {"do": "open:add", "sel": ".amount-display", "text": "Type the amount on the keypad below."}, {"do": "open:add", "sel": "#tx-chips", "text": "Category, account, date and Household are guessed from your past entries. Tap one to change it."}, {"do": "open:add", "sel": "#tx-more-link", "text": "Tap here to add who you paid or a note."}, {"do": "open:add", "sel": "#tx-save", "text": "Tap Add."}]}, {"id": "voice", "title": "Add an entry by speaking", "keywords": ["voice", "speak", "mic", "microphone", "bol", "bolo", "say", "spoken", "hindi", "talk", "awaaz"], "answer": "1. Tap the purple mic (Speak) at the bottom.\n2. Say it the way you would tell someone, like \"50 Blinkit\", \"dhai sau diye doodh wale ko\" or \"Ramesh se 500 mile\".\n3. It stops when you pause. The entry waits on Home, marked spoken. Tap it, pick the bank or card, and Add.\nIf a word was heard wrong, fix it in the box before ✓. Undo appears for 3 seconds after saving. Only the words are kept, never the recording. Change Hindi or English in Settings, under Voice entry.", "tour": [{"sel": "#fab-voice", "text": "Tap the mic and say the amount and who it was for."}, {"do": "open:tools", "sel": "#voice-lang-seg", "text": "Choose the language you speak in."}]}, {"id": "add-income", "title": "Add income or a transfer", "keywords": ["income", "salary", "received", "credit", "transfer", "move", "own account", "card payment", "bill payment", "pay card"], "answer": "Tap +, then choose Income (money that came in) or Transfer (money moved between your own accounts, or paying your credit card bill). Type the amount, pick the accounts, and Save. A transfer is not spending.", "tour": [{"do": "open:add", "sel": "#tx-type", "text": "Choose Income or Transfer here."}]}, {"id": "people", "title": "Lend or borrow money (People)", "keywords": ["people", "person", "lend", "lent", "borrow", "loan", "owe", "friend", "udhaar", "give", "got", "repay", "settle", "ledger"], "answer": "People keeps track of money between you and others.\n• Tap + and choose People, or go to the People tab.\n• \"You gave\" means they owe you. \"You got\" means you owe them: leave the category as Borrowed when they gave you money; choose a category (say Health) when they paid for something of yours, and it counts as your spending there, with no account changed.\n• Tap a person's amount to add a payment. Tap their name to see every entry.\n• Edit (under the name) changes the name or note. When the balance is zero, Settle takes them off the list; the record is kept.", "tour": [{"do": "tab:people", "sel": "#add-person-btn", "text": "Add a new person here."}, {"do": "tab:people", "sel": ".person-block", "text": "Tap the amount to add a payment; tap the name to see the entries."}]}, {"id": "reimburse", "title": "Office reimbursement, or paid for someone", "keywords": ["reimbursement", "reimburse", "office", "company", "claim", "expense claim", "paid for", "on behalf", "split", "kisi ke liye", "office ka", "wapas", "refund from office", "dost ke liye"], "answer": "Money you pay for your office, a friend or family that will come back is kept in People, so it is not counted as your own spending.\n1. Go to the People tab and tap the + at the top (Add person). Name it, for example \"Office\".\n2. When you pay for the office, tap the amount next to Office and add it as You gave.\n3. When the office pays you back, add it as You got.\n4. The balance shows how much the office still owes you. When it reaches zero, tap Settle.", "tour": [{"do": "tab:people", "sel": "#add-person-btn", "text": "Add a new person here."}, {"do": "tab:people", "sel": ".person-block", "text": "Tap the amount to add a payment; tap the name to see the entries."}]}, {"id": "connect-gmail", "title": "Connect Gmail so entries come in by themselves", "keywords": ["gmail", "email", "mail", "connect", "automatic", "auto", "bank alert", "inbox", "link", "read email"], "answer": "When you sign in with Google, the same step connects your Gmail. To connect another inbox later:\n1. Open Settings (the gear on Home).\n2. Under Bank emails tap Connect another inbox.\n3. Choose that Google account and allow reading.\nThe app reads only your banks' alert mails, twice a day, and shows each transaction on Home for you to check. You can disconnect any time from the same place.", "tour": [{"do": "tab:home", "sel": "#open-tools-btn", "text": "Open Settings."}, {"do": "open:tools", "sel": "#reader-connect-btn", "text": "Tap Connect Gmail and allow reading your bank alerts."}]}, {"id": "review-email", "title": "Entries from email: add or reject", "keywords": ["review", "waiting", "pending", "approve", "reject", "not real", "from your email", "suggested", "imported", "check entry"], "answer": "Entries the app found in your bank mails wait on Home.\n• Tap one, check the amount, category and account, then Add.\n• If it isn't a real transaction, or you already added it yourself, tap ⋯ at the top, then Not a transaction or Already added. ⓘ shows which email it came from.\n• If the direction is wrong, tap Wrong direction?; the app remembers it for that bank.", "tour": [{"do": "tab:home", "sel": "#pending-review-wrap", "text": "Entries from your email wait here. Tap one to add or reject it."}]}, {"id": "check-email", "title": "Check email now or for past dates", "keywords": ["check", "fetch", "now", "refresh", "sync", "past", "from date", "old", "missing", "month"], "answer": "Go to Accounts. In Check email pick a From date (from the 1st of this month) and a To date if you want, then tap Check. New entries appear on Home. The app also checks by itself at 8 am and 8 pm. For anything older, go to Accounts, tap the account, then Upload statement.", "tour": [{"do": "tab:money", "sel": ".email-fetch", "text": "Pick the dates and tap Check."}]}, {"id": "fix-balance", "title": "Balance is wrong: fix it", "keywords": ["balance", "wrong", "incorrect", "fix", "adjust", "mismatch", "not matching", "difference", "reconcile", "unaccounted"], "answer": "1. Go to Accounts and tap the account.\n2. Tap Incorrect balance? Edit.\n3. Type the balance your bank app shows and Save.\nIf an entry explains the difference, Fix balance shows it with Remove this entry.", "tour": [{"do": "tab:money", "sel": "[data-acctstatement]", "text": "Tap the account."}, {"do": "open:firstaccount", "sel": "#acctstatement-edit-link", "text": "Tap Edit and type the balance your bank shows."}]}, {"id": "paste-sms", "title": "My bank doesn't email: statement or SMS", "keywords": ["sms", "message", "text", "paste", "upi", "sbi", "kotak", "no email", "phonepe", "gpay", "paytm", "not coming", "statement", "upload", "pdf", "csv", "download statement", "bank statement", "upload statement", "import"], "answer": "Some banks don't email every transaction (for example SBI, Kotak, Indian Bank), or the app has not confirmed their alert address yet. Home shows a card for them.\n1. Download this month's statement from the bank's app or website (PDF or CSV).\n2. Go to Accounts, tap the account, then Upload statement (or tap Statement on the Home card). If the PDF has a password, type it; it stays on your phone.\n3. Entries from the 1st of this month that are not in the app go to Home for you to check. Your balances are not changed.\nOr copy the bank's SMS, tap +, then + Payee, note, paste SMS, then Paste a bank SMS.", "tour": [{"do": "open:add", "sel": "#tx-more-link", "text": "Tap here, then Paste a bank SMS."}]}, {"id": "add-account", "title": "Add a bank account or credit card", "keywords": ["account", "card", "credit card", "bank", "add account", "new card", "wallet", "cash"], "answer": "Go to Accounts and tap + at the top. Choose bank account or credit card, write its name (include the bank's name, like \"HDFC Savings\"), the last digits and today's balance or amount due, then Save.", "tour": [{"do": "tab:money", "sel": "#add-account-btn", "text": "Tap + to add an account or card."}]}, {"id": "budget", "title": "Budget and categories", "keywords": ["budget", "category", "categories", "limit", "plan", "monthly", "rename category", "delete category"], "answer": "The budget is on Home, below Recent activity. Each category shows spending against its budget. Tap ✎ to rename, change or delete a category; + Add a category makes a new one; Edit budget opens the full planner.", "tour": [{"do": "tab:home", "sel": "#home-budget-panel", "text": "Your budget for this month. Tap ✎ on a category to change it."}, {"do": "tab:home", "sel": "#home-budget-edit-btn", "text": "Edit budget opens the full planner."}]}, {"id": "edit-entry", "title": "Change or delete an entry", "keywords": ["edit", "change", "delete", "remove", "mistake", "wrong entry", "correct", "update entry"], "answer": "Tap the entry (in Recent activity on Home, or in an account's list). Change what you need and Save, or tap Delete. A People entry opens from the person's list in the People tab.", "tour": [{"do": "tab:home", "sel": "#recent-list", "text": "Tap any entry to change or delete it."}]}, {"id": "insights", "title": "Insights: where the money went", "keywords": ["insight", "analysis", "report", "chart", "where", "savings", "saving", "trend", "category spend", "download", "pdf"], "answer": "The Insights tab shows spending by category, income, savings (investments count as saved), the month against your usual, the last six months and your top payees. Use the arrows to change the month; ⬇ PDF downloads it.", "tour": [{"do": "tab:insights", "sel": "#analysis-period-tabs", "text": "Choose week, month or a custom period."}]}, {"id": "invite", "title": "Add my partner to the household", "keywords": ["partner", "wife", "husband", "family", "share", "invite", "household", "together", "member"], "answer": "Open Settings, find Household, type your partner's Gmail address and tap Invite. When they sign in with that Google account, they see the same household.", "tour": [{"do": "open:tools", "sel": "#household-section", "text": "Type your partner's Gmail address and tap Invite."}]}, {"id": "privacy", "title": "Hide balances and privacy", "keywords": ["hide", "privacy", "private", "safe", "secure", "security", "mask", "data", "who can see"], "answer": "The eye button on Home hides every balance. Your data is in your own household; only people you invite can see it. The app reads only bank alert mails, never anything else, and you can disconnect Gmail any time in Settings.", "tour": [{"do": "tab:home", "sel": "#mask-toggle-btn", "text": "Tap the eye to hide or show balances."}]}, {"id": "theme", "title": "Dark or light look", "keywords": ["dark", "light", "theme", "colour", "color", "mode"], "answer": "Open Settings and choose Dark or Light under Appearance.", "tour": [{"do": "open:tools", "sel": "#theme-seg", "text": "Choose Dark or Light."}]}];
 let helpLog = [];
 function helpTokens(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9ऀ-ॿ ]/g,' ').split(/\s+/).filter(w=> w.length > 1); }
 function matchHelpTopic(q){
@@ -9548,7 +9633,7 @@ function openVoice(){
   if(!voiceSupported()){
     // No speech on this browser: the add form opens with the keyboard ready.
     openAddTxSheet();
-    setTimeout(()=>{ const p = document.getElementById('tx-payee'); if(p) p.focus(); }, 120);
+    setTimeout(()=>{ document.getElementById('tx-more').classList.remove('hide'); const p = document.getElementById('tx-payee'); if(p) p.focus(); }, 120);
     return;
   }
   voiceStop(true);
