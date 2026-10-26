@@ -256,6 +256,12 @@
   .payback-card{border:1px solid var(--peri); border-radius:16px; padding:12px; margin:0 0 12px;}
   .payback-card .pb-btns{display:flex; gap:8px; margin-top:10px;}
   .payback-card .pb-btns button{flex:1; margin:0;}
+  .payback-card .pb-nums{display:flex; justify-content:space-between; gap:8px; margin-top:8px; font-size:13px;}
+  .payback-card .pb-nums b{display:block; font-size:15px;}
+  .pill{display:inline-block; font-size:11px; border-radius:10px; padding:2px 8px; border:1px solid var(--line); color:var(--ink-soft);}
+  .pill.collecting{color:#E0A23B; border-color:rgba(224,162,59,.5);} .pill.submitted{color:var(--peri); border-color:var(--peri);} .pill.received{color:var(--sage, #4FCA63);} .pill.closed,.pill.rejected{opacity:.7;}
+  .claim-steps{display:flex; gap:6px; margin:6px 0 12px;} .claim-steps span{flex:1; text-align:center; font-size:11.5px; padding:6px 0; border-radius:10px; border:1px solid var(--line); color:var(--ink-soft);}
+  .claim-steps span.done{border-color:var(--peri); color:var(--peri);}
   /* the + and the mic sit side by side in the middle of the bar, both raised */
   #fab-voice{margin-left:6px; background:linear-gradient(140deg,#B48CFF,#7444E6); box-shadow:0 0 0 6px var(--nav), 0 8px 22px rgba(116,68,230,0.40); padding:0;}
   #fab-voice svg{width:25px; height:25px;}
@@ -672,6 +678,19 @@
         <h1 class="page-title">People</h1>
         <div class="side right"><button class="icon-btn" id="add-person-btn" aria-label="Add person">+</button></div>
       </div>
+      <div class="seg" id="people-seg" style="margin:0 0 12px;"><button data-v="people" class="on">People</button><button data-v="claims">Claims</button></div>
+      <div id="claims-pane" class="hide">
+        <div class="hero">
+          <div class="lbl">Owed to you by claims</div>
+          <div class="hero-num maskable" id="claims-owed">—</div>
+          <div class="subs" id="claims-subs"></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><b>Claims</b><button class="link-btn" id="claim-new-btn">+ New claim</button></div>
+          <div id="claims-list"></div>
+        </div>
+      </div>
+      <div id="people-pane">
       <div class="hero">
         <div class="lbl">Balance with people</div>
         <div class="hero-num maskable" id="people-net">—</div>
@@ -680,6 +699,7 @@
       <div class="panel">
         <div class="ph"><b>People Ledger</b></div>
         <div id="people-list"></div>
+      </div>
       </div>
     </section>
 
@@ -969,6 +989,7 @@
     <p class="section-sub hide" id="ri-info"></p>
     <p class="section-sub hide" id="ri-alert"></p>
     <div class="payback-card hide" id="ri-payback"></div>
+    <div class="payback-card hide" id="ri-claim"></div>
 
     <div class="seg" id="ri-mode" style="margin-bottom:12px;">
       <button data-v="regular" class="on" id="ri-mode-regular-btn">Expense</button>
@@ -1021,6 +1042,11 @@
     <button class="btn-primary" id="ri-approve-btn">Add</button>
     <button class="btn-ghost hide" id="ri-cancel-btn">Cancel</button>
   </div>
+</div>
+
+<!-- ONE CLAIM -->
+<div class="sheet-backdrop" id="claim-backdrop">
+  <div class="sheet" id="claim-body"></div>
 </div>
 
 <!-- EDIT TRANSACTION SHEET -->
@@ -1306,6 +1332,9 @@
     </div>
     <p class="section-sub" style="margin:0 0 6px;">The language you speak in when you tap the mic. Hindi also understands English numbers and shop names.</p>
 
+    <div class="divider-label">My reimbursements</div>
+    <div class="card" id="claim-payers-box" style="margin-bottom:6px;"></div>
+
     <div id="household-section" class="hide">
       <div class="divider-label">Household</div>
       <div class="card" id="household-box" style="margin-bottom:6px;"></div>
@@ -1335,7 +1364,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-26 · v111-split</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-26 · v112-claims</p>
   </div>
 </div>
 
@@ -1499,6 +1528,7 @@ const STARTER = {
   cards: [],
   people: [],
   personLedger: [],
+  claims: [],
   mutualFunds: [],
   equities: [],
   otherAssets: [],
@@ -1614,6 +1644,10 @@ function normalizeState(){
   if(!state.voiceWords || typeof state.voiceWords !== 'object' || Array.isArray(state.voiceWords)) state.voiceWords = {};
   if(!Array.isArray(state.spokenMatchDeclined)) state.spokenMatchDeclined = [];
   if(!Array.isArray(state.paybackDeclined)) state.paybackDeclined = [];
+  if(!Array.isArray(state.claims)) state.claims = [];
+  if(!Array.isArray(state.claimPayers) || !state.claimPayers.length) state.claimPayers = ['Office · TA/DA', 'CGHS', 'Company insurance'];
+  if(typeof state.claimWords !== 'string') state.claimWords = '';
+  if(!Array.isArray(state.claimDeclined)) state.claimDeclined = [];
   // A device that starts from the empty starting set must not treat that set as its own new
   // work: only what is added from here on is sent to the cloud.
   if(!stateFromStorage && typeof previousArrays !== 'undefined'){
@@ -2622,11 +2656,13 @@ function renderReaderUI(force){
     await saveReaderSender(document.getElementById('sender-add-addr').value, sel.value);
   });
 }
+function openSettingsPageClaims(){ try{ renderClaimPayers(); }catch(e){} }
 function openSettingsPage(){
   document.querySelector('#tools-page .fs-body').scrollTop = 0;
   applyHouseholdUI();
   loadHouseholdDoc();
   loadReaderSenders();
+  openSettingsPageClaims();
   openFullscreen('tools-page');
 }
 // Parts of the screen that show only once a household has an inbox connected, and the
@@ -2677,10 +2713,13 @@ const COLLECTION_FIELDS = {
   budgetMonths: 'budgetMonth',
   // One document per decision made on an email-found entry (added as read, added after a
   // correction, rejected, already logged) — the score sheet for the email reader.
-  importOutcomes: 'importOutcome'
+  importOutcomes: 'importOutcome',
+  // One document per reimbursement claim (office TA/DA, CGHS, insurance). Its items, payments
+  // and advances are the transactions that carry its claimId, so the claim cannot drift from them.
+  claims: 'claim'
 };
-const META_FIELDS = ['budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','lastBudgetReviewMonth','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts','transferPairDeclined','noEmailOk','hiddenMailKinds','hideKindDeclined','gapsSeen','voiceWords','spokenMatchDeclined','paybackDeclined'];
-let previousArrays = { transactions:[], personLedger:[], pendingImports:[], dismissedImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[], budgetMonths:[], importOutcomes:[] };
+const META_FIELDS = ['budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','lastBudgetReviewMonth','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts','transferPairDeclined','noEmailOk','hiddenMailKinds','hideKindDeclined','gapsSeen','voiceWords','spokenMatchDeclined','paybackDeclined','claimPayers','claimWords','claimDeclined'];
+let previousArrays = { transactions:[], personLedger:[], pendingImports:[], dismissedImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[], budgetMonths:[], importOutcomes:[], claims:[] };
 
 // ---- Outbox for cloud writes that haven't been confirmed yet ----
 // A write to Firestore takes a moment to complete. If the app is closed before it does
@@ -3600,7 +3639,8 @@ function budgetEntriesForMonth(year, month){
     if(t.type==='transfer') return;
     const d = new Date(t.ts);
     if(d<start || d>=end) return;
-    push(findBudgetRowForCategory(t.category), {amount:spendOf(t), payee:t.payee||'', ts:t.ts});
+    const v = t.type==='income' ? incomeOf(t) : spendOf(t);
+    if(v) push(findBudgetRowForCategory(t.category), {amount:v, payee:t.payee||'', ts:t.ts});
   });
   // A "for someone" entry tagged with a category counts as your real spending only when the
   // money flowed the way that makes it YOUR expense: someone else fronted the cash for
@@ -3760,7 +3800,7 @@ function rebuildPayeeMemoryFromHistory(){
 function monthTotals(){
   const now = new Date();
   const inMonth = t=>{ const d = new Date(t.ts); return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear(); };
-  const income = state.transactions.filter(t=>t.type==='income' && inMonth(t)).reduce((s,t)=>s+t.amount,0);
+  const income = state.transactions.filter(t=>t.type==='income' && inMonth(t)).reduce((s,t)=>s+incomeOf(t),0);
   const expense = state.transactions.filter(t=>t.type==='expense' && inMonth(t)).reduce((s,t)=>s+spendOf(t),0);
   return {income, expense, net: income-expense};
 }
@@ -4140,7 +4180,7 @@ function render(){
       return `<div class="tx-item" data-editrecent="${i}" style="cursor:pointer;"><div class="chip-icon" style="color:var(--peri);">${ICON.swap}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${targetName(tx.from)} → ${targetName(tx.to)}</span><span class="tx-amt">${fmt(tx.amount)}</span></div><div class="tx-meta">${tx.remarks||'internal transfer'}</div></div></div>`;
     }
     const meta = catMeta(tx.category);
-    return `<div class="tx-item" data-editrecent="${i}" style="cursor:pointer;"><div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${tx.payee}</span><span class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmt(tx.amount)}</span></div><div class="tx-meta">${targetName(tx.account)} · ${tx.category}${tx.forWhom==='split' ? ' · your share ' + fmt(spendOf(tx)) : ''}</div></div></div>`;
+    return `<div class="tx-item" data-editrecent="${i}" style="cursor:pointer;"><div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${tx.payee}</span><span class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmt(tx.amount)}</span></div><div class="tx-meta">${targetName(tx.account)} · ${tx.category}${tx.forWhom==='split' ? ' · your share ' + fmt(spendOf(tx)) : tx.forWhom==='reimbursed' ? ' · claim ' + storyEsc(claimName(tx.claimId)) : tx.claimRole==='receipt' ? ' · claim payment' : tx.claimRole==='advance' ? ' · claim advance' : ''}</div></div></div>`;
   }).join('') : '<div class="empty">No transactions yet. Tap + to add one.</div>';
   document.querySelectorAll('[data-editrecent]').forEach(el=>{
     el.addEventListener('click', ()=> openEditTx(recentTxRefs[parseInt(el.getAttribute('data-editrecent'))]));
@@ -4236,6 +4276,7 @@ function render(){
     generatePersonPDF(el.getAttribute('data-pdf'));
   }));
 
+  renderClaimsPane();
   // Bills & goals (shown on the Budget page)
   const monthlyNeed = lumpyBillsMonthly();
   const lumpyRowNow = lumpyCatRow();
@@ -4407,7 +4448,13 @@ function txCurrentType(){ return document.querySelector('#tx-type button.on').da
 // ---- SPLIT (v111) ----
 // The entry keeps its full amount (the account pays all of it); only my share is my spending.
 // Each other person's share is a People entry "You gave", linked by txId, with no account.
-function spendOf(t){ return (t && t.type==='expense' && t.forWhom==='split' && typeof t.myShare==='number') ? t.myShare : (t ? t.amount : 0); }
+function spendOf(t){
+  if(!t) return 0;
+  if(t.type==='expense' && t.forWhom==='reimbursed') return 0;
+  return (t.type==='expense' && t.forWhom==='split' && typeof t.myShare==='number') ? t.myShare : t.amount;
+}
+// A claim's payment or advance lands in the account but is never income.
+function incomeOf(t){ return (t && t.type==='income' && (t.claimRole==='receipt' || t.claimRole==='advance')) ? 0 : (t ? t.amount : 0); }
 const splitSt = {tx:{mode:'me'}, ri:{mode:'me'}, edit:{mode:'me'}};
 function splitReset(ctx){ splitSt[ctx] = {mode:'me', me:true, people:[], method:'equal', amounts:{}, open:false}; }
 ['tx','ri','edit'].forEach(splitReset);
@@ -4437,16 +4484,20 @@ function splitResult(ctx){
   if(shares.some(x=> !(x.amount > 0))) return {ok:false, err:'Each person needs a share above ₹0.', myShare, shares};
   return {ok:true, myShare, shares, total};
 }
+function ctxType(ctx){ return ctx==='tx' ? txCurrentType() : ctx==='ri' ? riSelectedType : (editingTx ? editingTx.type : 'expense'); }
 function splitChipLabel(ctx){
   const st = splitSt[ctx];
-  if(st.mode !== 'split') return 'Just me';
-  const n = st.people.length + (st.me ? 1 : 0);
-  return 'Split · ' + n;
+  if(st.mode === 'split') return 'Split · ' + (st.people.length + (st.me ? 1 : 0));
+  if(st.mode === 'reimb') return st.claimId ? 'Claim · ' + claimName(st.claimId) : 'Reimbursed';
+  if(st.mode === 'receipt') return st.claimId ? 'Claim payment · ' + claimName(st.claimId) : 'Claim payment';
+  if(st.mode === 'advance') return st.claimId ? 'Advance · ' + claimName(st.claimId) : 'Claim advance';
+  return ctxType(ctx) === 'income' ? 'Income' : 'Just me';
 }
+function forWhomModes(ctx){ return ctxType(ctx) === 'income' ? [['me','Income'],['receipt','Claim payment'],['advance','Advance']] : [['me','Just me'],['split','Split'],['reimb','Reimbursed']]; }
 function splitChipHtml(ctx){ return `<button class="tx-chip ${splitSt[ctx].open ? 'open' : ''}" data-splitchip="${ctx}" type="button">${splitChipLabel(ctx)} ▾</button>`; }
 function wireSplitChip(ctx, root){
   const b = root.querySelector(`[data-splitchip="${ctx}"]`);
-  if(b) b.addEventListener('click', ()=>{ const st = splitSt[ctx]; st.open = !st.open; if(st.open && st.mode !== 'split'){ st.mode = 'split'; st.me = true; } renderSplitPanel(ctx); rerenderSplitChips(ctx); });
+  if(b) b.addEventListener('click', ()=>{ const st = splitSt[ctx]; st.open = !st.open; renderSplitPanel(ctx); rerenderSplitChips(ctx); });
 }
 function rerenderSplitChips(ctx){
   if(ctx==='tx') renderTxChips();
@@ -4456,8 +4507,19 @@ function rerenderSplitChips(ctx){
 function renderSplitPanel(ctx){
   const el = document.getElementById(ctx + '-split-panel');
   const st = splitSt[ctx];
-  if(!st.open || st.mode !== 'split'){ el.classList.add('hide'); el.innerHTML = ''; return; }
+  if(!st.open){ el.classList.add('hide'); el.innerHTML = ''; return; }
   el.classList.remove('hide');
+  const modes = forWhomModes(ctx);
+  if(!modes.some(m=> m[0] === st.mode)) st.mode = 'me';
+  el.innerHTML = `<div class="seg" data-fwmode="1" style="margin-bottom:10px;">${modes.map(m=> `<button data-v="${m[0]}" class="${st.mode===m[0] ? 'on' : ''}">${m[1]}</button>`).join('')}</div><div data-fwbody="1"></div>`;
+  el.querySelectorAll('[data-fwmode] button').forEach(b=> b.addEventListener('click', ()=>{ st.mode = b.dataset.v; if(st.mode==='split' && st.me === undefined) st.me = true; renderSplitPanel(ctx); rerenderSplitChips(ctx); }));
+  const body = el.querySelector('[data-fwbody]');
+  if(st.mode === 'split') renderSplitBody(ctx, body);
+  else if(st.mode === 'me') body.innerHTML = `<p class="sp-line">${ctxType(ctx)==='income' ? 'Counts as your income.' : 'The full amount is your spending.'}</p>`;
+  else renderClaimBody(ctx, body);
+}
+function renderSplitBody(ctx, el){
+  const st = splitSt[ctx];
   const people = activePeople().filter(p=> !/^office$/i.test(p.name||''));
   st.people.forEach(id=>{ if(!people.find(p=> p.id===id)){ const p = state.people.find(x=> x.id===id); if(p) people.push(p); } });
   const res = splitResult(ctx);
@@ -4501,6 +4563,10 @@ function renderSplitPanel(ctx){
 // Load a saved split back into the sheet (Edit transaction).
 function splitLoad(ctx, tx){
   splitReset(ctx);
+  if(tx && tx.claimId && (tx.forWhom === 'reimbursed' || tx.claimRole === 'receipt' || tx.claimRole === 'advance')){
+    const st = splitSt[ctx], c = claimById(tx.claimId);
+    st.mode = tx.forWhom === 'reimbursed' ? 'reimb' : tx.claimRole; st.claimId = tx.claimId; st.payer = c ? c.payer : null; return;
+  }
   if(!tx || tx.forWhom !== 'split') return;
   const st = splitSt[ctx];
   const linked = state.personLedger.filter(e=> e.txId === tx.id);
@@ -4527,13 +4593,234 @@ function applySplit(tx, res, method){
 function clearSplit(tx){ removeSplitShares(tx); delete tx.forWhom; delete tx.myShare; delete tx.splitMode; }
 function renderEditSplitChip(){
   const el = document.getElementById('edit-chips');
-  const show = editingTx && editingTx.type==='expense' && !editConvert;
+  const show = editingTx && (editingTx.type==='expense' || editingTx.type==='income') && !editConvert && editingTx.claimRole !== 'shortfall';
   el.innerHTML = show ? splitChipHtml('edit') : '';
   if(show) wireSplitChip('edit', el); else { splitSt.edit.open = false; }
   renderSplitPanel('edit');
 }
 document.getElementById('edit-amount').addEventListener('input', ()=>{ if(splitSt.edit.open) renderSplitPanel('edit'); });
 document.getElementById('ri-amount').addEventListener('input', ()=>{ if(splitSt.ri.open) renderSplitPanel('ri'); });
+
+// ---- CLAIMS (v112) ----
+function claimById(id){ return (state.claims||[]).find(c=> c.id === id) || null; }
+function claimName(id){ const c = claimById(id); return c ? c.name : 'claim'; }
+function claimOpen(c){ return c && c.status !== 'closed' && c.status !== 'rejected'; }
+function claimNums(c){
+  const tx = state.transactions.filter(t=> t.claimId === c.id);
+  const sum = role=> tx.filter(t=> (role==='item' ? t.forWhom==='reimbursed' : t.claimRole===role)).reduce((a,t)=> a + (t.amount||0), 0);
+  const claimed = sum('item'), received = sum('receipt'), advance = sum('advance'), shortfall = sum('shortfall');
+  const items = tx.filter(t=> t.forWhom==='reimbursed').sort((a,b)=> new Date(a.ts)-new Date(b.ts));
+  return {claimed, received, advance, shortfall, owed: Math.round((claimed - received - advance - shortfall)*100)/100, items, tx};
+}
+function newClaim(name, payer){
+  const c = {id: genId('cl'), name: name.trim(), payer: payer || (state.claimPayers||[])[0] || 'Office', status: 'collecting', claimNo: null, createdAt: new Date().toISOString(), submittedAt: null, closedAt: null};
+  state.claims.push(c); return c;
+}
+function claimMainCat(c){
+  const by = {}; claimNums(c).items.forEach(t=> by[t.category] = (by[t.category]||0) + t.amount);
+  return Object.entries(by).sort((a,b)=> b[1]-a[1]).map(x=> x[0])[0] || OTHER_EXPENSE_CAT;
+}
+// Closing: what was not paid back becomes my spending today, in the claim's main category, no account.
+function closeClaim(c, rejected){
+  const n = claimNums(c);
+  const left = Math.round((n.claimed - n.received - n.advance - n.shortfall)*100)/100;
+  if(left > 0.5) state.transactions.push({id: 'cs_' + c.id + '_' + Date.now().toString(36), ts: new Date().toISOString(), type: 'expense', account: null, payee: 'Not reimbursed – ' + c.name,
+    category: claimMainCat(c), amount: left, household: true, remarks: rejected ? 'Claim rejected' : 'Not reimbursed', claimId: c.id, claimRole: 'shortfall'});
+  c.status = rejected ? 'rejected' : 'closed'; c.closedAt = new Date().toISOString();
+  return left;
+}
+function claimDays(iso){ return iso ? Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 864e5)) : 0; }
+function renderClaimBody(ctx, el){
+  const st = splitSt[ctx];
+  const payers = state.claimPayers || [];
+  if(!st.payer || !payers.includes(st.payer)){ const c = claimById(st.claimId); st.payer = c ? c.payer : payers[0]; }
+  const claims = (state.claims||[]).filter(c=> claimOpen(c) && c.payer === st.payer);
+  if(st.claimId && !claims.find(c=> c.id === st.claimId)){ const c = claimById(st.claimId); if(c && c.payer === st.payer) claims.unshift(c); else st.claimId = null; }
+  if(!st.claimId && claims.length === 1) st.claimId = claims[0].id;
+  const line = !st.claimId ? 'Choose the claim, or + New claim.'
+    : st.mode === 'reimb' ? `Not your spending: it goes into ${storyEsc(claimName(st.claimId))}. The account still pays it.`
+    : st.mode === 'receipt' ? `Not income: it is the payment for ${storyEsc(claimName(st.claimId))}.`
+    : `Not income: an advance for ${storyEsc(claimName(st.claimId))}.`;
+  el.innerHTML = `<div style="font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">${st.mode==='reimb' ? 'Who pays it back?' : 'Paid by'}</div>
+    <div class="acct-row" style="flex-wrap:wrap;">${payers.map(p=> `<div class="acct-chip ${p===st.payer ? 'on' : ''}" data-clpayer="${storyEsc(p)}">${storyEsc(p)}</div>`).join('')}</div>
+    <div style="font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 6px;">Claim</div>
+    <div class="acct-row" style="flex-wrap:wrap;">${claims.map(c=> `<div class="acct-chip ${c.id===st.claimId ? 'on' : ''}" data-clid="${c.id}">${storyEsc(c.name)}</div>`).join('')}<div class="acct-chip" data-clnew="1">+ New claim</div></div>
+    <p class="sp-line ${st.claimId ? '' : 'bad'}">${line}</p>`;
+  el.querySelectorAll('[data-clpayer]').forEach(c=> c.addEventListener('click', ()=>{ st.payer = c.dataset.clpayer; st.claimId = null; renderSplitPanel(ctx); rerenderSplitChips(ctx); }));
+  el.querySelectorAll('[data-clid]').forEach(c=> c.addEventListener('click', ()=>{ st.claimId = c.dataset.clid; renderSplitPanel(ctx); rerenderSplitChips(ctx); }));
+  el.querySelector('[data-clnew]').addEventListener('click', async ()=>{
+    const name = prompt('Name the claim (for example "Lucknow audit" or "CGHS October")'); if(!name || !name.trim()) return;
+    const c = newClaim(name, st.payer); st.claimId = c.id;
+    await saveState(); renderSplitPanel(ctx); rerenderSplitChips(ctx);
+  });
+}
+// Checked before anything is saved; then applied.
+function forWhomCheck(ctx){
+  const st = splitSt[ctx];
+  if(st.mode === 'split'){ const r = splitResult(ctx); return r.ok ? null : r.err; }
+  if(st.mode === 'reimb' || st.mode === 'receipt' || st.mode === 'advance') return st.claimId && claimById(st.claimId) ? null : 'Choose the claim (or + New claim).';
+  return null;
+}
+function applyForWhom(ctx, tx){
+  const st = splitSt[ctx];
+  const clearClaim = ()=>{ if(tx.claimRole !== 'shortfall'){ delete tx.claimId; delete tx.claimRole; } if(tx.forWhom === 'reimbursed') delete tx.forWhom; };
+  if(tx.type === 'expense' && st.mode === 'split'){ clearClaim(); applySplit(tx, splitResult(ctx), st.method); return; }
+  if(tx.forWhom === 'split') clearSplit(tx);
+  if(tx.type === 'expense' && st.mode === 'reimb'){ tx.forWhom = 'reimbursed'; tx.claimId = st.claimId; tx.claimRole = 'item'; return; }
+  if(tx.type === 'income' && (st.mode === 'receipt' || st.mode === 'advance')){ delete tx.forWhom; tx.claimId = st.claimId; tx.claimRole = st.mode; return; }
+  clearClaim();
+}
+
+// ---- Claims list and one claim's page ----
+let claimsView = false, showClosedClaims = false, activeClaimId = null;
+document.querySelectorAll('#people-seg button').forEach(b=> b.addEventListener('click', ()=>{
+  claimsView = b.dataset.v === 'claims';
+  document.querySelectorAll('#people-seg button').forEach(x=> x.classList.toggle('on', x === b));
+  renderClaimsPane();
+}));
+function renderClaimsPane(){
+  document.getElementById('claims-pane').classList.toggle('hide', !claimsView);
+  document.getElementById('people-pane').classList.toggle('hide', claimsView);
+  if(!claimsView) return;
+  const all = state.claims || [];
+  const open = all.filter(claimOpen), closed = all.filter(c=> !claimOpen(c));
+  const owed = open.reduce((a,c)=> a + Math.max(0, claimNums(c).owed), 0);
+  document.getElementById('claims-owed').innerHTML = fmt(owed);
+  const oldest = open.length ? Math.max(...open.map(c=> claimDays(c.createdAt))) : 0;
+  const notSub = open.filter(c=> c.status === 'collecting').length;
+  document.getElementById('claims-subs').innerHTML = open.length ? `<span>Oldest: <b>${oldest} day${oldest===1?'':'s'}</b></span><span>Not yet submitted: <b>${notSub}</b></span>` : '';
+  const row = c=>{ const n = claimNums(c);
+    const wait = c.status === 'collecting' ? `collecting ${claimDays(c.createdAt)} d` : c.status === 'submitted' ? `submitted ${claimDays(c.submittedAt)} d ago` : c.status === 'received' ? 'payment received' : (c.status === 'rejected' ? 'rejected' : 'closed');
+    return `<div class="row" data-openclaim="${c.id}" style="cursor:pointer;"><div style="min-width:0;"><div class="name">${storyEsc(c.name)} <span class="pill ${c.status}">${c.status}</span></div>
+      <div class="sub">${storyEsc(c.payer)} · ${n.items.length} item${n.items.length===1?'':'s'}${c.claimNo ? ' · ' + storyEsc(c.claimNo) : ''} · ${wait}</div></div>
+      <div class="amt maskable ${n.owed < 0 ? 'neg' : ''}">${fmt(claimOpen(c) ? Math.abs(n.owed) : n.claimed)}</div></div>`; };
+  document.getElementById('claims-list').innerHTML = (open.length ? open.map(row).join('') : '<div class="empty">No open claims. Mark an expense as Reimbursed (the Just me chip), or tap + New claim.</div>')
+    + (closed.length ? `<button class="settled-toggle" id="closed-claims-toggle"><span>Closed · ${closed.length}</span><span>${showClosedClaims ? 'Hide ▲' : 'Show ▼'}</span></button>` + (showClosedClaims ? closed.map(row).join('') : '') : '');
+  document.querySelectorAll('[data-openclaim]').forEach(el=> el.addEventListener('click', ()=> openClaim(el.getAttribute('data-openclaim'))));
+  const tg = document.getElementById('closed-claims-toggle'); if(tg) tg.addEventListener('click', ()=>{ showClosedClaims = !showClosedClaims; renderClaimsPane(); });
+  applyMaskUI();
+}
+document.getElementById('claim-new-btn').addEventListener('click', async ()=>{
+  const name = prompt('Name the claim (for example "Lucknow audit" or "CGHS October")'); if(!name || !name.trim()) return;
+  const payers = state.claimPayers || [];
+  let payer = payers[0];
+  if(payers.length > 1){ const pick = prompt('Who pays it back?\n' + payers.map((p,i)=> (i+1) + '. ' + p).join('\n'), '1'); const k = parseInt(pick); if(k >= 1 && k <= payers.length) payer = payers[k-1]; }
+  const c = newClaim(name, payer); await saveState(); renderClaimsPane(); openClaim(c.id);
+});
+function openClaim(id){ activeClaimId = id; renderClaimSheet(); document.getElementById('claim-backdrop').classList.add('open'); }
+function renderClaimSheet(){
+  const c = claimById(activeClaimId); const el = document.getElementById('claim-body'); if(!c){ el.innerHTML = ''; return; }
+  const n = claimNums(c);
+  const steps = ['collecting','submitted','received','closed'], at = c.status === 'rejected' ? 3 : steps.indexOf(c.status);
+  const left = n.owed;
+  el.innerHTML = `<h3 style="margin-bottom:2px;">${storyEsc(c.name)}</h3>
+    <p class="section-sub" style="margin:0 0 8px;">${storyEsc(c.payer)}${c.claimNo ? ' · Claim no. ' + storyEsc(c.claimNo) : ''}${c.submittedAt ? ' · submitted ' + new Date(c.submittedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : ''}</p>
+    <div class="claim-steps">${['Collecting','Submitted','Received', c.status==='rejected' ? 'Rejected' : 'Closed'].map((s,i)=> `<span class="${i <= at ? 'done' : ''}">${s}</span>`).join('')}</div>
+    ${n.items.length ? n.items.map(t=> `<div class="tx-item" data-claimtx="${t.id}" style="cursor:pointer;"><div class="tx-body"><div class="tx-top"><span class="tx-title">${storyEsc(t.payee||txShortCat(t.category))}</span><span class="tx-amt maskable">${fmt(t.amount)}</span></div><div class="tx-meta">${new Date(t.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${targetName(t.account)} · ${txShortCat(t.category)}</div></div></div>`).join('') : '<div class="empty" style="padding:10px 0;">No items yet. Mark an expense as Reimbursed and pick this claim.</div>'}
+    ${n.tx.filter(t=> t.claimRole==='receipt' || t.claimRole==='advance' || t.claimRole==='shortfall').map(t=> `<div class="tx-item" data-claimtx="${t.id}" style="cursor:pointer;"><div class="tx-body"><div class="tx-top"><span class="tx-title">${t.claimRole==='receipt' ? 'Payment received' : t.claimRole==='advance' ? 'Advance received' : 'Not reimbursed (your spending)'}</span><span class="tx-amt maskable ${t.claimRole==='shortfall' ? 'neg' : 'pos'}">${t.claimRole==='shortfall' ? '-' : '+'}${fmt(t.amount)}</span></div><div class="tx-meta">${new Date(t.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${targetName(t.account)}</div></div></div>`).join('')}
+    <div class="row" style="border-top:1px solid var(--line); margin-top:6px;"><div class="name">Claimed</div><div class="amt maskable">${fmt(n.claimed)}</div></div>
+    ${n.received ? `<div class="row"><div class="sub">Received</div><div class="sub maskable">${fmt(n.received)}</div></div>` : ''}
+    ${n.advance ? `<div class="row"><div class="sub">Advance</div><div class="sub maskable">${fmt(n.advance)}</div></div>` : ''}
+    ${n.shortfall ? `<div class="row"><div class="sub">Not reimbursed</div><div class="sub maskable">${fmt(n.shortfall)}</div></div>` : ''}
+    ${claimOpen(c) ? `<div class="row"><div class="name">${left >= 0 ? 'Still owed to you' : 'You owe ' + storyEsc(c.payer)}</div><div class="amt maskable ${left<0?'neg':'pos'}">${fmt(Math.abs(left))}</div></div>` : ''}
+    ${claimOpen(c) ? `<button class="btn-primary" id="claim-next">${c.status==='collecting' ? 'Mark as submitted' : c.status==='submitted' ? 'Mark as received' : 'Close the claim'}</button>` : ''}
+    <div style="display:flex; gap:14px; justify-content:center; margin-top:10px; flex-wrap:wrap;">
+      ${claimOpen(c) ? '<button class="link-btn" id="claim-add-item">+ Add item</button>' : ''}
+      <button class="link-btn" id="claim-edit">Edit claim</button>
+      ${claimOpen(c) && c.status !== 'collecting' ? '<button class="link-btn" id="claim-close-now">Close now</button>' : ''}
+      ${claimOpen(c) && c.status !== 'collecting' ? '<button class="link-btn" id="claim-reject" style="color:var(--debt);">Rejected</button>' : ''}
+      ${!n.tx.length ? '<button class="link-btn" id="claim-delete" style="color:var(--debt);">Delete</button>' : ''}
+    </div>`;
+  el.querySelectorAll('[data-claimtx]').forEach(r=> r.addEventListener('click', ()=>{ const t = state.transactions.find(x=> x.id === r.dataset.claimtx); if(t){ document.getElementById('claim-backdrop').classList.remove('open'); openEditTx(t); } }));
+  const done = async (msg)=>{ recomputeBudgetActuals(); render(); renderClaimSheet(); await saveState(); if(msg) showToast(msg, 3500); };
+  const nx = document.getElementById('claim-next');
+  if(nx) nx.addEventListener('click', async ()=>{
+    if(c.status === 'collecting'){ const no = prompt('Claim number (optional)', c.claimNo || ''); if(no === null) return; c.claimNo = no.trim() || null; c.status = 'submitted'; c.submittedAt = new Date().toISOString(); return done('Marked as submitted'); }
+    if(c.status === 'submitted'){ c.status = 'received'; return done('Marked as received. Add the payment from Home when its email comes, then close the claim.'); }
+    const l = claimNums(c).owed;
+    if(!confirm(l > 0.5 ? `Close the claim? ${fmt(l)} was not paid back and becomes your spending today.` : 'Close the claim?')) return;
+    const sf = closeClaim(c, false); done(sf > 0.5 ? `Closed. ${fmt(sf)} not reimbursed is now your spending.` : 'Closed');
+  });
+  const cn = document.getElementById('claim-close-now');
+  if(cn) cn.addEventListener('click', ()=>{ const l = claimNums(c).owed; if(!confirm(l > 0.5 ? `Close the claim? ${fmt(l)} was not paid back and becomes your spending today.` : 'Close the claim?')) return; const sf = closeClaim(c, false); done(sf > 0.5 ? `Closed. ${fmt(sf)} not reimbursed is now your spending.` : 'Closed'); });
+  const rj = document.getElementById('claim-reject');
+  if(rj) rj.addEventListener('click', ()=>{ const l = claimNums(c).owed; if(!confirm(`Claim rejected? ${fmt(Math.max(0,l))} becomes your spending today.`)) return; closeClaim(c, true); done('Marked as rejected'); });
+  const ai = document.getElementById('claim-add-item');
+  if(ai) ai.addEventListener('click', ()=>{ document.getElementById('claim-backdrop').classList.remove('open'); openAddTxSheet(); splitSt.tx.mode = 'reimb'; splitSt.tx.payer = c.payer; splitSt.tx.claimId = c.id; splitSt.tx.open = true; renderTxChips(); });
+  document.getElementById('claim-edit').addEventListener('click', async ()=>{
+    const name = prompt('Claim name', c.name); if(name === null) return; if(name.trim()) c.name = name.trim();
+    const no = prompt('Claim number (optional)', c.claimNo || ''); if(no !== null) c.claimNo = no.trim() || null;
+    done('Saved');
+  });
+  const dl = document.getElementById('claim-delete');
+  if(dl) dl.addEventListener('click', async ()=>{ if(!confirm('Delete this empty claim?')) return; state.claims = state.claims.filter(x=> x.id !== c.id); document.getElementById('claim-backdrop').classList.remove('open'); render(); await saveState(); });
+  applyMaskUI();
+}
+// Settings → My reimbursements: which payers apply here, and the words on their payments.
+function renderClaimPayers(){
+  const box = document.getElementById('claim-payers-box'); if(!box) return;
+  const all = [...new Set(['Office · TA/DA', 'CGHS', 'Company insurance', ...(state.claimPayers||[])])];
+  box.innerHTML = `<div class="sub" style="margin-bottom:8px;">Who pays you back. Tap to turn on or off.</div>
+    <div class="acct-row" style="flex-wrap:wrap;">${all.map(p=> `<div class="acct-chip ${(state.claimPayers||[]).includes(p) ? 'on' : ''}" data-cpay="${storyEsc(p)}">${storyEsc(p)}</div>`).join('')}<div class="acct-chip" id="cpay-add">+ Other</div></div>
+    <div class="field" style="margin-top:10px;"><label>Words on their payments (optional)</label><input id="claim-words" placeholder="e.g. PAO, DOP, ICICI Lombard" value="${storyEsc(state.claimWords||'')}"></div>`;
+  box.querySelectorAll('[data-cpay]').forEach(c=> c.addEventListener('click', async ()=>{
+    const p = c.dataset.cpay; const on = (state.claimPayers||[]).includes(p);
+    if(on && state.claimPayers.length === 1){ showToast('Keep at least one.'); return; }
+    state.claimPayers = on ? state.claimPayers.filter(x=> x !== p) : [...state.claimPayers, p];
+    renderClaimPayers(); await saveState();
+  }));
+  document.getElementById('cpay-add').addEventListener('click', async ()=>{ const n = prompt('Who pays you back? (for example "Company TA" or "Star Health")'); if(!n || !n.trim()) return; state.claimPayers = [...new Set([...(state.claimPayers||[]), n.trim()])]; renderClaimPayers(); await saveState(); });
+  document.getElementById('claim-words').addEventListener('change', async e=>{ state.claimWords = e.target.value.trim(); await saveState(); showToast('Saved'); });
+}
+// A credit that looks like a claim being paid: suggested, never tied on its own.
+const CLAIM_WORDS = /\b(pao|ta\s*\/?\s*da|t\.a\.|cghs|reimb\w*|claim|insur\w*|lombard|star health|niva|bupa|mediclaim)\b/i;
+function findClaimSettle(imp){
+  if(!imp || imp.type !== 'income' || imp.fromSpoken) return null;
+  const open = (state.claims||[]).filter(c=> claimOpen(c) && claimNums(c).owed > 0.5);
+  if(!open.length) return null;
+  const declined = new Set(state.claimDeclined || []);
+  const text = (imp.payee||'') + ' ' + (imp.subject||'');
+  const extra = String(state.claimWords||'').split(/[,;]+/).map(w=> w.trim().toLowerCase()).filter(w=> w.length >= 2);
+  const wordHit = CLAIM_WORDS.test(text) || extra.some(w=> text.toLowerCase().includes(w));
+  const cands = open.filter(c=> !declined.has(imp.id + '|' + c.id)).map(c=> ({c, owed: claimNums(c).owed}))
+    .filter(x=> wordHit || Math.abs(x.owed - imp.amount) <= Math.max(1, x.owed * 0.1));
+  if(!cands.length) return null;
+  cands.sort((a,b)=> Math.abs(a.owed - imp.amount) - Math.abs(b.owed - imp.amount));
+  return cands[0];
+}
+function claimHint(imp){
+  const m = findClaimSettle(imp); if(m) return `Settles claim · ${m.c.name}?`;
+  if(imp && imp.type === 'expense' && /health|medic/i.test(imp.category||'') && (state.claimPayers||[]).some(p=> /cghs|insur/i.test(p))) return 'Claim it?';
+  return '';
+}
+function renderClaimCard(imp){
+  const el = document.getElementById('ri-claim');
+  const m = findClaimSettle(imp);
+  if(!m){ el.classList.add('hide'); el.innerHTML = ''; return; }
+  const c = m.c, amt = imp.amount, left = Math.max(0, Math.round((m.owed - amt)*100)/100);
+  el.classList.remove('hide');
+  el.innerHTML = `<div class="name">Settles a claim? ${storyEsc(c.name)} · claimed ${fmt(claimNums(c).claimed)}</div>
+    <div class="pb-nums"><span>Claimed<b>${fmt(m.owed)}</b></span><span>Received now<b>${fmt(amt)}</b></span><span>Not reimbursed<b>${fmt(left)}</b></span></div>
+    <div class="pb-btns" style="flex-direction:column;"><button class="btn-primary" id="cl-yes">Yes, close the claim</button><button class="btn-ghost" id="cl-part">Part payment, keep it open</button><button class="btn-ghost" id="cl-no">No, it is income</button></div>`;
+  const take = async (close)=>{
+    const acct = riSelectedAccount || validatedAccountId(imp.accountId, imp.sourceEmail);
+    if(!acct){ alert('Choose the account first.'); return; }
+    const amount = parseFloat(document.getElementById('ri-amount').value) || imp.amount;
+    const tx = {id: genId('tx'), ts: imp.ts, type: 'income', account: acct, payee: document.getElementById('ri-payee').value.trim() || imp.payee, category: riSelectedCat || null, amount, household: false, remarks: 'Claim payment · ' + c.name, claimId: c.id, claimRole: 'receipt'};
+    state.transactions.push(tx);
+    recordImportOutcome(imp, 'added', {type: 'income', amount, payee: tx.payee, accountId: acct, category: tx.category}, 'regular', 'claim', tx.id);
+    if(imp.sourceEmail) recordEmailAccountMatch(imp.sourceEmail, acct);
+    state.pendingImports = state.pendingImports.filter(p=> p.id !== imp.id);
+    let sf = 0;
+    if(close) sf = closeClaim(c, false); else if(c.status !== 'received') c.status = c.status === 'collecting' ? 'submitted' : 'received';
+    reviewImportBackdrop.classList.remove('open');
+    recomputeBudgetActuals(); render(); await saveState();
+    showToast(close ? (sf > 0.5 ? `Claim closed. Not income. ${fmt(sf)} not reimbursed is your spending.` : 'Claim closed. Not income.') : 'Part payment added to the claim. Not income.', 4000);
+  };
+  document.getElementById('cl-yes').addEventListener('click', ()=> take(true));
+  document.getElementById('cl-part').addEventListener('click', ()=> take(false));
+  document.getElementById('cl-no').addEventListener('click', async ()=>{ state.claimDeclined.push(imp.id + '|' + c.id); if(state.claimDeclined.length > 300) state.claimDeclined = state.claimDeclined.slice(-300); renderClaimCard(imp); render(); await saveState(); });
+}
 
 // ---- PAYBACKS (v111): money from someone who owes you, or to someone you owe ----
 function personNameIn(p, text){
@@ -4642,8 +4929,8 @@ function renderTxChips(){
   }
   chips.push(`<button class="tx-chip ${txDatePickerOpen?'open':''}" data-txchip="date" type="button">${txDateLabel()} ▾</button>`);
   if(type==='expense') chips.push(`<button class="tx-chip" data-txchip="hh" type="button">${segValue('tx-household')==='yes' ? 'Household' : 'Personal'} ▾</button>`);
-  if(type==='expense') chips.push(splitChipHtml('tx'));
-  else if(splitSt.tx.mode !== 'me'){ splitReset('tx'); }
+  if(type==='expense' || type==='income') chips.push(splitChipHtml('tx'));
+  if(!forWhomModes('tx').some(m=> m[0] === splitSt.tx.mode)) splitReset('tx');
   const el = document.getElementById('tx-chips');
   el.innerHTML = chips.join('');
   wireSplitChip('tx', el);
@@ -5203,10 +5490,7 @@ document.getElementById('tx-save').addEventListener('click', async ()=>{
       household: type==='expense' ? segValue('tx-household')==='yes' : false,
       remarks: [document.getElementById('tx-note').value.trim(), whoami ? ('Added by '+whoami) : ''].filter(Boolean).join(' · ')
     };
-    if(type==='expense' && splitSt.tx.mode==='split'){
-      const res = splitResult('tx'); if(!res.ok){ alert(res.err); return; }
-      applySplit(tx, res, splitSt.tx.method);
-    }
+    { const err = forWhomCheck('tx'); if(err){ alert(err); return; } applyForWhom('tx', tx); }
     state.transactions.push(tx);
     const budgetCat = state.budget.find(b=>b.cat===tx.category);
     recomputeBudgetActuals();
@@ -5385,17 +5669,14 @@ document.getElementById('edittx-save').addEventListener('click', async ()=>{
     return;
   }
   const wasSplit = editingTx.forWhom === 'split';
-  const nowSplit = editingTx.type==='expense' && splitSt.edit.mode === 'split';
-  let splitRes = null;
-  if(nowSplit){ splitRes = splitResult('edit'); if(!splitRes.ok){ alert(splitRes.err); return; } }
+  { const err = forWhomCheck('edit'); if(err){ alert(err); return; } }
   if(wasSplit){ const paid = splitSharesSettled(editingTx); if(paid.length && !confirm(`${paid.join(', ')} already paid back part of this. Change the split anyway?`)) return; }
   editingTx.category = editSelectedCat;
   editingTx.account = editSelectedAccount;
   editingTx.amount = amount;
   editingTx.payee = document.getElementById('edit-payee').value.trim() || editingTx.payee;
   if(newTs) editingTx.ts = newTs;
-  if(nowSplit) applySplit(editingTx, splitRes, splitSt.edit.method);
-  else if(wasSplit) clearSplit(editingTx);
+  applyForWhom('edit', editingTx);
   recomputeBudgetActuals();
   recordPayeeLearning(editingTx.payee, editingTx.category, editingTx.account, 3);
   await saveState();
@@ -5958,9 +6239,9 @@ function analysisData(start, end){
   const tx = state.transactions.filter(t=> t.type!=='transfer' && new Date(t.ts)>=start && new Date(t.ts)<end);
   const inc = tx.filter(t=>t.type==='income');
   const exp = tx.filter(t=>t.type==='expense');
-  const income = inc.reduce((s,t)=>s+t.amount,0);
+  const income = inc.reduce((s,t)=>s+incomeOf(t),0);
   const spending = exp.reduce((s,t)=>s+spendOf(t),0);
-  const group = list => { const m={}; list.forEach(t=>{ const k=analysisCatKey(t); m[k]=(m[k]||0)+spendOf(t); }); return m; };
+  const group = list => { const m={}; list.forEach(t=>{ const v = t.type==='income' ? incomeOf(t) : spendOf(t); if(!v) return; const k=analysisCatKey(t); m[k]=(m[k]||0)+v; }); return m; };
   return {count:tx.length, income, spending, net:income-spending, expCats:group(exp), incCats:group(inc)};
 }
 // The category a transaction is counted under on Insights. One function, used by the donut
@@ -6676,7 +6957,7 @@ function downloadTransactionsPDF({start, end, label, cat, mode}){
   if(!all.length){ alert('No transactions found in that period.'); return; }
   const flows = all.filter(t=>t.type!=='transfer');
   const transfers = all.filter(t=>t.type==='transfer');
-  const income = flows.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const income = flows.filter(t=>t.type==='income').reduce((s,t)=>s+incomeOf(t),0);
   const expense = flows.filter(t=>t.type==='expense').reduce((s,t)=>s+spendOf(t),0);
 
   const { jsPDF } = window.jspdf;
@@ -6726,7 +7007,7 @@ function downloadTransactionsPDF({start, end, label, cat, mode}){
     doc.autoTable({
       startY: y+7,
       head: [['Date','Details','Category','Account','Type','Amount']],
-      body: flows.map(t=> [dateStr(t.ts), pdfSafe(t.payee||t.remarks||''), pdfSafe(storyCatLabel(t.category||'')), pdfSafe(targetName(t.account)), t.type==='income'?'Income':(t.forWhom==='split' ? 'Your share' : 'Expense'), fmtPdf(t.type==='income' ? t.amount : spendOf(t))]),
+      body: flows.map(t=> [dateStr(t.ts), pdfSafe(t.payee||t.remarks||''), pdfSafe(storyCatLabel(t.category||'')), pdfSafe(targetName(t.account)), t.type==='income'?(t.claimRole ? 'Claim payment' : 'Income'):(t.forWhom==='split' ? 'Your share' : t.forWhom==='reimbursed' ? 'Reimbursed' : 'Expense'), fmtPdf(t.type==='income' ? incomeOf(t) : spendOf(t))]),
       foot: cat
         ? [['', '', '', '', 'Total', fmtPdf(mode==='income' ? income : expense)]]
         : [['', '', '', '', 'Expenses', fmtPdf(expense)], ['', '', '', '', 'Income', fmtPdf(income)]],
@@ -8423,7 +8704,7 @@ function mailKindKey(sender, subject){ return String(sender||'').toLowerCase() +
 function rejectedKinds(){
   const by = {};
   (state.importOutcomes||[]).forEach(o=>{
-    if(!o.sender || o.sender === 'SMS') return;
+    if(!o.sender || o.sender === 'SMS' || o.sender === 'Spoken') return;
     const k = mailKindKey(o.sender, o.subject);
     const r = by[k] = by[k] || {key:k, sender:String(o.sender).toLowerCase(), subject:o.subject||'', notReal:0, added:0, amounts:[]};
     if(o.outcome === 'not_real'){ r.notReal++; r.amounts.push(o.parsed && o.parsed.amount || 0); }
@@ -8437,7 +8718,7 @@ function rejectedKinds(){
 function rejectedAddresses(){
   const by = {};
   (state.importOutcomes||[]).forEach(o=>{
-    if(!o.sender || o.sender === 'SMS') return;
+    if(!o.sender || o.sender === 'SMS' || o.sender === 'Spoken') return;
     const a = String(o.sender).toLowerCase();
     const r = by[a] = by[a] || {sender:a, notReal:0, added:0, unknown:true};
     if(o.outcome === 'not_real') r.notReal++;
@@ -8586,7 +8867,7 @@ function renderPendingReview(){
       return `<div class="row" data-reviewimport="${it.id}" style="cursor:pointer;">
         <div style="display:flex; align-items:center; gap:11px; ${isDup?'opacity:0.55;':''}">
           <div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
-          <div><div class="name">${it.payee}</div><div class="sub">${new Date(it.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}${it.sourceEmail?' · '+it.sourceEmail:''}</div><div class="sub" style="color:${acctObj?'inherit':'var(--debt)'};">Email says: ${acctLabel}</div>${mismatchNote}${(()=>{ const h = paybackHint(it); return h ? `<div class="sub" style="color:var(--peri);">${storyEsc(h)}</div>` : ''; })()}</div>
+          <div><div class="name">${it.payee}</div><div class="sub">${new Date(it.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}${it.sourceEmail?' · '+it.sourceEmail:''}</div><div class="sub" style="color:${acctObj?'inherit':'var(--debt)'};">Email says: ${acctLabel}</div>${mismatchNote}${(()=>{ const h = paybackHint(it) || claimHint(it); return h ? `<div class="sub" style="color:var(--peri);">${storyEsc(h)}</div>` : ''; })()}</div>
         </div>
         <div style="text-align:right;">
           <div class="amt ${it.type==='income'?'pos':'neg'}">${fmt(it.amount)}</div>
@@ -8648,8 +8929,10 @@ function renderReviewChips(imp){
   document.getElementById('ri-person-field').classList.toggle('hide', effectiveMode!=='person');
   { const showHh = riSelectedType==='expense' && effectiveMode==='regular';
     const chips = document.getElementById('ri-chips');
-    chips.innerHTML = showHh ? `<button class="tx-chip" id="ri-hh-chip" type="button">${segValue('ri-household')==='yes' ? 'Household' : 'Personal'} ▾</button>` + splitChipHtml('ri') : '';
-    if(showHh) wireSplitChip('ri', chips); else if(splitSt.ri.mode !== 'me') splitReset('ri');
+    const showFw = effectiveMode==='regular';
+    if(!forWhomModes('ri').some(m=> m[0] === splitSt.ri.mode)) splitReset('ri');
+    chips.innerHTML = (showHh ? `<button class="tx-chip" id="ri-hh-chip" type="button">${segValue('ri-household')==='yes' ? 'Household' : 'Personal'} ▾</button>` : '') + (showFw ? splitChipHtml('ri') : '');
+    if(showFw) wireSplitChip('ri', chips); else if(splitSt.ri.mode !== 'me') splitReset('ri');
     renderSplitPanel('ri');
     const hc = document.getElementById('ri-hh-chip');
     if(hc) hc.addEventListener('click', ()=>{ const v = segValue('ri-household')==='yes' ? 'no' : 'yes'; document.querySelectorAll('#ri-household button').forEach(x=> x.classList.toggle('on', x.dataset.v===v)); renderReviewChips(imp); }); }
@@ -8819,8 +9102,10 @@ function openReviewImport(id){
   document.getElementById('ri-payee').value = imp.payee;
   document.getElementById('ri-amount').value = imp.amount;
   document.querySelectorAll('#ri-household button').forEach(b=> b.classList.toggle('on', b.dataset.v==='no'));
+  if(imp.claimHint){ splitSt.ri.mode = 'reimb'; splitSt.ri.open = true; }
   renderReviewChips(imp);
   renderPaybackCard(imp);
+  renderClaimCard(imp);
   reviewImportBackdrop.classList.add('open');
 }
 document.getElementById('ri-cancel-btn').addEventListener('click', ()=> reviewImportBackdrop.classList.remove('open'));
@@ -8894,10 +9179,7 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
     account: riSelectedAccount, payee, category: riSelectedCat, amount,
     household: riSelectedType==='expense' ? segValue('ri-household')==='yes' : false, remarks: imp.fromSpoken ? 'Added by voice' : imp.fromStatement ? 'Added from statement' : imp.fromSms ? 'Added from SMS' : 'Imported from email'
   };
-  if(riSelectedType==='expense' && splitSt.ri.mode==='split'){
-    const res = splitResult('ri'); if(!res.ok){ alert(res.err); return; }
-    applySplit(tx, res, splitSt.ri.method);
-  }
+  { const err = forWhomCheck('ri'); if(err){ alert(err); return; } applyForWhom('ri', tx); }
   state.transactions.push(tx);
   recordImportOutcome(imp, 'added', {type:riSelectedType, amount, payee, accountId:riSelectedAccount, category:riSelectedCat}, 'regular', null, tx.id);
   recomputeBudgetActuals();
@@ -9338,7 +9620,7 @@ document.getElementById('engine-copy-btn').addEventListener('click', async ()=>{
 // the real button on the screen. Anything typed is matched against these first (free, on the
 // phone). Only what does not match goes to the server, where AI answers from the same guide;
 // what the guide does not cover is kept for the app's owner, and his reply shows here.
-const HELP_TOPICS = [{"id": "start", "title": "What this app does", "keywords": ["start", "begin", "beginning", "new user", "intro", "overview", "tabs", "shuru", "what does this app do", "getting started", "guide"], "answer": "It keeps your household money in one place.\n• Home: this month's spending, entries waiting from your email, recent activity and the budget.\n• Accounts: every bank account and card with its balance.\n• People: money you lent or borrowed.\n• Insights: where the money went, savings, six months.\nSwipe left or right to move between them. The + button adds an entry; the mic next to it lets you say one.", "tour": [{"do": "tab:home", "sel": "nav.tabbar", "text": "Four tabs: Home, Accounts, People and Insights. You can also swipe sideways between them."}, {"sel": "#fab-add", "text": "The + button adds an expense, income, transfer or a people entry."}]}, {"id": "add-expense", "title": "Add an expense", "keywords": ["add", "expense", "spend", "spent", "paid", "pay", "entry", "log", "kharcha", "new transaction", "record"], "answer": "1. Tap + at the bottom.\n2. Expense is already picked. Type the amount on the keypad.\n3. Under the amount, the category, account, date and Household are guessed from your past entries. Tap any of them to change it.\n4. To write who you paid or a note, tap + Payee, note, paste SMS.\n5. Tap Add.", "tour": [{"sel": "#fab-add", "text": "Tap + to add an entry."}, {"do": "open:add", "sel": "#tx-type", "text": "Expense is picked already. Income and Transfer are here too."}, {"do": "open:add", "sel": ".amount-display", "text": "Type the amount on the keypad below."}, {"do": "open:add", "sel": "#tx-chips", "text": "Category, account, date and Household are guessed from your past entries. Tap one to change it."}, {"do": "open:add", "sel": "#tx-more-link", "text": "Tap here to add who you paid or a note."}, {"do": "open:add", "sel": "#tx-save", "text": "Tap Add."}]}, {"id": "voice", "title": "Add an entry by speaking", "keywords": ["voice", "speak", "mic", "microphone", "bol", "bolo", "say", "spoken", "hindi", "talk", "awaaz"], "answer": "1. Tap the purple mic (Speak) at the bottom.\n2. Say it the way you would tell someone, like \"50 Blinkit\", \"dhai sau diye doodh wale ko\" or \"Ramesh se 500 mile\".\n3. It stops when you pause. The entry waits on Home, marked spoken. Tap it, pick the bank or card, and Add.\nIf a word was heard wrong, fix it in the box before ✓. Undo appears for 3 seconds after saving. Only the words are kept, never the recording. Change Hindi or English in Settings, under Voice entry.", "tour": [{"sel": "#fab-voice", "text": "Tap the mic and say the amount and who it was for."}, {"do": "open:tools", "sel": "#voice-lang-seg", "text": "Choose the language you speak in."}]}, {"id": "add-income", "title": "Add income or a transfer", "keywords": ["income", "salary", "received", "credit", "transfer", "move", "own account", "card payment", "bill payment", "pay card"], "answer": "Tap +, then choose Income (money that came in) or Transfer (money moved between your own accounts, or paying your credit card bill). Type the amount, pick the accounts, and Save. A transfer is not spending.", "tour": [{"do": "open:add", "sel": "#tx-type", "text": "Choose Income or Transfer here."}]}, {"id": "people", "title": "Lend or borrow money (People)", "keywords": ["people", "person", "lend", "lent", "borrow", "loan", "owe", "friend", "udhaar", "give", "got", "repay", "settle", "ledger"], "answer": "People keeps track of money between you and others.\n• Tap + and choose People, or go to the People tab.\n• \"You gave\" means they owe you. \"You got\" means you owe them: leave the category as Borrowed when they gave you money; choose a category (say Health) when they paid for something of yours, and it counts as your spending there, with no account changed.\n• Tap a person's amount to add a payment. Tap their name to see every entry.\n• Edit (under the name) changes the name or note. When the balance is zero, Settle takes them off the list; the record is kept.", "tour": [{"do": "tab:people", "sel": "#add-person-btn", "text": "Add a new person here."}, {"do": "tab:people", "sel": ".person-block", "text": "Tap the amount to add a payment; tap the name to see the entries."}]}, {"id": "split", "title": "Split a bill, paybacks and Let it go", "keywords": ["split", "share", "shared", "bill", "divide", "dinner", "together", "friends", "payback", "paid back", "returned", "let it go", "treat", "treated", "baant", "hissa"], "answer": "1. Add the expense as usual (+, amount), then tap the Just me chip and choose who it was split with (Me, people you have, or + New).\n2. Equally splits it in whole rupees; By amount lets you type each share. Only your share counts in your budget; the account still shows the full amount paid.\n3. Each other person's share goes to People as money they owe you.\n4. When they pay you back by UPI, the email entry on Home says \"Settle <name>'s share?\" Tap it, then Yes, settle it: it is not income. No adds it as normal.\n5. Paying back someone you owe works the same way: \"Paying <name> back?\"\n6. Not taking the money back? In People, open the person and tap Let it go on that share: it becomes your own spending, labelled Treated <name>.\nTo change or remove a split, open the entry and change the chip, or delete it; the shares follow.", "tour": [{"do": "open:add", "sel": "#tx-chips", "text": "Tap Just me to split this with someone."}]}, {"id": "reimburse", "title": "Office reimbursement, or paid for someone", "keywords": ["reimbursement", "reimburse", "office", "company", "claim", "expense claim", "paid for", "on behalf", "split", "kisi ke liye", "office ka", "wapas", "refund from office", "dost ke liye"], "answer": "Money you pay for your office, a friend or family that will come back is kept in People, so it is not counted as your own spending.\n1. Go to the People tab and tap the + at the top (Add person). Name it, for example \"Office\".\n2. When you pay for the office, tap the amount next to Office and add it as You gave.\n3. When the office pays you back, add it as You got.\n4. The balance shows how much the office still owes you. When it reaches zero, tap Settle.", "tour": [{"do": "tab:people", "sel": "#add-person-btn", "text": "Add a new person here."}, {"do": "tab:people", "sel": ".person-block", "text": "Tap the amount to add a payment; tap the name to see the entries."}]}, {"id": "connect-gmail", "title": "Connect Gmail so entries come in by themselves", "keywords": ["gmail", "email", "mail", "connect", "automatic", "auto", "bank alert", "inbox", "link", "read email"], "answer": "When you sign in with Google, the same step connects your Gmail. To connect another inbox later:\n1. Open Settings (the gear on Home).\n2. Under Bank emails tap Connect another inbox.\n3. Choose that Google account and allow reading.\nThe app reads only your banks' alert mails, twice a day, and shows each transaction on Home for you to check. You can disconnect any time from the same place.", "tour": [{"do": "tab:home", "sel": "#open-tools-btn", "text": "Open Settings."}, {"do": "open:tools", "sel": "#reader-connect-btn", "text": "Tap Connect Gmail and allow reading your bank alerts."}]}, {"id": "review-email", "title": "Entries from email: add or reject", "keywords": ["review", "waiting", "pending", "approve", "reject", "not real", "from your email", "suggested", "imported", "check entry"], "answer": "Entries the app found in your bank mails wait on Home.\n• Tap one, check the amount, category and account, then Add.\n• If it isn't a real transaction, or you already added it yourself, tap ⋯ at the top, then Not a transaction or Already added. ⓘ shows which email it came from.\n• If the direction is wrong, tap Wrong direction?; the app remembers it for that bank.", "tour": [{"do": "tab:home", "sel": "#pending-review-wrap", "text": "Entries from your email wait here. Tap one to add or reject it."}]}, {"id": "check-email", "title": "Check email now or for past dates", "keywords": ["check", "fetch", "now", "refresh", "sync", "past", "from date", "old", "missing", "month"], "answer": "Go to Accounts. In Check email pick a From date (from the 1st of this month) and a To date if you want, then tap Check. New entries appear on Home. The app also checks by itself at 8 am and 8 pm. For anything older, go to Accounts, tap the account, then Upload statement.", "tour": [{"do": "tab:money", "sel": ".email-fetch", "text": "Pick the dates and tap Check."}]}, {"id": "fix-balance", "title": "Balance is wrong: fix it", "keywords": ["balance", "wrong", "incorrect", "fix", "adjust", "mismatch", "not matching", "difference", "reconcile", "unaccounted"], "answer": "1. Go to Accounts and tap the account.\n2. Tap Incorrect balance? Edit.\n3. Type the balance your bank app shows and Save.\nIf an entry explains the difference, Fix balance shows it with Remove this entry.", "tour": [{"do": "tab:money", "sel": "[data-acctstatement]", "text": "Tap the account."}, {"do": "open:firstaccount", "sel": "#acctstatement-edit-link", "text": "Tap Edit and type the balance your bank shows."}]}, {"id": "paste-sms", "title": "My bank doesn't email: statement or SMS", "keywords": ["sms", "message", "text", "paste", "upi", "sbi", "kotak", "no email", "phonepe", "gpay", "paytm", "not coming", "statement", "upload", "pdf", "csv", "download statement", "bank statement", "upload statement", "import"], "answer": "Some banks don't email every transaction (for example SBI, Kotak, Indian Bank), or the app has not confirmed their alert address yet. Home shows a card for them.\n1. Download this month's statement from the bank's app or website (PDF or CSV).\n2. Go to Accounts, tap the account, then Upload statement (or tap Statement on the Home card). If the PDF has a password, type it; it stays on your phone.\n3. Entries from the 1st of this month that are not in the app go to Home for you to check. Your balances are not changed.\nOr copy the bank's SMS, tap +, then + Payee, note, paste SMS, then Paste a bank SMS.", "tour": [{"do": "open:add", "sel": "#tx-more-link", "text": "Tap here, then Paste a bank SMS."}]}, {"id": "add-account", "title": "Add a bank account or credit card", "keywords": ["account", "card", "credit card", "bank", "add account", "new card", "wallet", "cash"], "answer": "Go to Accounts and tap + at the top. Choose bank account or credit card, write its name (include the bank's name, like \"HDFC Savings\"), the last digits and today's balance or amount due, then Save.", "tour": [{"do": "tab:money", "sel": "#add-account-btn", "text": "Tap + to add an account or card."}]}, {"id": "budget", "title": "Budget and categories", "keywords": ["budget", "category", "categories", "limit", "plan", "monthly", "rename category", "delete category"], "answer": "The budget is on Home, below Recent activity. Each category shows spending against its budget. Tap ✎ to rename, change or delete a category; + Add a category makes a new one; Edit budget opens the full planner.", "tour": [{"do": "tab:home", "sel": "#home-budget-panel", "text": "Your budget for this month. Tap ✎ on a category to change it."}, {"do": "tab:home", "sel": "#home-budget-edit-btn", "text": "Edit budget opens the full planner."}]}, {"id": "edit-entry", "title": "Change or delete an entry", "keywords": ["edit", "change", "delete", "remove", "mistake", "wrong entry", "correct", "update entry"], "answer": "Tap the entry (in Recent activity on Home, or in an account's list). Change what you need and Save, or tap Delete. A People entry opens from the person's list in the People tab.", "tour": [{"do": "tab:home", "sel": "#recent-list", "text": "Tap any entry to change or delete it."}]}, {"id": "insights", "title": "Insights: where the money went", "keywords": ["insight", "analysis", "report", "chart", "where", "savings", "saving", "trend", "category spend", "download", "pdf"], "answer": "The Insights tab shows spending by category, income, savings (investments count as saved), the month against your usual, the last six months and your top payees. Use the arrows to change the month; ⬇ PDF downloads it.", "tour": [{"do": "tab:insights", "sel": "#analysis-period-tabs", "text": "Choose week, month or a custom period."}]}, {"id": "invite", "title": "Add my partner to the household", "keywords": ["partner", "wife", "husband", "family", "share", "invite", "household", "together", "member"], "answer": "Open Settings, find Household, type your partner's Gmail address and tap Invite. When they sign in with that Google account, they see the same household.", "tour": [{"do": "open:tools", "sel": "#household-section", "text": "Type your partner's Gmail address and tap Invite."}]}, {"id": "privacy", "title": "Hide balances and privacy", "keywords": ["hide", "privacy", "private", "safe", "secure", "security", "mask", "data", "who can see"], "answer": "The eye button on Home hides every balance. Your data is in your own household; only people you invite can see it. The app reads only bank alert mails, never anything else, and you can disconnect Gmail any time in Settings.", "tour": [{"do": "tab:home", "sel": "#mask-toggle-btn", "text": "Tap the eye to hide or show balances."}]}, {"id": "theme", "title": "Dark or light look", "keywords": ["dark", "light", "theme", "colour", "color", "mode"], "answer": "Open Settings and choose Dark or Light under Appearance.", "tour": [{"do": "open:tools", "sel": "#theme-seg", "text": "Choose Dark or Light."}]}];
+const HELP_TOPICS = [{"id": "start", "title": "What this app does", "keywords": ["start", "begin", "beginning", "new user", "intro", "overview", "tabs", "shuru", "what does this app do", "getting started", "guide"], "answer": "It keeps your household money in one place.\n• Home: this month's spending, entries waiting from your email, recent activity and the budget.\n• Accounts: every bank account and card with its balance.\n• People: money you lent or borrowed.\n• Insights: where the money went, savings, six months.\nSwipe left or right to move between them. The + button adds an entry; the mic next to it lets you say one.", "tour": [{"do": "tab:home", "sel": "nav.tabbar", "text": "Four tabs: Home, Accounts, People and Insights. You can also swipe sideways between them."}, {"sel": "#fab-add", "text": "The + button adds an expense, income, transfer or a people entry."}]}, {"id": "add-expense", "title": "Add an expense", "keywords": ["add", "expense", "spend", "spent", "paid", "pay", "entry", "log", "kharcha", "new transaction", "record"], "answer": "1. Tap + at the bottom.\n2. Expense is already picked. Type the amount on the keypad.\n3. Under the amount, the category, account, date and Household are guessed from your past entries. Tap any of them to change it.\n4. To write who you paid or a note, tap + Payee, note, paste SMS.\n5. Tap Add.", "tour": [{"sel": "#fab-add", "text": "Tap + to add an entry."}, {"do": "open:add", "sel": "#tx-type", "text": "Expense is picked already. Income and Transfer are here too."}, {"do": "open:add", "sel": ".amount-display", "text": "Type the amount on the keypad below."}, {"do": "open:add", "sel": "#tx-chips", "text": "Category, account, date and Household are guessed from your past entries. Tap one to change it."}, {"do": "open:add", "sel": "#tx-more-link", "text": "Tap here to add who you paid or a note."}, {"do": "open:add", "sel": "#tx-save", "text": "Tap Add."}]}, {"id": "voice", "title": "Add an entry by speaking", "keywords": ["voice", "speak", "mic", "microphone", "bol", "bolo", "say", "spoken", "hindi", "talk", "awaaz"], "answer": "1. Tap the purple mic (Speak) at the bottom.\n2. Say it the way you would tell someone, like \"50 Blinkit\", \"dhai sau diye doodh wale ko\" or \"Ramesh se 500 mile\".\n3. It stops when you pause. The entry waits on Home, marked spoken. Tap it, pick the bank or card, and Add.\nIf a word was heard wrong, fix it in the box before ✓. Undo appears for 3 seconds after saving. Only the words are kept, never the recording. Change Hindi or English in Settings, under Voice entry.", "tour": [{"sel": "#fab-voice", "text": "Tap the mic and say the amount and who it was for."}, {"do": "open:tools", "sel": "#voice-lang-seg", "text": "Choose the language you speak in."}]}, {"id": "add-income", "title": "Add income or a transfer", "keywords": ["income", "salary", "received", "credit", "transfer", "move", "own account", "card payment", "bill payment", "pay card"], "answer": "Tap +, then choose Income (money that came in) or Transfer (money moved between your own accounts, or paying your credit card bill). Type the amount, pick the accounts, and Save. A transfer is not spending.", "tour": [{"do": "open:add", "sel": "#tx-type", "text": "Choose Income or Transfer here."}]}, {"id": "people", "title": "Lend or borrow money (People)", "keywords": ["people", "person", "lend", "lent", "borrow", "loan", "owe", "friend", "udhaar", "give", "got", "repay", "settle", "ledger"], "answer": "People keeps track of money between you and others.\n• Tap + and choose People, or go to the People tab.\n• \"You gave\" means they owe you. \"You got\" means you owe them: leave the category as Borrowed when they gave you money; choose a category (say Health) when they paid for something of yours, and it counts as your spending there, with no account changed.\n• Tap a person's amount to add a payment. Tap their name to see every entry.\n• Edit (under the name) changes the name or note. When the balance is zero, Settle takes them off the list; the record is kept.", "tour": [{"do": "tab:people", "sel": "#add-person-btn", "text": "Add a new person here."}, {"do": "tab:people", "sel": ".person-block", "text": "Tap the amount to add a payment; tap the name to see the entries."}]}, {"id": "split", "title": "Split a bill, paybacks and Let it go", "keywords": ["split", "share", "shared", "bill", "divide", "dinner", "together", "friends", "payback", "paid back", "returned", "let it go", "treat", "treated", "baant", "hissa"], "answer": "1. Add the expense as usual (+, amount), then tap the Just me chip and choose who it was split with (Me, people you have, or + New).\n2. Equally splits it in whole rupees; By amount lets you type each share. Only your share counts in your budget; the account still shows the full amount paid.\n3. Each other person's share goes to People as money they owe you.\n4. When they pay you back by UPI, the email entry on Home says \"Settle <name>'s share?\" Tap it, then Yes, settle it: it is not income. No adds it as normal.\n5. Paying back someone you owe works the same way: \"Paying <name> back?\"\n6. Not taking the money back? In People, open the person and tap Let it go on that share: it becomes your own spending, labelled Treated <name>.\nTo change or remove a split, open the entry and change the chip, or delete it; the shares follow.", "tour": [{"do": "open:add", "sel": "#tx-chips", "text": "Tap Just me to split this with someone."}]}, {"id": "reimburse", "title": "Office reimbursement, CGHS or insurance claims", "keywords": ["reimbursement", "reimburse", "office", "company", "claim", "expense claim", "paid for", "on behalf", "split", "kisi ke liye", "office ka", "wapas", "refund from office", "dost ke liye", "cghs", "insurance", "medical", "ta", "da", "ta/da", "advance", "pao", "claim payment", "not reimbursed", "rejected"], "answer": "Money you spend that your office, CGHS or an insurer will pay back is kept in a claim, so it is not your spending.\n1. Add the expense as usual (or open one you already added), tap the Just me chip, choose Reimbursed, pick who pays it back and the claim (or + New claim).\n2. In People, tap Claims to see every claim: what is claimed, received and still owed. Open one to Mark as submitted, Mark as received, or Close it.\n3. When the payment comes, the email entry on Home says \"Settles claim?\". Yes closes it: the money is not income, and anything not paid back becomes your spending that day.\n4. Already added a claim payment as income? Open it (Recent activity or Insights), tap the Income chip, choose Claim payment and the claim.\n5. An advance before a trip: open the credit, tap Income, choose Advance.\nChoose who pays you back in Settings → My reimbursements. Paid for a friend instead? Use Split.", "tour": [{"do": "tab:people", "sel": "#people-seg", "text": "Tap Claims to see your claims."}]}, {"id": "connect-gmail", "title": "Connect Gmail so entries come in by themselves", "keywords": ["gmail", "email", "mail", "connect", "automatic", "auto", "bank alert", "inbox", "link", "read email"], "answer": "When you sign in with Google, the same step connects your Gmail. To connect another inbox later:\n1. Open Settings (the gear on Home).\n2. Under Bank emails tap Connect another inbox.\n3. Choose that Google account and allow reading.\nThe app reads only your banks' alert mails, twice a day, and shows each transaction on Home for you to check. You can disconnect any time from the same place.", "tour": [{"do": "tab:home", "sel": "#open-tools-btn", "text": "Open Settings."}, {"do": "open:tools", "sel": "#reader-connect-btn", "text": "Tap Connect Gmail and allow reading your bank alerts."}]}, {"id": "review-email", "title": "Entries from email: add or reject", "keywords": ["review", "waiting", "pending", "approve", "reject", "not real", "from your email", "suggested", "imported", "check entry"], "answer": "Entries the app found in your bank mails wait on Home.\n• Tap one, check the amount, category and account, then Add.\n• If it isn't a real transaction, or you already added it yourself, tap ⋯ at the top, then Not a transaction or Already added. ⓘ shows which email it came from.\n• If the direction is wrong, tap Wrong direction?; the app remembers it for that bank.", "tour": [{"do": "tab:home", "sel": "#pending-review-wrap", "text": "Entries from your email wait here. Tap one to add or reject it."}]}, {"id": "check-email", "title": "Check email now or for past dates", "keywords": ["check", "fetch", "now", "refresh", "sync", "past", "from date", "old", "missing", "month"], "answer": "Go to Accounts. In Check email pick a From date (from the 1st of this month) and a To date if you want, then tap Check. New entries appear on Home. The app also checks by itself at 8 am and 8 pm. For anything older, go to Accounts, tap the account, then Upload statement.", "tour": [{"do": "tab:money", "sel": ".email-fetch", "text": "Pick the dates and tap Check."}]}, {"id": "fix-balance", "title": "Balance is wrong: fix it", "keywords": ["balance", "wrong", "incorrect", "fix", "adjust", "mismatch", "not matching", "difference", "reconcile", "unaccounted"], "answer": "1. Go to Accounts and tap the account.\n2. Tap Incorrect balance? Edit.\n3. Type the balance your bank app shows and Save.\nIf an entry explains the difference, Fix balance shows it with Remove this entry.", "tour": [{"do": "tab:money", "sel": "[data-acctstatement]", "text": "Tap the account."}, {"do": "open:firstaccount", "sel": "#acctstatement-edit-link", "text": "Tap Edit and type the balance your bank shows."}]}, {"id": "paste-sms", "title": "My bank doesn't email: statement or SMS", "keywords": ["sms", "message", "text", "paste", "upi", "sbi", "kotak", "no email", "phonepe", "gpay", "paytm", "not coming", "statement", "upload", "pdf", "csv", "download statement", "bank statement", "upload statement", "import"], "answer": "Some banks don't email every transaction (for example SBI, Kotak, Indian Bank), or the app has not confirmed their alert address yet. Home shows a card for them.\n1. Download this month's statement from the bank's app or website (PDF or CSV).\n2. Go to Accounts, tap the account, then Upload statement (or tap Statement on the Home card). If the PDF has a password, type it; it stays on your phone.\n3. Entries from the 1st of this month that are not in the app go to Home for you to check. Your balances are not changed.\nOr copy the bank's SMS, tap +, then + Payee, note, paste SMS, then Paste a bank SMS.", "tour": [{"do": "open:add", "sel": "#tx-more-link", "text": "Tap here, then Paste a bank SMS."}]}, {"id": "add-account", "title": "Add a bank account or credit card", "keywords": ["account", "card", "credit card", "bank", "add account", "new card", "wallet", "cash"], "answer": "Go to Accounts and tap + at the top. Choose bank account or credit card, write its name (include the bank's name, like \"HDFC Savings\"), the last digits and today's balance or amount due, then Save.", "tour": [{"do": "tab:money", "sel": "#add-account-btn", "text": "Tap + to add an account or card."}]}, {"id": "budget", "title": "Budget and categories", "keywords": ["budget", "category", "categories", "limit", "plan", "monthly", "rename category", "delete category"], "answer": "The budget is on Home, below Recent activity. Each category shows spending against its budget. Tap ✎ to rename, change or delete a category; + Add a category makes a new one; Edit budget opens the full planner.", "tour": [{"do": "tab:home", "sel": "#home-budget-panel", "text": "Your budget for this month. Tap ✎ on a category to change it."}, {"do": "tab:home", "sel": "#home-budget-edit-btn", "text": "Edit budget opens the full planner."}]}, {"id": "edit-entry", "title": "Change or delete an entry", "keywords": ["edit", "change", "delete", "remove", "mistake", "wrong entry", "correct", "update entry"], "answer": "Tap the entry (in Recent activity on Home, or in an account's list). Change what you need and Save, or tap Delete. A People entry opens from the person's list in the People tab.", "tour": [{"do": "tab:home", "sel": "#recent-list", "text": "Tap any entry to change or delete it."}]}, {"id": "insights", "title": "Insights: where the money went", "keywords": ["insight", "analysis", "report", "chart", "where", "savings", "saving", "trend", "category spend", "download", "pdf"], "answer": "The Insights tab shows spending by category, income, savings (investments count as saved), the month against your usual, the last six months and your top payees. Use the arrows to change the month; ⬇ PDF downloads it.", "tour": [{"do": "tab:insights", "sel": "#analysis-period-tabs", "text": "Choose week, month or a custom period."}]}, {"id": "invite", "title": "Add my partner to the household", "keywords": ["partner", "wife", "husband", "family", "share", "invite", "household", "together", "member"], "answer": "Open Settings, find Household, type your partner's Gmail address and tap Invite. When they sign in with that Google account, they see the same household.", "tour": [{"do": "open:tools", "sel": "#household-section", "text": "Type your partner's Gmail address and tap Invite."}]}, {"id": "privacy", "title": "Hide balances and privacy", "keywords": ["hide", "privacy", "private", "safe", "secure", "security", "mask", "data", "who can see"], "answer": "The eye button on Home hides every balance. Your data is in your own household; only people you invite can see it. The app reads only bank alert mails, never anything else, and you can disconnect Gmail any time in Settings.", "tour": [{"do": "tab:home", "sel": "#mask-toggle-btn", "text": "Tap the eye to hide or show balances."}]}, {"id": "theme", "title": "Dark or light look", "keywords": ["dark", "light", "theme", "colour", "color", "mode"], "answer": "Open Settings and choose Dark or Light under Appearance.", "tour": [{"do": "open:tools", "sel": "#theme-seg", "text": "Choose Dark or Light."}]}];
 let helpLog = [];
 function helpTokens(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9ऀ-ॿ ]/g,' ').split(/\s+/).filter(w=> w.length > 1); }
 function matchHelpTopic(q){
@@ -9627,6 +9909,31 @@ setTimeout(()=> loadHelpMine(), 4000);
 // user to scroll down to find a Close button, or worse, leaving the app entirely. Implemented
 // once, generically, via a MutationObserver — no need to touch each individual sheet's own
 // open/close code throughout the app.
+
+// What the back button closes first inside each sheet (a picker, the split panel, a menu).
+window.__layerBack = {
+  'tx-backdrop': ()=>{
+    if(catPickerOpen || acctPickerOpen || txDatePickerOpen){ catPickerOpen = acctPickerOpen = txDatePickerOpen = false; renderTxFormLists(); return true; }
+    if(splitSt.tx.open){ splitSt.tx.open = false; renderTxChips(); return true; }
+    if(typeof txPersonCatPickerOpen !== 'undefined' && txPersonCatPickerOpen){ txPersonCatPickerOpen = false; renderTxPersonChips(); return true; }
+    const more = document.getElementById('tx-more'); if(!more.classList.contains('hide') && document.getElementById('tx-single-fields').offsetParent){ more.classList.add('hide'); return true; }
+    return false;
+  },
+  'reviewimport-backdrop': ()=>{
+    const imp = state.pendingImports.find(p=> p.id === activeImportId);
+    if(riCatPickerOpen || riAcctPickerOpen || riPersonCatPickerOpen || riTransferPickerOpen){ riCatPickerOpen = riAcctPickerOpen = riPersonCatPickerOpen = riTransferPickerOpen = false; if(imp) renderReviewChips(imp); return true; }
+    if(splitSt.ri.open){ splitSt.ri.open = false; if(imp) renderReviewChips(imp); return true; }
+    for(const id of ['ri-menu', 'ri-info']){ const el = document.getElementById(id); if(!el.classList.contains('hide')){ el.classList.add('hide'); return true; } }
+    return false;
+  },
+  'edittx-backdrop': ()=>{
+    if(editCatPickerOpen || editAcctPickerOpen || editFromPickerOpen || editToPickerOpen){ editCatPickerOpen = editAcctPickerOpen = editFromPickerOpen = editToPickerOpen = false; renderEditChips(); return true; }
+    if(splitSt.edit.open){ splitSt.edit.open = false; renderEditSplitChip(); return true; }
+    return false;
+  },
+  'person-backdrop': ()=>{ if(personCatPickerOpen){ personCatPickerOpen = false; renderPersonCatPicker(); return true; } return false; },
+  'editpersonentry-backdrop': ()=>{ if(editPeCatPickerOpen){ editPeCatPickerOpen = false; renderEditPeCatPicker(); return true; } return false; }
+};
 (function setupModalBackButton(){
   let pushedForModal = false;
   const LAYERS = '.sheet-backdrop, .fullscreen-page';
@@ -9639,6 +9946,7 @@ setTimeout(()=> loadHelpMine(), 4000);
     return null;
   };
 
+  let ignorePop = 0, tabPushed = false;
   const observer = new MutationObserver(()=>{
     const anyOpen = !!topOpenLayer();
     if(anyOpen && !pushedForModal){
@@ -9648,19 +9956,35 @@ setTimeout(()=> loadHelpMine(), 4000);
       // Closed via its own Close/Cancel/Save/back button, not via back-press.
       // Consume the pushed history entry so a later back-press doesn't hit a stale no-op.
       pushedForModal = false;
+      ignorePop++;
       history.back();
     }
   });
+  // Another tab is one step away from Home: the back button returns to Home instead of leaving the app.
+  document.querySelectorAll('nav.tabbar button').forEach(b=> b.addEventListener('click', ()=>{
+    if(b.dataset.tab !== 'home' && !tabPushed){ history.pushState({tab:true}, ''); tabPushed = true; }
+    else if(b.dataset.tab === 'home' && tabPushed && !window.__backToHome){ tabPushed = false; ignorePop++; history.back(); }
+  }));
   document.querySelectorAll(LAYERS).forEach(el=>{
     observer.observe(el, {attributes:true, attributeFilter:['class']});
   });
 
   window.addEventListener('popstate', ()=>{
+    if(ignorePop > 0){ ignorePop--; return; }
     const top = topOpenLayer();
-    pushedForModal = false; // this popstate itself already consumed the pushed entry
-    // If something is still open underneath (a page under the sheet just closed), the
-    // observer above pushes a fresh entry for it, so the next back-press closes that too.
-    if(top) top.classList.remove('open');
+    if(top){
+      // A picker open inside the sheet closes first; the sheet stays.
+      const h = (window.__layerBack || {})[top.id];
+      if(h && h()){ history.pushState({modalOpen:true}, ''); pushedForModal = true; return; }
+      pushedForModal = false; // this popstate itself already consumed the pushed entry
+      // If something is still open underneath (a page under the sheet just closed), the
+      // observer above pushes a fresh entry for it, so the next back-press closes that too.
+      top.classList.remove('open');
+      return;
+    }
+    pushedForModal = false;
+    const active = document.querySelector('nav.tabbar button.active');
+    if(tabPushed && active && active.dataset.tab !== 'home'){ tabPushed = false; window.__backToHome = true; goTab('home'); window.__backToHome = false; }
   });
 })();
 
@@ -9944,7 +10268,7 @@ async function voiceSave(){
   // No undefined values: the cloud refuses the whole write.
   const cand = {id: genId('sp'), gmailMessageId: null, sourceEmail: null, ts: new Date().toISOString(), amount: p.amount, type, payee,
     category: voiceCategory(p.payee, p.category), accountId: null, sender: 'Spoken', subject: txt.slice(0, 140), heard: txt.slice(0, 240),
-    status: 'pending', fromSpoken: true, checkAmount: !!p.checkAmount, checkDirection: voiceSt.typeOverride ? false : !!p.checkDirection, amountWord: p.amountWord || null};
+    status: 'pending', fromSpoken: true, claimHint: /\b(office\s+claim|claim|cghs|reimburse\w*|ta\s*\/?\s*da|t\.a\.|ta)\b/i.test(txt), checkAmount: !!p.checkAmount, checkDirection: voiceSt.typeOverride ? false : !!p.checkDirection, amountWord: p.amountWord || null};
   const [entry] = classifyImportCandidates([cand], []);
   if(!Array.isArray(state.pendingImports)) state.pendingImports = [];
   state.pendingImports.push(entry);
