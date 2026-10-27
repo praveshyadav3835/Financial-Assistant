@@ -1364,7 +1364,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-26 · v112-claims</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-27 · v113-signin-fix</p>
   </div>
 </div>
 
@@ -1695,7 +1695,8 @@ function waitForAuthReady(){
     const finish = ()=>{ if(settled) return; settled = true; authReady = true; resolve(authUser); };
     const timer = setTimeout(finish, 5000); // never hold the app up if the saved sign-in can't be read
     try{
-      firebase.auth().onAuthStateChanged(u=>{ authUser = u || null; clearTimeout(timer); finish(); renderAccountUI(); checkOwner(); if(!whoami && myFirstName()){ whoami = myFirstName(); renderGreeting(); } },
+      firebase.auth().onAuthStateChanged(u=>{ const wasOut = settled && !authUser; authUser = u || null; clearTimeout(timer); finish(); renderAccountUI(); checkOwner(); if(!whoami && myFirstName()){ whoami = myFirstName(); renderGreeting(); }
+          if(wasOut && authUser && !currentHid && !setupBusy && !window.__reloadingForSignIn){ window.__reloadingForSignIn = true; location.reload(); } },
         e=>{ console.error('Sign-in state unavailable', e); clearTimeout(timer); finish(); });
     }catch(e){ console.error('Sign-in unavailable', e); clearTimeout(timer); finish(); }
   });
@@ -1910,6 +1911,10 @@ async function autoSetup(){
 }
 // One Google screen: sign in and let the app read bank alerts. Falls back to the plain sign-in
 // if the server cannot be reached.
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState !== 'visible' || currentHid || authUser || !authAvailable() || window.__reloadingForSignIn) return;
+  setTimeout(()=>{ try{ if(firebase.auth().currentUser && !authUser && !currentHid){ window.__reloadingForSignIn = true; location.reload(); } }catch(e){} }, 800);
+});
 async function signInOneStep(){
   const btn = document.getElementById('intro-next') || document.getElementById('gate-signin');
   if(btn){ btn.disabled = true; btn.textContent = 'Opening Google…'; }
@@ -1932,17 +1937,25 @@ async function finishOneStepSignIn(){
   if(!code) return false;
   history.replaceState(null, '', location.pathname + location.hash);
   if(code === 'cancelled'){ showToast('Sign-in was not finished. Tap Continue with Google to try again.', 4000); return false; }
+  // On a phone the return from Google can open twice (the browser tab and the installed app).
+  // The one-time code works once; whichever window is already signed in just carries on.
+  if(authUser) return false;
   showGate('checking');
   try{
     const res = await fetch(READER_BASE + 'signInFinish', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({code})});
     const d = await res.json();
     if(!(res.ok && d.ok && d.idToken)) throw new Error('code refused');
+    window.__reloadingForSignIn = true; // this window reloads itself below, after noting the first month
     await firebase.auth().signInWithCredential(firebase.auth.GoogleAuthProvider.credential(d.idToken));
     try{ sessionStorage.setItem('fa-first-month', d.canRead ? 'read' : 'noread'); }catch(e){}
     location.reload();
     return true;
   }catch(e){
     console.error('Finishing sign-in failed', e);
+    // The other window may have finished it a moment ago: wait briefly for that sign-in.
+    const u = await new Promise(res=>{ let done = false; const t = setTimeout(()=>{ if(!done){ done = true; res(firebase.auth().currentUser); } }, 3000);
+      try{ const off = firebase.auth().onAuthStateChanged(x=>{ if(x && !done){ done = true; clearTimeout(t); off(); res(x); } }); }catch(err){} });
+    if(u){ location.reload(); return true; }
     showGate('welcome');
     showToast('Sign-in did not complete. Try again.', 4000);
     return true;
