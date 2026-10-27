@@ -1364,7 +1364,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-27 · v113-signin-fix</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-27 · v114-new-household-fix</p>
   </div>
 </div>
 
@@ -1529,6 +1529,8 @@ const STARTER = {
   people: [],
   personLedger: [],
   claims: [],
+  voiceWords: {}, spokenMatchDeclined: [], paybackDeclined: [],
+  claimPayers: ['Office · TA/DA', 'CGHS', 'Company insurance'], claimWords: '', claimDeclined: [],
   mutualFunds: [],
   equities: [],
   otherAssets: [],
@@ -2756,6 +2758,10 @@ function setSyncStatus(text, ok){
 function hcol(){ return isLegacy() ? db.collection('household') : db.collection('households').doc(currentHid).collection('items'); }
 function hh(id){ return hcol().doc(id); }
 
+// The settings document as the cloud takes it: a field that is not set is left out, never sent
+// as "undefined" (the database refuses the whole write for that; it stopped new households
+// being set up from v108 to v113).
+function metaDoc(src){ return { _type:'meta', ...Object.fromEntries(META_FIELDS.filter(k=> src[k] !== undefined).map(k=>[k, src[k]])) }; }
 function pluckFullState(s){
   const out = {};
   META_FIELDS.forEach(k=> out[k] = s[k]);
@@ -2763,7 +2769,7 @@ function pluckFullState(s){
   return out;
 }
 async function writeFullStateToCloud(fullState){
-  await hh('meta').set({ _type:'meta', ...Object.fromEntries(META_FIELDS.map(k=>[k, fullState[k]])) });
+  await hh('meta').set(metaDoc(fullState));
   const writes = [];
   Object.entries(COLLECTION_FIELDS).forEach(([field, type])=>{
     (fullState[field]||[]).forEach(item=>{
@@ -2864,7 +2870,7 @@ async function connectHousehold(){
       if(stateFromStorage && (cloudMeta.schemaVersion||0) < state.schemaVersion){
         // This device's saved copy is in a newer shape than the cloud's: send it up, or the
         // listener below would read the older copy straight back.
-        await hh('meta').set({ _type:'meta', ...Object.fromEntries(META_FIELDS.map(k=>[k, state[k]])) });
+        await hh('meta').set(metaDoc(state));
       } else {
         // Take the cloud's settings now rather than a moment later through the listener, so
         // nothing saved in between can put this device's older settings over them.
@@ -2947,7 +2953,7 @@ async function saveState(){
   // incoming real-time update from the other device (which replaces state[field] wholesale)
   // could land in the gap between steps below and silently wipe out a local edit before we
   // ever get to save it — verified this exact race with an isolated two-device test.
-  const metaSnapshot = Object.fromEntries(META_FIELDS.map(k=>[k, state[k]]));
+  const metaSnapshot = Object.fromEntries(META_FIELDS.filter(k=> state[k] !== undefined).map(k=>[k, state[k]]));
   const collectionSnapshots = {};
   Object.keys(COLLECTION_FIELDS).forEach(field=>{ collectionSnapshots[field] = JSON.parse(JSON.stringify(state[field]||[])); });
   try{
