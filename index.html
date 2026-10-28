@@ -1116,6 +1116,7 @@
         <button data-v="no">Personal</button>
       </div>
     </div>
+    <div class="tx-note-line" id="ri-note-line"><span>✎</span><input id="ri-note" placeholder="Note (optional)" aria-label="Note"></div>
     <div class="tx-chips" id="ri-chips"></div>
     <div class="split-panel hide" id="ri-split-panel"></div>
     <button class="btn-primary" id="ri-approve-btn">Add</button>
@@ -1446,7 +1447,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-28 · v120-munzo-tap</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-28 · v121-review-note</p>
   </div>
 </div>
 
@@ -4956,7 +4957,7 @@ function renderClaimCard(imp){
     const acct = riSelectedAccount || validatedAccountId(imp.accountId, imp.sourceEmail);
     if(!acct){ alert('Choose the account first.'); return; }
     const amount = parseFloat(document.getElementById('ri-amount').value) || imp.amount;
-    const tx = {id: genId('tx'), ts: imp.ts, type: 'income', account: acct, payee: document.getElementById('ri-payee').value.trim() || imp.payee, category: riSelectedCat || null, amount, household: false, remarks: 'Claim payment · ' + c.name, claimId: c.id, claimRole: 'receipt'};
+    const tx = {id: genId('tx'), ts: imp.ts, type: 'income', account: acct, payee: document.getElementById('ri-payee').value.trim() || imp.payee, category: riSelectedCat || null, amount, household: false, remarks: [riNote(), 'Claim payment · ' + c.name].filter(Boolean).join(' · '), claimId: c.id, claimRole: 'receipt'};
     state.transactions.push(tx);
     recordImportOutcome(imp, 'added', {type: 'income', amount, payee: tx.payee, accountId: acct, category: tx.category}, 'regular', 'claim', tx.id);
     if(imp.sourceEmail) recordEmailAccountMatch(imp.sourceEmail, acct);
@@ -5023,7 +5024,7 @@ function renderPaybackCard(imp){
     if(!acct){ alert('Choose the account first.'); return; }
     const amount = parseFloat(document.getElementById('ri-amount').value) || imp.amount;
     const plId = genId('pl');
-    state.personLedger.push({id: plId, personId: pb.person.id, ts: imp.ts, type: pb.isIn ? 'received' : 'gave', delta: pb.isIn ? -amount : amount, account: acct, remarks: pb.isIn ? 'Paid back' : 'You paid back', category: null});
+    state.personLedger.push({id: plId, personId: pb.person.id, ts: imp.ts, type: pb.isIn ? 'received' : 'gave', delta: pb.isIn ? -amount : amount, account: acct, remarks: [riNote(), pb.isIn ? 'Paid back' : 'You paid back'].filter(Boolean).join(' · '), category: null});
     recordImportOutcome(imp, 'added', {type: imp.type, amount, payee: pb.person.name, accountId: acct, category: null}, 'person', 'payback', plId);
     if(imp.sourceEmail) recordEmailAccountMatch(imp.sourceEmail, acct);
     state.pendingImports = state.pendingImports.filter(p=> p.id !== imp.id);
@@ -9300,6 +9301,7 @@ wireSeg('ri-mode', ()=>{
   const imp = state.pendingImports.find(p=>p.id===activeImportId);
   if(imp) renderReviewChips(imp);
 });
+function riNote(){ const el = document.getElementById('ri-note'); return el ? el.value.trim() : ''; }
 function openReviewImport(id){
   const imp = state.pendingImports.find(p=>p.id===id);
   if(!imp) return;
@@ -9329,6 +9331,7 @@ function openReviewImport(id){
   document.getElementById('ri-menu').classList.add('hide');
   document.getElementById('ri-payee').value = imp.payee;
   document.getElementById('ri-amount').value = imp.amount;
+  document.getElementById('ri-note').value = '';
   document.querySelectorAll('#ri-household button').forEach(b=> b.classList.toggle('on', b.dataset.v==='no'));
   if(imp.claimHint){ splitSt.ri.mode = 'reimb'; splitSt.ri.open = true; }
   renderReviewChips(imp);
@@ -9348,6 +9351,7 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
   if(!amount || amount<=0){ alert('Enter a valid amount.'); return; }
   if(!riSelectedAccount){ alert('Please choose an account or card first.'); return; }
   const payee = document.getElementById('ri-payee').value.trim() || imp.payee;
+  const note = riNote();
   const mode = segValue('ri-mode');
   voiceLearnFromCorrection(imp, amount);
 
@@ -9356,7 +9360,7 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
     const dir = segValue('ri-person-dir');
     const delta = dir==='gave' ? amount : -amount;
     const plId = genId('pl');
-    state.personLedger.push({id:plId, personId:riSelectedPerson, ts:imp.ts, type:dir, delta, account:riSelectedAccount, remarks: payee, category:riPersonSelectedCat||null});
+    state.personLedger.push({id:plId, personId:riSelectedPerson, ts:imp.ts, type:dir, delta, account:riSelectedAccount, remarks: note || payee, category:riPersonSelectedCat||null});
     recordImportOutcome(imp, 'added', {type: dir==='gave' ? 'expense' : 'income', amount, payee, accountId:riSelectedAccount, category:null}, 'person', null, plId);
     recomputeBudgetActuals();
     if(imp.sourceEmail) recordEmailAccountMatch(imp.sourceEmail, riSelectedAccount);
@@ -9378,7 +9382,7 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
     if(riTransferTarget===riSelectedAccount){ alert('Choose two different accounts.'); return; }
     const from = isIn ? riTransferTarget : riSelectedAccount, to = isIn ? riSelectedAccount : riTransferTarget;
     const half = riOtherHalf(imp);
-    const tx = { id: genId('tx'), ts: half ? earlierTs(imp.ts, half.ts) : imp.ts, type: 'transfer', from, to, amount, remarks: payee || '' };
+    const tx = { id: genId('tx'), ts: half ? earlierTs(imp.ts, half.ts) : imp.ts, type: 'transfer', from, to, amount, remarks: note || payee || '' };
     state.transactions.push(tx);
     recordImportOutcome(imp, 'added', {type:riSelectedType, amount, payee, accountId:riSelectedAccount, category:null}, 'transfer', null, tx.id);
     if(imp.sourceEmail) recordEmailAccountMatch(imp.sourceEmail, riSelectedAccount);
@@ -9405,7 +9409,7 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
   const tx = {
     id: genId('tx'), ts: imp.ts, type: riSelectedType,
     account: riSelectedAccount, payee, category: riSelectedCat, amount,
-    household: riSelectedType==='expense', remarks: imp.fromSpoken ? 'Added by voice' : imp.fromStatement ? 'Added from statement' : imp.fromSms ? 'Added from SMS' : 'Imported from email'
+    household: riSelectedType==='expense', remarks: [note, imp.fromSpoken ? 'Added by voice' : imp.fromStatement ? 'Added from statement' : imp.fromSms ? 'Added from SMS' : 'Imported from email'].filter(Boolean).join(' · ')
   };
   { const err = forWhomCheck('ri'); if(err){ alert(err); return; } applyForWhom('ri', tx); }
   state.transactions.push(tx);
