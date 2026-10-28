@@ -1373,7 +1373,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-28 · v116-add-form-labels</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-28 · v117-sync-fix</p>
   </div>
 </div>
 
@@ -2758,6 +2758,32 @@ function saveOutbox(ob){
   if(!currentHid) return;
   try{ localStorage.setItem(outboxKey(), JSON.stringify(ob)); }catch(e){}
 }
+// Same content, whatever order the fields come in (the cloud does not keep the order).
+function stableJson(v){
+  if(Array.isArray(v)) return '[' + v.map(stableJson).join(',') + ']';
+  if(v && typeof v === 'object') return '{' + Object.keys(v).filter(k=> v[k] !== undefined).sort().map(k=> JSON.stringify(k) + ':' + stableJson(v[k])).join(',') + '}';
+  return JSON.stringify(v === undefined ? null : v);
+}
+// An unsent change is put back over the cloud's copy only if the cloud still has what this
+// phone started from. If another phone changed the entry since (say, marked it Reimbursed),
+// the cloud's newer copy wins and the old unsent one is dropped. (Before v117 an old unsent
+// copy left on a phone was put back on every opening, undoing newer changes made elsewhere.)
+function mergeOutbox(remoteItems, pending){
+  const byId = Object.fromEntries(remoteItems.map(x=> [x.id, x]));
+  const toWrite = [], dropped = [];
+  Object.keys(pending || {}).forEach(id=>{
+    const e = pending[id];
+    const isNew = e && typeof e === 'object' && e.__ob === 2;
+    const item = isNew ? e.item : e, base = isNew ? e.base : undefined;
+    const remote = byId[id];
+    let apply;
+    if(!remote) apply = isNew ? base === null : false;              // new here and never sent: send; gone there: leave gone
+    else apply = isNew && base !== null && stableJson(remote) === stableJson(base); // the cloud is still where we started
+    if(isNew && remote && stableJson(remote) === stableJson(item)) apply = false;   // already there
+    if(apply){ byId[id] = item; toWrite.push(item); } else dropped.push(id);
+  });
+  return {merged: Object.values(byId), toWrite, dropped};
+}
 
 function setSyncStatus(text, ok){
   const el = document.getElementById(SYNC_LABEL_ID);
@@ -2820,11 +2846,11 @@ function attachAllListeners(){
         const pendingIds = Object.keys(pendingForField);
         let merged = remoteItems;
         if(pendingIds.length){
-          const byId = Object.fromEntries(remoteItems.map(x=>[x.id,x]));
-          pendingIds.forEach(id=>{ byId[id] = pendingForField[id]; });
-          merged = Object.values(byId);
-          Promise.all(pendingIds.map(id=> hh(id).set({...pendingForField[id], _type:type})))
-            .then(()=>{ const ob2 = loadOutbox(); if(ob2[field]) pendingIds.forEach(id=> delete ob2[field][id]); saveOutbox(ob2); })
+          const m = mergeOutbox(remoteItems, pendingForField);
+          merged = m.merged;
+          if(m.dropped.length){ const ob1 = loadOutbox(); if(ob1[field]) m.dropped.forEach(id=> delete ob1[field][id]); saveOutbox(ob1); }
+          if(m.toWrite.length) Promise.all(m.toWrite.map(item=> hh(item.id).set({...item, _type:type})))
+            .then(()=>{ const ob2 = loadOutbox(); if(ob2[field]) m.toWrite.forEach(item=> delete ob2[field][item.id]); saveOutbox(ob2); })
             .catch(e=> console.error('Outbox retry failed for '+field, e));
         }
         state[field] = merged;
@@ -2931,10 +2957,17 @@ async function syncCollectionDiff(field, type, currentOverride){
   });
   if(ops.length) await Promise.all(ops);
   // Writes confirmed — clear them from the outbox so a future reload can trust the server again.
-  if(changedItems.length){
-    const ob = loadOutbox();
-    if(ob[field]) changedItems.forEach(item=> delete ob[field][item.id]);
-    saveOutbox(ob);
+  // Anything waiting there that is now the same as what was just confirmed goes too (a second
+  // save in flight at the same moment used to leave its copy behind for ever).
+  const ob = loadOutbox();
+  if(ob[field]){
+    const nowById = Object.fromEntries(current.map(x=> [x.id, x]));
+    let n = 0;
+    Object.keys(ob[field]).forEach(id=>{
+      const e = ob[field][id], item = e && e.__ob === 2 ? e.item : e;
+      if(changedItems.some(c=> c.id === id) || !nowById[id] || stableJson(nowById[id]) === stableJson(item)){ delete ob[field][id]; n++; }
+    });
+    if(n) saveOutbox(ob);
   }
   previousArrays[field] = JSON.parse(JSON.stringify(current));
 }
@@ -2952,7 +2985,10 @@ async function saveState(){
     const changed = diffChangedItems(field, state[field]||[]);
     if(changed.length){
       ob[field] = ob[field] || {};
-      changed.forEach(item=> ob[field][item.id] = item);
+      const prevById = {}; (previousArrays[field]||[]).forEach(x=>{ if(x && x.id) prevById[x.id] = x; });
+      // what the cloud had when this change was made, so a later opening can tell whether
+      // someone else has changed the entry since
+      changed.forEach(item=>{ const old = ob[field][item.id]; const base = old && old.__ob === 2 ? old.base : (prevById[item.id] ? JSON.parse(JSON.stringify(prevById[item.id])) : null); ob[field][item.id] = {__ob: 2, item: JSON.parse(JSON.stringify(item)), base}; });
       obChanged = true;
     }
   });
