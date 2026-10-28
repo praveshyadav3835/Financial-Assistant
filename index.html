@@ -1446,7 +1446,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-28 · v119-munzo</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-28 · v120-munzo-tap</p>
   </div>
 </div>
 
@@ -10758,8 +10758,11 @@ function mzPlace(){
     moved = true; mzEl.classList.add('dragging');
     mzEl.style.right = ''; mzEl.style.left = (ox + dx) + 'px'; mzEl.style.top = (oy + dy) + 'px';
   });
+  // the click a phone sends after the finger lifts must not reach whatever is under Munzo now
+  const swallowNextClick = ()=>{ const until = Date.now() + 600; const h = ev=>{ if(Date.now() < until){ ev.stopPropagation(); ev.preventDefault(); } document.removeEventListener('click', h, true); }; document.addEventListener('click', h, true); setTimeout(()=> document.removeEventListener('click', h, true), 650); };
   mzEl.addEventListener('pointerup', e=>{
     if(!down) return; down = false; mzEl.classList.remove('dragging');
+    swallowNextClick();
     if(!moved){ const p = mzPos(); if(p.tucked){ p.tucked = false; mzStore('pos', p); mzPlace(); return; } openMunzoChat(); return; }
     const r = mzEl.getBoundingClientRect(), vw = window.innerWidth;
     const side = r.left + r.width / 2 < vw / 2 ? 'left' : 'right';
@@ -10972,7 +10975,11 @@ function openMunzoChat(){
   log.innerHTML = `<div class="mz-msg bot">${storyEsc(mzT('hello'))}</div>`;
   document.getElementById('mz-chat-input').value = '';
   document.getElementById('mz-chat-backdrop').classList.add('open');
+  mzChatOpenedAt = Date.now();
 }
+// On a phone the tap that opens the chat is followed by a click at the same spot; when Munzo
+// sits in the top half that click lands on the dim area around the sheet and closed it again.
+let mzChatOpenedAt = 0;
 function mzChatSay(who, html){ const log = document.getElementById('mz-chat-log'); log.insertAdjacentHTML('beforeend', `<div class="mz-msg ${who}">${html}</div>`); log.scrollTop = log.scrollHeight; }
 function mzTodayAllowance(){
   const now = new Date(), y = now.getFullYear(), m = now.getMonth();
@@ -11022,7 +11029,7 @@ document.querySelectorAll('[data-mzchip]').forEach(c=> c.addEventListener('click
 document.getElementById('mz-chat-send').addEventListener('click', ()=> mzAsk(document.getElementById('mz-chat-input').value));
 document.getElementById('mz-chat-input').addEventListener('keydown', e=>{ if(e.key === 'Enter') mzAsk(e.target.value); });
 document.getElementById('mz-chat-close').addEventListener('click', ()=> document.getElementById('mz-chat-backdrop').classList.remove('open'));
-document.getElementById('mz-chat-backdrop').addEventListener('click', e=>{ if(e.target.id === 'mz-chat-backdrop') e.target.classList.remove('open'); });
+document.getElementById('mz-chat-backdrop').addEventListener('click', e=>{ if(e.target.id === 'mz-chat-backdrop' && Date.now() - mzChatOpenedAt > 600) e.target.classList.remove('open'); });
 document.getElementById('mz-chat-mic').addEventListener('click', ()=>{
   const R = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!R){ document.getElementById('mz-chat-input').focus(); return; }
