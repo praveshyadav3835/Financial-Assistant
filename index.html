@@ -587,6 +587,62 @@
   .help-folded{display:flex; justify-content:space-between; gap:10px; width:100%; text-align:left; margin:6px 0; padding:11px 13px; border-radius:14px; border:1px solid var(--line); background:var(--chip); color:var(--ink-soft); font-size:13.5px; cursor:pointer;}
   .help-folded span:first-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
   .help-msg.bot{max-width:94%;}
+  /* ---- Munzo (v119) ---- */
+  .munzo{position:fixed; width:62px; height:62px; z-index:45; touch-action:none; cursor:pointer; user-select:none; -webkit-user-select:none; transition:left .25s ease, right .25s ease, top .25s ease, opacity .2s ease;}
+  .munzo.hide{opacity:0; pointer-events:none;}
+  .munzo.dragging{transition:none;}
+  .munzo .mz-glow{position:absolute; inset:-8px; border-radius:50%; background:radial-gradient(circle, rgba(150,100,255,.45) 0%, rgba(150,100,255,.15) 45%, rgba(150,100,255,0) 70%);}
+  .munzo .mz-body{position:absolute; inset:0; animation:mzFloat 3s ease-in-out infinite;}
+  .munzo .mz-face{position:absolute; inset:0; width:100%; height:100%; opacity:0; transition:opacity .2s ease; pointer-events:none; -webkit-user-drag:none;}
+  .munzo .mz-face.on{opacity:1;}
+  .munzo .mz-face:not([src]){display:none;}
+  .munzo.tucked{opacity:.85;}
+  .munzo.pop .mz-body{animation:mzPop .45s cubic-bezier(.3,1.6,.5,1) 1, mzFloat 3s ease-in-out .45s infinite;}
+  @keyframes mzFloat{0%,100%{transform:translateY(0);} 50%{transform:translateY(-4px);}}
+  @keyframes mzPop{0%{transform:scale(.2);} 70%{transform:scale(1.12);} 100%{transform:scale(1);}}
+  body.mz-still .munzo .mz-body{animation:none !important;}
+  .mz-dim{position:fixed; inset:0; background:rgba(5,8,11,.45); z-index:46; opacity:0; pointer-events:none; transition:opacity .3s ease;}
+  .mz-dim.on{opacity:1; pointer-events:auto;}
+  .mz-bubble{position:fixed; right:14px; max-width:min(300px, 80vw); z-index:47; display:none; padding:12px 14px 12px; border-radius:20px; color:var(--ink);
+    -webkit-backdrop-filter:blur(13px); backdrop-filter:blur(13px); border:1px solid rgba(255,255,255,.28); box-shadow:0 10px 30px rgba(0,0,0,.28); transform-origin:bottom right;}
+  .mz-bubble.left{right:auto; left:14px; transform-origin:bottom left;}
+  .mz-bubble.on{display:block; animation:mzIn .25s ease-out;}
+  .mz-bubble.closing{animation:mzOut .3s ease-in forwards;}
+  @keyframes mzIn{from{opacity:0; transform:scale(.4);} to{opacity:1; transform:scale(1);}}
+  @keyframes mzOut{to{opacity:0; transform:scale(.15);}}
+  .mz-bubble.talk{background:rgba(124,82,230,.30);}
+  .mz-bubble.thought{background:rgba(232,162,48,.30); border-radius:26px;}
+  .mz-bubble.celebrate{background:rgba(225,180,60,.34);}
+  .mz-label{font-size:9.5px; letter-spacing:.14em; font-weight:700; opacity:.75; margin-bottom:4px;}
+  .mz-text{font-size:14.5px; line-height:1.35;}
+  .mz-btns{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;}
+  .mz-btns button{border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.16); color:var(--ink); border-radius:14px; padding:7px 11px; font:inherit; font-size:13px; cursor:pointer;}
+  .mz-puff{position:absolute; border-radius:50%; background:rgba(232,162,48,.30); border:1px solid rgba(255,255,255,.28); -webkit-backdrop-filter:blur(13px); backdrop-filter:blur(13px);}
+  .mz-puff.p1{width:14px; height:14px; right:30px; bottom:-18px;} .mz-puff.p2{width:8px; height:8px; right:22px; bottom:-30px;}
+  .mz-bubble.left .mz-puff.p1{right:auto; left:30px;} .mz-bubble.left .mz-puff.p2{right:auto; left:22px;}
+  .mz-spark{position:absolute; color:#F5C84B; font-size:14px; animation:mzTw 1.2s ease-in-out infinite;}
+  .mz-spark.s1{top:-8px; left:12px;} .mz-spark.s2{top:6px; right:-6px; animation-delay:.4s;} .mz-spark.s3{bottom:-6px; left:40%; animation-delay:.8s;}
+  @keyframes mzTw{0%,100%{opacity:.3; transform:scale(.8);} 50%{opacity:1; transform:scale(1.2);}}
+  #mz-celebrate{position:fixed; inset:0; z-index:90; display:none; align-items:center; justify-content:center; background:rgba(5,8,11,.72); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); overflow:hidden;}
+  #mz-celebrate.on{display:flex;}
+  .mz-coins span{position:absolute; top:-40px; font-size:24px; animation:mzFall 2.6s linear infinite;}
+  body.mz-still .mz-coins span{animation:none; display:none;}
+  @keyframes mzFall{to{transform:translateY(110vh) rotate(360deg);}}
+  .mz-cel-card{position:relative; width:min(340px, 88vw); text-align:center; padding:22px 18px 16px; border-radius:26px; background:rgba(225,180,60,.22); border:1px solid rgba(255,255,255,.3); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); color:#fff;}
+  .mz-cel-face{width:110px; height:110px; margin-top:-70px;}
+  .mz-cel-title{font-size:24px; font-weight:600; margin-top:4px;}
+  .mz-cel-amt{font-size:32px; font-weight:500; margin:4px 0 12px;}
+  .mz-plan{background:rgba(0,0,0,.22); border-radius:16px; padding:10px 12px; text-align:left; font-size:14px; line-height:1.6; margin-bottom:12px;}
+  .mz-chat-head{display:flex; align-items:center; gap:12px; margin-bottom:10px;}
+  .mz-chat-head img{width:48px; height:48px; border-radius:50%; background:rgba(150,100,255,.25);}
+  #mz-chat-log{max-height:46vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:10px;}
+  .mz-msg{max-width:85%; padding:9px 12px; border-radius:16px; font-size:14px; line-height:1.4;}
+  .mz-msg.bot{background:rgba(124,82,230,.18); align-self:flex-start;}
+  .mz-msg.me{background:var(--paper-dim); align-self:flex-end;}
+  .mz-chips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;}
+  .mz-chat-row{display:flex; gap:8px; align-items:center;}
+  .mz-chat-row input{flex:1; min-width:0;}
+  .mz-tog{display:flex; justify-content:space-between; align-items:center; padding:8px 2px; border-top:1px solid var(--line); font-size:14px;}
 </style>
 </head>
 <body>
@@ -787,6 +843,20 @@
   </div>
 </div>
 <div id="voice-undo"><span id="voice-undo-text"></span><button id="voice-undo-btn">Undo</button></div>
+<!-- MUNZO: the companion (v119). Faces from munzo/ next to index.html; without them he stays away. -->
+<div class="munzo hide" id="munzo" role="button" aria-label="Munzo: tap to ask"><div class="mz-glow"></div><div class="mz-body"><img class="mz-face on" id="mz-face-a" alt=""><img class="mz-face" id="mz-face-b" alt=""></div></div>
+<div class="mz-dim" id="mz-dim"></div>
+<div class="mz-bubble" id="mz-bubble"></div>
+<div id="mz-celebrate"></div>
+<div class="sheet-backdrop" id="mz-chat-backdrop">
+  <div class="sheet">
+    <div class="mz-chat-head"><img src="munzo/munzo-happy.png" alt=""><div style="flex:1;"><div class="name" style="font-weight:600;">Munzo</div><div class="sub">here to help</div></div><button class="ri-icon-btn" id="mz-chat-close" aria-label="Close">✕</button></div>
+    <div id="mz-chat-log"></div>
+    <div class="mz-chips"><button class="tx-chip" data-mzchip="1" type="button">Aaj kitna kharch kar sakta hoon?</button><button class="tx-chip" data-mzchip="1" type="button">Where did money go this week?</button><button class="tx-chip" data-mzchip="1" type="button">Split a bill</button></div>
+    <div class="mz-chat-row"><div class="field" style="flex:1; min-width:0; margin:0;"><input id="mz-chat-input" placeholder="Ask Munzo…" aria-label="Ask Munzo" style="width:100%;"></div><button class="ri-icon-btn" id="mz-chat-mic" aria-label="Speak">🎤</button><button class="btn-primary" id="mz-chat-send" style="width:auto; margin:0; padding:10px 16px;">Ask</button></div>
+  </div>
+</div>
+
 
 <!-- ADD TRANSACTION SHEET -->
 <div class="sheet-backdrop" id="tx-backdrop">
@@ -1341,6 +1411,9 @@
     </div>
     <p class="section-sub" style="margin:0 0 6px;">The language you speak in when you tap the mic. Hindi also understands English numbers and shop names.</p>
 
+    <div class="divider-label">Munzo</div>
+    <div class="card" id="munzo-settings-box" style="margin-bottom:6px;"></div>
+
     <div class="divider-label">My reimbursements</div>
     <div class="card" id="claim-payers-box" style="margin-bottom:6px;"></div>
 
@@ -1373,7 +1446,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-28 · v118-no-double-add</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-28 · v119-munzo</p>
   </div>
 </div>
 
@@ -2687,6 +2760,7 @@ function openSettingsPage(){
   loadHouseholdDoc();
   loadReaderSenders();
   openSettingsPageClaims();
+  try{ renderMunzoSettings(); }catch(e){}
   openFullscreen('tools-page');
 }
 // Parts of the screen that show only once a household has an inbox connected, and the
@@ -4222,6 +4296,7 @@ function render(){
   // rollover, or a change arriving from the other phone, never leaves last month's numbers up.
   recomputeBudgetActuals();
   renderPendingReview();
+  try{ munzoWatchReview(); }catch(e){}
   renderLearningMatches();
   renderLastFetchSummary();
   renderNoEmailCard();
@@ -4236,10 +4311,10 @@ function render(){
   document.getElementById('hdr-gap').textContent = fmt(Math.abs(t.gap));
   document.getElementById('hdr-gap').className = 'v maskable' + (t.gap<0?' neg':' pos');
   // People tab headline: the same net gap, split into what is owed each way
-  document.getElementById('people-net').innerHTML = heroHtml(t.gap);
+  document.getElementById('people-net').innerHTML = heroHtmlR(t.gap);
   document.getElementById('people-net').className = 'hero-num maskable ' + (t.gap<0?'neg':'pos');
-  document.getElementById('people-recv').textContent = fmt(t.recv);
-  document.getElementById('people-pay').textContent = fmt(Math.abs(t.pay));
+  document.getElementById('people-recv').textContent = fmtR(t.recv);
+  document.getElementById('people-pay').textContent = fmtR(Math.abs(t.pay));
 
   document.getElementById('home-date').textContent = new Date().toLocaleDateString('en-IN',{weekday:'short', day:'numeric', month:'short'});
   renderHomeCashFlowCard();
@@ -4315,7 +4390,7 @@ function render(){
         </div>
         <div class="row-actions">${settled
           ? `<button class="pill-btn sm" data-reopenperson="${p.id}">Reopen</button>`
-          : `<div class="amt maskable ${bal<0?'neg':'pos'}" data-person="${p.id}" style="cursor:pointer;">${fmt(Math.abs(bal))}</div>${Math.abs(bal)<0.5 ? `<button class="pill-btn sm" data-settleperson="${p.id}">Settle</button>` : ''}`
+          : `<div class="amt maskable ${bal<0?'neg':'pos'}" data-person="${p.id}" style="cursor:pointer;">${fmtR(Math.abs(bal))}</div>${Math.abs(bal)<0.5 ? `<button class="pill-btn sm" data-settleperson="${p.id}">Settle</button>` : ''}`
         }</div>
       </div>
       ${entriesHtml}
@@ -4891,6 +4966,7 @@ function renderClaimCard(imp){
     reviewImportBackdrop.classList.remove('open');
     recomputeBudgetActuals(); render(); await saveState();
     showToast(close ? (sf > 0.5 ? `Claim closed. Not income. ${fmt(sf)} not reimbursed is your spending.` : 'Claim closed. Not income.') : 'Part payment added to the claim. Not income.', 4000);
+    try{ munzoAfterClaim(c.name, amount); }catch(e){}
   };
   document.getElementById('cl-yes').addEventListener('click', ()=> take(true));
   document.getElementById('cl-part').addEventListener('click', ()=> take(false));
@@ -4954,6 +5030,7 @@ function renderPaybackCard(imp){
     reviewImportBackdrop.classList.remove('open');
     render(); await saveState();
     showToast(pb.isIn ? `${pb.person.name}'s share settled. Not income.` : `Paid ${pb.person.name} back. Not spending.`);
+    try{ if(pb.isIn) munzoAfterPayback(pb.person.name, amount); }catch(e){}
   });
 }
 
@@ -5587,6 +5664,7 @@ document.getElementById('tx-save').addEventListener('click', async ()=>{
     tx.addedAt = Date.now();
     applyForWhom('tx', tx);
     state.transactions.push(tx);
+    window.__mzLastTx = tx;
     const budgetCat = state.budget.find(b=>b.cat===tx.category);
     recomputeBudgetActuals();
     recordPayeeLearning(tx.payee, tx.category, tx.account, 1);
@@ -5600,6 +5678,7 @@ document.getElementById('tx-save').addEventListener('click', async ()=>{
         : lastPersonSaveCountedSpend ? explainOnce('pe-paid', `Added as ${txShortCat(lastPersonSaveCountedSpend)} spending. No account changed; you owe ${pn}.`)
         : explainOnce('pe-borrowed', `Added. Borrowed money is not spending; you owe ${pn}. Pay back with You gave.`)) : false;
     if(!shown) showToast(type==='transfer' ? 'Transfer added' : type==='person' ? (lastPersonSaveCountedSpend ? `Added as ${txShortCat(lastPersonSaveCountedSpend)} spending` : 'Added') : type==='income' ? 'Income added' : 'Added'); }
+  try{ if(type==='expense') munzoAfterExpense(window.__mzLastTx); else if(type==='income') munzoAfterIncome(window.__mzLastTx); }catch(e){ console.warn('Munzo', e); }
 });
 
 // ---- EDIT TRANSACTION ----
@@ -6975,10 +7054,10 @@ function renderHomeCashFlowCard(){
   document.getElementById('home-cf-prev').disabled = monthsAgo >= 11; // same 12-month reach the old dropdown had
   const p = periodBounds('month', homeCfAnchor);
   const d = analysisData(p.start, p.end);
-  document.getElementById('home-cf-expense').innerHTML = heroHtml(d.spending);
-  document.getElementById('home-cf-income').textContent = fmt(d.income);
+  document.getElementById('home-cf-expense').innerHTML = heroHtmlR(d.spending);
+  document.getElementById('home-cf-income').textContent = fmtR(d.income);
   const netEl = document.getElementById('home-cf-net');
-  netEl.textContent = (d.net<0?'−':'+') + fmt(Math.abs(d.net));
+  netEl.textContent = (d.net<0?'−':'+') + fmtR(Math.abs(d.net));
   netEl.className = 'maskable ' + (d.net<0 ? 'neg-t' : 'pos-t');
 }
 function stepHomeMonth(delta){
@@ -9339,6 +9418,7 @@ document.getElementById('ri-approve-btn').addEventListener('click', async ()=>{
   render();
   reviewImportBackdrop.classList.remove('open');
   showToast('Added');
+  try{ if(tx.type==='expense') munzoAfterExpense(tx); else if(tx.type==='income') munzoAfterIncome(tx); }catch(e){ console.warn('Munzo', e); }
 });
 // Shared by both "Already logged" and "Not a real transaction" — same mechanics (stop
 // asking about this exact email again), different REASON recorded. That distinction matters:
@@ -9769,7 +9849,7 @@ document.getElementById('engine-copy-btn').addEventListener('click', async ()=>{
 // the real button on the screen. Anything typed is matched against these first (free, on the
 // phone). Only what does not match goes to the server, where AI answers from the same guide;
 // what the guide does not cover is kept for the app's owner, and his reply shows here.
-const HELP_TOPICS = [{"id": "start", "title": "What this app does", "keywords": ["start", "begin", "beginning", "new user", "intro", "overview", "tabs", "shuru", "what does this app do", "getting started", "guide"], "answer": "It keeps your household money in one place.\n• Home: this month's spending, entries waiting from your email, recent activity and the budget.\n• Accounts: every bank account and card with its balance.\n• People: money you lent or borrowed.\n• Insights: where the money went, savings, six months.\nSwipe left or right to move between them. The + button adds an entry; the mic next to it lets you say one.", "tour": [{"do": "tab:home", "sel": "nav.tabbar", "text": "Four tabs: Home, Accounts, People and Insights. You can also swipe sideways between them."}, {"sel": "#fab-add", "text": "The + button adds an expense, income, transfer or a people entry."}]}, {"id": "add-expense", "title": "Add an expense", "keywords": ["add", "expense", "spend", "spent", "paid", "pay", "entry", "log", "kharcha", "new transaction", "record"], "answer": "1. Tap + at the bottom.\n2. Expense is already picked. Type the amount on the keypad.\n3. Under the amount, the category, account and date are guessed from your past entries. Tap any of them to change it.\n4. Write a note in the Note box if you like; to add who you paid, tap + Paid to, paste SMS.\n5. Tap Add.", "tour": [{"sel": "#fab-add", "text": "Tap + to add an entry."}, {"do": "open:add", "sel": "#tx-type", "text": "Expense is picked already. Income and Transfer are here too."}, {"do": "open:add", "sel": ".amount-display", "text": "Type the amount on the keypad below."}, {"do": "open:add", "sel": "#tx-chips", "text": "Category, account and date are guessed from your past entries. Tap one to change it."}, {"do": "open:add", "sel": "#tx-more-link", "text": "Tap here to add who you paid."}, {"do": "open:add", "sel": "#tx-save", "text": "Tap Add."}]}, {"id": "voice", "title": "Add an entry by speaking", "keywords": ["voice", "speak", "mic", "microphone", "bol", "bolo", "say", "spoken", "hindi", "talk", "awaaz"], "answer": "1. Tap the purple mic (Speak) at the bottom.\n2. Say it the way you would tell someone, like \"50 Blinkit\", \"dhai sau diye doodh wale ko\" or \"Ramesh se 500 mile\".\n3. It stops when you pause. The entry waits on Home, marked spoken. Tap it, pick the bank or card, and Add.\nIf a word was heard wrong, fix it in the box before ✓. Undo appears for 3 seconds after saving. Only the words are kept, never the recording. Change Hindi or English in Settings, under Voice entry.", "tour": [{"sel": "#fab-voice", "text": "Tap the mic and say the amount and who it was for."}, {"do": "open:tools", "sel": "#voice-lang-seg", "text": "Choose the language you speak in."}]}, {"id": "add-income", "title": "Add income or a transfer", "keywords": ["income", "salary", "received", "credit", "transfer", "move", "own account", "card payment", "bill payment", "pay card"], "answer": "Tap +, then choose Income (money that came in) or Transfer (money moved between your own accounts, or paying your credit card bill). Type the amount, pick the accounts, and Save. A transfer is not spending.", "tour": [{"do": "open:add", "sel": "#tx-type", "text": "Choose Income or Transfer here."}]}, {"id": "people", "title": "Lend or borrow money (People)", "keywords": ["people", "person", "lend", "lent", "borrow", "loan", "owe", "friend", "udhaar", "give", "got", "repay", "settle", "ledger"], "answer": "People keeps track of money between you and others.\n• Tap + and choose People, or go to the People tab.\n• \"You gave\" means they owe you. \"You got\" means you owe them: leave the category as Borrowed when they gave you money; choose a category (say Health) when they paid for something of yours, and it counts as your spending there, with no account changed.\n• Tap a person's amount to add a payment. Tap their name to see every entry.\n• Edit (under the name) changes the name or note. When the balance is zero, Settle takes them off the list; the record is kept.", "tour": [{"do": "tab:people", "sel": "#add-person-btn", "text": "Add a new person here."}, {"do": "tab:people", "sel": ".person-block", "text": "Tap the amount to add a payment; tap the name to see the entries."}]}, {"id": "split", "title": "Split a bill, paybacks and Let it go", "keywords": ["split", "share", "shared", "bill", "divide", "dinner", "together", "friends", "payback", "paid back", "returned", "let it go", "treat", "treated", "baant", "hissa"], "answer": "1. Add the expense as usual (+, amount), then tap the Just me chip and choose who it was split with (Me, people you have, or + New).\n2. Equally splits it in whole rupees; By amount lets you type each share. Only your share counts in your budget; the account still shows the full amount paid.\n3. Each other person's share goes to People as money they owe you.\n4. When they pay you back by UPI, the email entry on Home says \"Settle <name>'s share?\" Tap it, then Yes, settle it: it is not income. No adds it as normal.\n5. Paying back someone you owe works the same way: \"Paying <name> back?\"\n6. Not taking the money back? In People, open the person and tap Let it go on that share: it becomes your own spending, labelled Treated <name>.\nTo change or remove a split, open the entry and change the chip, or delete it; the shares follow.", "tour": [{"do": "open:add", "sel": "#tx-chips", "text": "Tap Just me to split this with someone."}]}, {"id": "reimburse", "title": "Office reimbursement, CGHS or insurance claims", "keywords": ["reimbursement", "reimburse", "office", "company", "claim", "expense claim", "paid for", "on behalf", "split", "kisi ke liye", "office ka", "wapas", "refund from office", "dost ke liye", "cghs", "insurance", "medical", "ta", "da", "ta/da", "advance", "pao", "claim payment", "not reimbursed", "rejected"], "answer": "Money you spend that your office, CGHS or an insurer will pay back is kept in a claim, so it is not your spending.\n1. Add the expense as usual (or open one you already added), tap the Just me chip, choose Reimbursed, pick who pays it back and the claim (or + New claim).\n2. In People, tap Claims to see every claim: what is claimed, received and still owed. Open one to Mark as submitted, Mark as received, or Close it.\n3. When the payment comes, the email entry on Home says \"Settles claim?\". Yes closes it: the money is not income, and anything not paid back becomes your spending that day.\n4. Already added a claim payment as income? Open it (Recent activity or Insights), tap the Income chip, choose Claim payment and the claim.\n5. An advance before a trip: open the credit, tap Income, choose Advance.\nChoose who pays you back in Settings → My reimbursements. Paid for a friend instead? Use Split.", "tour": [{"do": "tab:people", "sel": "#people-seg", "text": "Tap Claims to see your claims."}]}, {"id": "connect-gmail", "title": "Connect Gmail so entries come in by themselves", "keywords": ["gmail", "email", "mail", "connect", "automatic", "auto", "bank alert", "inbox", "link", "read email"], "answer": "When you sign in with Google, the same step connects your Gmail. To connect another inbox later:\n1. Open Settings (the gear on Home).\n2. Under Bank emails tap Connect another inbox.\n3. Choose that Google account and allow reading.\nThe app reads only your banks' alert mails, twice a day, and shows each transaction on Home for you to check. You can disconnect any time from the same place.", "tour": [{"do": "tab:home", "sel": "#open-tools-btn", "text": "Open Settings."}, {"do": "open:tools", "sel": "#reader-connect-btn", "text": "Tap Connect Gmail and allow reading your bank alerts."}]}, {"id": "review-email", "title": "Entries from email: add or reject", "keywords": ["review", "waiting", "pending", "approve", "reject", "not real", "from your email", "suggested", "imported", "check entry"], "answer": "Entries the app found in your bank mails wait on Home.\n• Tap one, check the amount, category and account, then Add.\n• If it isn't a real transaction, or you already added it yourself, tap ⋯ at the top, then Not a transaction or Already added. ⓘ shows which email it came from.\n• If the direction is wrong, tap Wrong direction?; the app remembers it for that bank.", "tour": [{"do": "tab:home", "sel": "#pending-review-wrap", "text": "Entries from your email wait here. Tap one to add or reject it."}]}, {"id": "check-email", "title": "Check email now or for past dates", "keywords": ["check", "fetch", "now", "refresh", "sync", "past", "from date", "old", "missing", "month"], "answer": "Go to Accounts. In Check email pick a From date (from the 1st of this month) and a To date if you want, then tap Check. New entries appear on Home. The app also checks by itself at 8 am and 8 pm. For anything older, go to Accounts, tap the account, then Upload statement.", "tour": [{"do": "tab:money", "sel": ".email-fetch", "text": "Pick the dates and tap Check."}]}, {"id": "fix-balance", "title": "Balance is wrong: fix it", "keywords": ["balance", "wrong", "incorrect", "fix", "adjust", "mismatch", "not matching", "difference", "reconcile", "unaccounted"], "answer": "1. Go to Accounts and tap the account.\n2. Tap Incorrect balance? Edit.\n3. Type the balance your bank app shows and Save.\nIf an entry explains the difference, Fix balance shows it with Remove this entry.", "tour": [{"do": "tab:money", "sel": "[data-acctstatement]", "text": "Tap the account."}, {"do": "open:firstaccount", "sel": "#acctstatement-edit-link", "text": "Tap Edit and type the balance your bank shows."}]}, {"id": "paste-sms", "title": "My bank doesn't email: statement or SMS", "keywords": ["sms", "message", "text", "paste", "upi", "sbi", "kotak", "no email", "phonepe", "gpay", "paytm", "not coming", "statement", "upload", "pdf", "csv", "download statement", "bank statement", "upload statement", "import"], "answer": "Some banks don't email every transaction (for example SBI, Kotak, Indian Bank), or the app has not confirmed their alert address yet. Home shows a card for them.\n1. Download this month's statement from the bank's app or website (PDF or CSV).\n2. Go to Accounts, tap the account, then Upload statement (or tap Statement on the Home card). If the PDF has a password, type it; it stays on your phone.\n3. Entries from the 1st of this month that are not in the app go to Home for you to check. Your balances are not changed.\nOr copy the bank's SMS, tap +, then + Paid to, paste SMS, then Paste a bank SMS.", "tour": [{"do": "open:add", "sel": "#tx-more-link", "text": "Tap here, then Paste a bank SMS."}]}, {"id": "add-account", "title": "Add a bank account or credit card", "keywords": ["account", "card", "credit card", "bank", "add account", "new card", "wallet", "cash"], "answer": "Go to Accounts and tap + at the top. Choose bank account or credit card, write its name (include the bank's name, like \"HDFC Savings\"), the last digits and today's balance or amount due, then Save.", "tour": [{"do": "tab:money", "sel": "#add-account-btn", "text": "Tap + to add an account or card."}]}, {"id": "budget", "title": "Budget and categories", "keywords": ["budget", "category", "categories", "limit", "plan", "monthly", "rename category", "delete category"], "answer": "The budget is on Home, below Recent activity. Each category shows spending against its budget. Tap ✎ to rename, change or delete a category; + Add a category makes a new one; Edit budget opens the full planner.", "tour": [{"do": "tab:home", "sel": "#home-budget-panel", "text": "Your budget for this month. Tap ✎ on a category to change it."}, {"do": "tab:home", "sel": "#home-budget-edit-btn", "text": "Edit budget opens the full planner."}]}, {"id": "edit-entry", "title": "Change or delete an entry", "keywords": ["edit", "change", "delete", "remove", "mistake", "wrong entry", "correct", "update entry"], "answer": "Tap the entry (in Recent activity on Home, or in an account's list). Change what you need and Save, or tap Delete. A People entry opens from the person's list in the People tab.", "tour": [{"do": "tab:home", "sel": "#recent-list", "text": "Tap any entry to change or delete it."}]}, {"id": "insights", "title": "Insights: where the money went", "keywords": ["insight", "analysis", "report", "chart", "where", "savings", "saving", "trend", "category spend", "download", "pdf"], "answer": "The Insights tab shows spending by category, income, savings (investments count as saved), the month against your usual, the last six months and your top payees. Use the arrows to change the month; ⬇ PDF downloads it.", "tour": [{"do": "tab:insights", "sel": "#analysis-period-tabs", "text": "Choose week, month or a custom period."}]}, {"id": "invite", "title": "Add my partner to the household", "keywords": ["partner", "wife", "husband", "family", "share", "invite", "household", "together", "member"], "answer": "Open Settings, find Household, type your partner's Gmail address and tap Invite. When they sign in with that Google account, they see the same household.", "tour": [{"do": "open:tools", "sel": "#household-section", "text": "Type your partner's Gmail address and tap Invite."}]}, {"id": "privacy", "title": "Hide balances and privacy", "keywords": ["hide", "privacy", "private", "safe", "secure", "security", "mask", "data", "who can see"], "answer": "The eye button on Home hides every balance. Your data is in your own household; only people you invite can see it. The app reads only bank alert mails, never anything else, and you can disconnect Gmail any time in Settings.", "tour": [{"do": "tab:home", "sel": "#mask-toggle-btn", "text": "Tap the eye to hide or show balances."}]}, {"id": "theme", "title": "Dark or light look", "keywords": ["dark", "light", "theme", "colour", "color", "mode"], "answer": "Open Settings and choose Dark or Light under Appearance.", "tour": [{"do": "open:tools", "sel": "#theme-seg", "text": "Choose Dark or Light."}]}];
+const HELP_TOPICS = [{"id": "start", "title": "What this app does", "keywords": ["start", "begin", "beginning", "new user", "intro", "overview", "tabs", "shuru", "what does this app do", "getting started", "guide"], "answer": "It keeps your household money in one place.\n• Home: this month's spending, entries waiting from your email, recent activity and the budget.\n• Accounts: every bank account and card with its balance.\n• People: money you lent or borrowed.\n• Insights: where the money went, savings, six months.\nSwipe left or right to move between them. The + button adds an entry; the mic next to it lets you say one.", "tour": [{"do": "tab:home", "sel": "nav.tabbar", "text": "Four tabs: Home, Accounts, People and Insights. You can also swipe sideways between them."}, {"sel": "#fab-add", "text": "The + button adds an expense, income, transfer or a people entry."}]}, {"id": "add-expense", "title": "Add an expense", "keywords": ["add", "expense", "spend", "spent", "paid", "pay", "entry", "log", "kharcha", "new transaction", "record"], "answer": "1. Tap + at the bottom.\n2. Expense is already picked. Type the amount on the keypad.\n3. Under the amount, the category, account and date are guessed from your past entries. Tap any of them to change it.\n4. Write a note in the Note box if you like; to add who you paid, tap + Paid to, paste SMS.\n5. Tap Add.", "tour": [{"sel": "#fab-add", "text": "Tap + to add an entry."}, {"do": "open:add", "sel": "#tx-type", "text": "Expense is picked already. Income and Transfer are here too."}, {"do": "open:add", "sel": ".amount-display", "text": "Type the amount on the keypad below."}, {"do": "open:add", "sel": "#tx-chips", "text": "Category, account and date are guessed from your past entries. Tap one to change it."}, {"do": "open:add", "sel": "#tx-more-link", "text": "Tap here to add who you paid."}, {"do": "open:add", "sel": "#tx-save", "text": "Tap Add."}]}, {"id": "voice", "title": "Add an entry by speaking", "keywords": ["voice", "speak", "mic", "microphone", "bol", "bolo", "say", "spoken", "hindi", "talk", "awaaz"], "answer": "1. Tap the purple mic (Speak) at the bottom.\n2. Say it the way you would tell someone, like \"50 Blinkit\", \"dhai sau diye doodh wale ko\" or \"Ramesh se 500 mile\".\n3. It stops when you pause. The entry waits on Home, marked spoken. Tap it, pick the bank or card, and Add.\nIf a word was heard wrong, fix it in the box before ✓. Undo appears for 3 seconds after saving. Only the words are kept, never the recording. Change Hindi or English in Settings, under Voice entry.", "tour": [{"sel": "#fab-voice", "text": "Tap the mic and say the amount and who it was for."}, {"do": "open:tools", "sel": "#voice-lang-seg", "text": "Choose the language you speak in."}]}, {"id": "add-income", "title": "Add income or a transfer", "keywords": ["income", "salary", "received", "credit", "transfer", "move", "own account", "card payment", "bill payment", "pay card"], "answer": "Tap +, then choose Income (money that came in) or Transfer (money moved between your own accounts, or paying your credit card bill). Type the amount, pick the accounts, and Save. A transfer is not spending.", "tour": [{"do": "open:add", "sel": "#tx-type", "text": "Choose Income or Transfer here."}]}, {"id": "people", "title": "Lend or borrow money (People)", "keywords": ["people", "person", "lend", "lent", "borrow", "loan", "owe", "friend", "udhaar", "give", "got", "repay", "settle", "ledger"], "answer": "People keeps track of money between you and others.\n• Tap + and choose People, or go to the People tab.\n• \"You gave\" means they owe you. \"You got\" means you owe them: leave the category as Borrowed when they gave you money; choose a category (say Health) when they paid for something of yours, and it counts as your spending there, with no account changed.\n• Tap a person's amount to add a payment. Tap their name to see every entry.\n• Edit (under the name) changes the name or note. When the balance is zero, Settle takes them off the list; the record is kept.", "tour": [{"do": "tab:people", "sel": "#add-person-btn", "text": "Add a new person here."}, {"do": "tab:people", "sel": ".person-block", "text": "Tap the amount to add a payment; tap the name to see the entries."}]}, {"id": "split", "title": "Split a bill, paybacks and Let it go", "keywords": ["split", "share", "shared", "bill", "divide", "dinner", "together", "friends", "payback", "paid back", "returned", "let it go", "treat", "treated", "baant", "hissa"], "answer": "1. Add the expense as usual (+, amount), then tap the Just me chip and choose who it was split with (Me, people you have, or + New).\n2. Equally splits it in whole rupees; By amount lets you type each share. Only your share counts in your budget; the account still shows the full amount paid.\n3. Each other person's share goes to People as money they owe you.\n4. When they pay you back by UPI, the email entry on Home says \"Settle <name>'s share?\" Tap it, then Yes, settle it: it is not income. No adds it as normal.\n5. Paying back someone you owe works the same way: \"Paying <name> back?\"\n6. Not taking the money back? In People, open the person and tap Let it go on that share: it becomes your own spending, labelled Treated <name>.\nTo change or remove a split, open the entry and change the chip, or delete it; the shares follow.", "tour": [{"do": "open:add", "sel": "#tx-chips", "text": "Tap Just me to split this with someone."}]}, {"id": "reimburse", "title": "Office reimbursement, CGHS or insurance claims", "keywords": ["reimbursement", "reimburse", "office", "company", "claim", "expense claim", "paid for", "on behalf", "split", "kisi ke liye", "office ka", "wapas", "refund from office", "dost ke liye", "cghs", "insurance", "medical", "ta", "da", "ta/da", "advance", "pao", "claim payment", "not reimbursed", "rejected"], "answer": "Money you spend that your office, CGHS or an insurer will pay back is kept in a claim, so it is not your spending.\n1. Add the expense as usual (or open one you already added), tap the Just me chip, choose Reimbursed, pick who pays it back and the claim (or + New claim).\n2. In People, tap Claims to see every claim: what is claimed, received and still owed. Open one to Mark as submitted, Mark as received, or Close it.\n3. When the payment comes, the email entry on Home says \"Settles claim?\". Yes closes it: the money is not income, and anything not paid back becomes your spending that day.\n4. Already added a claim payment as income? Open it (Recent activity or Insights), tap the Income chip, choose Claim payment and the claim.\n5. An advance before a trip: open the credit, tap Income, choose Advance.\nChoose who pays you back in Settings → My reimbursements. Paid for a friend instead? Use Split.", "tour": [{"do": "tab:people", "sel": "#people-seg", "text": "Tap Claims to see your claims."}]}, {"id": "connect-gmail", "title": "Connect Gmail so entries come in by themselves", "keywords": ["gmail", "email", "mail", "connect", "automatic", "auto", "bank alert", "inbox", "link", "read email"], "answer": "When you sign in with Google, the same step connects your Gmail. To connect another inbox later:\n1. Open Settings (the gear on Home).\n2. Under Bank emails tap Connect another inbox.\n3. Choose that Google account and allow reading.\nThe app reads only your banks' alert mails, twice a day, and shows each transaction on Home for you to check. You can disconnect any time from the same place.", "tour": [{"do": "tab:home", "sel": "#open-tools-btn", "text": "Open Settings."}, {"do": "open:tools", "sel": "#reader-connect-btn", "text": "Tap Connect Gmail and allow reading your bank alerts."}]}, {"id": "review-email", "title": "Entries from email: add or reject", "keywords": ["review", "waiting", "pending", "approve", "reject", "not real", "from your email", "suggested", "imported", "check entry"], "answer": "Entries the app found in your bank mails wait on Home.\n• Tap one, check the amount, category and account, then Add.\n• If it isn't a real transaction, or you already added it yourself, tap ⋯ at the top, then Not a transaction or Already added. ⓘ shows which email it came from.\n• If the direction is wrong, tap Wrong direction?; the app remembers it for that bank.", "tour": [{"do": "tab:home", "sel": "#pending-review-wrap", "text": "Entries from your email wait here. Tap one to add or reject it."}]}, {"id": "check-email", "title": "Check email now or for past dates", "keywords": ["check", "fetch", "now", "refresh", "sync", "past", "from date", "old", "missing", "month"], "answer": "Go to Accounts. In Check email pick a From date (from the 1st of this month) and a To date if you want, then tap Check. New entries appear on Home. The app also checks by itself at 8 am and 8 pm. For anything older, go to Accounts, tap the account, then Upload statement.", "tour": [{"do": "tab:money", "sel": ".email-fetch", "text": "Pick the dates and tap Check."}]}, {"id": "fix-balance", "title": "Balance is wrong: fix it", "keywords": ["balance", "wrong", "incorrect", "fix", "adjust", "mismatch", "not matching", "difference", "reconcile", "unaccounted"], "answer": "1. Go to Accounts and tap the account.\n2. Tap Incorrect balance? Edit.\n3. Type the balance your bank app shows and Save.\nIf an entry explains the difference, Fix balance shows it with Remove this entry.", "tour": [{"do": "tab:money", "sel": "[data-acctstatement]", "text": "Tap the account."}, {"do": "open:firstaccount", "sel": "#acctstatement-edit-link", "text": "Tap Edit and type the balance your bank shows."}]}, {"id": "paste-sms", "title": "My bank doesn't email: statement or SMS", "keywords": ["sms", "message", "text", "paste", "upi", "sbi", "kotak", "no email", "phonepe", "gpay", "paytm", "not coming", "statement", "upload", "pdf", "csv", "download statement", "bank statement", "upload statement", "import"], "answer": "Some banks don't email every transaction (for example SBI, Kotak, Indian Bank), or the app has not confirmed their alert address yet. Home shows a card for them.\n1. Download this month's statement from the bank's app or website (PDF or CSV).\n2. Go to Accounts, tap the account, then Upload statement (or tap Statement on the Home card). If the PDF has a password, type it; it stays on your phone.\n3. Entries from the 1st of this month that are not in the app go to Home for you to check. Your balances are not changed.\nOr copy the bank's SMS, tap +, then + Paid to, paste SMS, then Paste a bank SMS.", "tour": [{"do": "open:add", "sel": "#tx-more-link", "text": "Tap here, then Paste a bank SMS."}]}, {"id": "add-account", "title": "Add a bank account or credit card", "keywords": ["account", "card", "credit card", "bank", "add account", "new card", "wallet", "cash"], "answer": "Go to Accounts and tap + at the top. Choose bank account or credit card, write its name (include the bank's name, like \"HDFC Savings\"), the last digits and today's balance or amount due, then Save.", "tour": [{"do": "tab:money", "sel": "#add-account-btn", "text": "Tap + to add an account or card."}]}, {"id": "budget", "title": "Budget and categories", "keywords": ["budget", "category", "categories", "limit", "plan", "monthly", "rename category", "delete category"], "answer": "The budget is on Home, below Recent activity. Each category shows spending against its budget. Tap ✎ to rename, change or delete a category; + Add a category makes a new one; Edit budget opens the full planner.", "tour": [{"do": "tab:home", "sel": "#home-budget-panel", "text": "Your budget for this month. Tap ✎ on a category to change it."}, {"do": "tab:home", "sel": "#home-budget-edit-btn", "text": "Edit budget opens the full planner."}]}, {"id": "edit-entry", "title": "Change or delete an entry", "keywords": ["edit", "change", "delete", "remove", "mistake", "wrong entry", "correct", "update entry"], "answer": "Tap the entry (in Recent activity on Home, or in an account's list). Change what you need and Save, or tap Delete. A People entry opens from the person's list in the People tab.", "tour": [{"do": "tab:home", "sel": "#recent-list", "text": "Tap any entry to change or delete it."}]}, {"id": "insights", "title": "Insights: where the money went", "keywords": ["insight", "analysis", "report", "chart", "where", "savings", "saving", "trend", "category spend", "download", "pdf"], "answer": "The Insights tab shows spending by category, income, savings (investments count as saved), the month against your usual, the last six months and your top payees. Use the arrows to change the month; ⬇ PDF downloads it.", "tour": [{"do": "tab:insights", "sel": "#analysis-period-tabs", "text": "Choose week, month or a custom period."}]}, {"id": "invite", "title": "Add my partner to the household", "keywords": ["partner", "wife", "husband", "family", "share", "invite", "household", "together", "member"], "answer": "Open Settings, find Household, type your partner's Gmail address and tap Invite. When they sign in with that Google account, they see the same household.", "tour": [{"do": "open:tools", "sel": "#household-section", "text": "Type your partner's Gmail address and tap Invite."}]}, {"id": "privacy", "title": "Hide balances and privacy", "keywords": ["hide", "privacy", "private", "safe", "secure", "security", "mask", "data", "who can see"], "answer": "The eye button on Home hides every balance. Your data is in your own household; only people you invite can see it. The app reads only bank alert mails, never anything else, and you can disconnect Gmail any time in Settings.", "tour": [{"do": "tab:home", "sel": "#mask-toggle-btn", "text": "Tap the eye to hide or show balances."}]}, {"id": "theme", "title": "Dark or light look", "keywords": ["dark", "light", "theme", "colour", "color", "mode"], "answer": "Open Settings and choose Dark or Light under Appearance.", "tour": [{"do": "open:tools", "sel": "#theme-seg", "text": "Choose Dark or Light."}]}, {"id": "munzo", "title": "Munzo, your money buddy", "keywords": ["munzo", "mascot", "buddy", "face", "bubble", "cartoon", "character", "hide munzo", "turn off munzo", "celebration"], "answer": "Munzo sits at the bottom right. Tap him to ask something; drag him anywhere, or flick him to the edge to tuck him away.\nHe changes face when you add entries, and now and then says a line (at most 2 a day). Tap outside a bubble to close it.\nSettings → Munzo: On, Quiet (faces only) or Off; language; salary-day celebrations; less motion; rounded numbers.", "tour": [{"do": "open:tools", "sel": "#munzo-settings-box", "text": "Choose how Munzo behaves."}]}];
 let helpLog = [];
 function helpTokens(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9ऀ-ॿ ]/g,' ').split(/\s+/).filter(w=> w.length > 1); }
 function matchHelpTopic(q){
@@ -10547,6 +10627,426 @@ async function declineSpokenMatch(spId, otherId){
   await saveState();
 }
 
+// ---- MUNZO (v119, D-28Oct-6 Phase A) ----
+// A small companion in the corner. Faces change on events; at most 2 bubbles a day; never over
+// a form; quiet for a week after 3 ignored bubbles; never a budget word on a medical spend.
+const MZ_FACES = ['neutral','happy','blink','talking','thinking','caring','proud','surprised','worried','wink','excited','sleepy'];
+const MZ_DIR = 'munzo/';
+const MZ_IMG = {};
+let mzReady = false;
+function mzPrefs(){
+  let p = {}; try{ p = JSON.parse(localStorage.getItem('fa-munzo') || '{}') || {}; }catch(e){}
+  return {mode: p.mode || 'on', lang: p.lang || 'hinglish', celebrations: p.celebrations !== false, sounds: !!p.sounds, lessMotion: !!p.lessMotion, rounded: !!p.rounded};
+}
+function mzSetPref(k, v){ let p = {}; try{ p = JSON.parse(localStorage.getItem('fa-munzo') || '{}') || {}; }catch(e){} p[k] = v; try{ localStorage.setItem('fa-munzo', JSON.stringify(p)); }catch(e){} mzApplyPrefs(); }
+function mzStore(k, v){ try{ if(v === undefined) return JSON.parse(localStorage.getItem('fa-mz-' + k) || 'null'); localStorage.setItem('fa-mz-' + k, JSON.stringify(v)); }catch(e){ return null; } }
+function mzStill(){ return mzPrefs().lessMotion || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }
+// ₹31.7k instead of ₹31,682 when Settings → Munzo → Rounded numbers is on (Home and People)
+function fmtR(n){
+  if(!mzPrefs().rounded) return fmt(n);
+  const neg = n < 0, v = Math.abs(n);
+  const s = v >= 1e7 ? (v/1e7).toFixed(1).replace(/\.0$/,'') + 'Cr' : v >= 1e5 ? (v/1e5).toFixed(1).replace(/\.0$/,'') + 'L' : v >= 1000 ? (v/1000).toFixed(1).replace(/\.0$/,'') + 'k' : String(Math.round(v));
+  return (neg ? '-₹' : '₹') + s;
+}
+function heroHtmlR(n){
+  if(!mzPrefs().rounded) return heroHtml(n);
+  return `${n<0?'−':''}<span class="cur">₹</span>${fmtR(Math.abs(n)).replace('₹','')}`;
+}
+
+// ---- words: 3–5 ways of saying each thing, rotated; Hinglish (default), English, Hindi
+const MZ_TEXT = {
+  big: {
+    hinglish: ['Whoa, {amt} at {payee}! Want to tag it?', 'Arre, {amt} at {payee}! Isko tag karein?', '{amt} at {payee}, bada wala! Tag kar dein?', 'Big one: {amt} at {payee}. Kya hai yeh?'],
+    en: ['Whoa, {amt} at {payee}! Want to tag it?', 'That’s a big one: {amt} at {payee}. Tag it?', '{amt} at {payee}! What was it for?'],
+    hi: ['अरे, {payee} पर {amt}! इसे टैग करें?', '{payee} पर {amt}, बड़ा खर्च! टैग करें?', 'बड़ा खर्च: {payee} पर {amt}। यह किसलिए था?']
+  },
+  care: {
+    hinglish: ['Hope everyone’s okay 🙏', 'Take care, sab theek ho jaldi 🙏', 'Sehat sabse pehle 🙏 Get well soon.', 'Wishing a quick recovery 🙏'],
+    en: ['Hope everyone’s okay 🙏', 'Take care. Wishing a quick recovery 🙏', 'Health comes first 🙏'],
+    hi: ['उम्मीद है सब ठीक हैं 🙏', 'जल्दी ठीक हो जाएं 🙏', 'सेहत सबसे पहले 🙏']
+  },
+  jar: {
+    hinglish: ['{cat} is at {pct}% with {days} days to go. Thoda dheere chalein?', '{cat} almost full ({pct}%). {days} din baaki, chhote swaps help karenge.', '{cat} {pct}% ho gaya. Is hafte ek cheez skip karein?'],
+    en: ['{cat} is at {pct}% with {days} days to go. Go easy this week?', '{cat} is nearly full ({pct}%). Small swaps help for {days} days.', '{cat} is at {pct}%. Skip one thing this week?'],
+    hi: ['{cat} {pct}% हो गया, {days} दिन बाकी हैं। थोड़ा धीरे?', '{cat} लगभग भर गया ({pct}%)। छोटे बदलाव मदद करेंगे।', '{cat} {pct}%। इस हफ़्ते एक चीज़ छोड़ें?']
+  },
+  payback: {
+    hinglish: ['{name} paid you back {amt}. Dosti bhi safe, paisa bhi 😄', '{amt} back from {name} ✓ Hisaab clear!', '{name} ne {amt} lauta diye. Badhiya 😄'],
+    en: ['{name} paid you back {amt}. Friendship and money, both safe 😄', '{amt} back from {name} ✓ All square!', '{name} returned {amt}. Nice 😄'],
+    hi: ['{name} ने {amt} लौटा दिए। दोस्ती भी सलामत, पैसा भी 😄', '{name} से {amt} वापस ✓ हिसाब साफ़!']
+  },
+  claim: {
+    hinglish: ['{amt} from {claim} is in. Claim sorted ✓', 'Claim ka paisa aa gaya: {amt} ✓', '{claim}: {amt} received. Ek kaam kam 😄'],
+    en: ['{amt} from {claim} is in. Claim sorted ✓', 'Claim money’s here: {amt} ✓', '{claim}: {amt} received. One thing less to chase 😄'],
+    hi: ['{claim} से {amt} आ गए। क्लेम पूरा ✓', 'क्लेम का पैसा आ गया: {amt} ✓']
+  },
+  back: {
+    hinglish: ['Missed you! {n} entries waiting. Done in 30 seconds?', 'Welcome back! {n} entries ready. 30 second ka kaam?', 'Arre, kahan the? {n} entries wait kar rahi hain.'],
+    en: ['Missed you! {n} entries waiting. Done in 30 seconds?', 'Welcome back! {n} entries are ready for you.', 'Good to see you! {n} entries waiting, quick check?'],
+    hi: ['याद आई! {n} एंट्री इंतज़ार में हैं। 30 सेकंड?', 'वापसी पर स्वागत! {n} एंट्री तैयार हैं।']
+  },
+  salary: { hinglish: ['Salary’s in! 🎉'], en: ['Salary’s in! 🎉'], hi: ['सैलरी आ गई! 🎉'] },
+  hello: {
+    hinglish: ['Hi! Main Munzo. Kuch bhi poochho 🙂', 'Hello! Paise ke baare mein kuch poochhna hai?', 'Haan ji, bataiye 🙂'],
+    en: ['Hi! I’m Munzo. Ask me anything 🙂', 'Hello! What would you like to know?', 'Here to help 🙂'],
+    hi: ['नमस्ते! मैं मुंज़ो। कुछ भी पूछिए 🙂', 'हाँ जी, बताइए 🙂']
+  }
+};
+const MZ_BTN = {
+  office: {hinglish: 'Office claim', en: 'Office claim', hi: 'ऑफ़िस क्लेम'}, trip: {hinglish: 'Trip', en: 'Trip', hi: 'ट्रिप'}, big: {hinglish: 'Just big 😅', en: 'Just big 😅', hi: 'बस बड़ा था 😅'},
+  claimit: {hinglish: 'Claim it', en: 'Claim it', hi: 'क्लेम करें'}, go: {hinglish: 'Let’s go', en: 'Let’s go', hi: 'चलिए'}, later: {hinglish: 'Later', en: 'Later', hi: 'बाद में'}
+};
+function mzT(key, vars){
+  const lang = mzPrefs().lang;
+  const list = (MZ_TEXT[key] && (MZ_TEXT[key][lang] || MZ_TEXT[key].hinglish)) || [''];
+  const turn = (mzStore('turn-' + key) || 0) % list.length; mzStore('turn-' + key, turn + 1);
+  return list[turn].replace(/\{(\w+)\}/g, (m, k)=> vars && vars[k] !== undefined ? vars[k] : m);
+}
+function mzB(key){ const l = mzPrefs().lang; return (MZ_BTN[key] && (MZ_BTN[key][l] || MZ_BTN[key].hinglish)) || key; }
+
+// ---- the figure: two stacked faces cross-fade into each other
+const mzEl = document.getElementById('munzo');
+const mzA = document.getElementById('mz-face-a'), mzBimg = document.getElementById('mz-face-b');
+let mzFront = mzA, mzFace = 'neutral', mzTimers = [];
+function mzPreload(){
+  let left = MZ_FACES.length;
+  MZ_FACES.forEach(f=>{ const im = new Image(); im.onload = ()=>{ if(--left === 0){ mzReady = true; mzShow('neutral', true); mzApplyPrefs(); } }; im.onerror = ()=>{ /* the faces are missing: Munzo stays away */ }; im.src = MZ_DIR + 'munzo-' + f + '.png'; MZ_IMG[f] = im; });
+}
+function mzShow(face, instant){
+  if(!MZ_IMG[face]) return;
+  mzFace = face;
+  const back = mzFront === mzA ? mzBimg : mzA;
+  if(instant){ mzFront.src = MZ_IMG[face].src; return; }
+  back.src = MZ_IMG[face].src;
+  back.classList.add('on'); mzFront.classList.remove('on');
+  mzFront = back;
+}
+function mzClearTimers(){ mzTimers.forEach(clearTimeout); mzTimers = []; }
+function mzLater(fn, ms){ const t = setTimeout(fn, ms); mzTimers.push(t); return t; }
+// A face for a moment, then back to neutral
+function mzReact(face, ms){
+  if(mzPrefs().mode === 'off') return;
+  mzClearTimers(); mzShow(face);
+  mzLater(()=> mzShow('neutral'), ms || 1800);
+}
+// Blink every 4–7 seconds when resting
+(function mzBlinkLoop(){
+  setTimeout(()=>{
+    if(mzReady && mzFace === 'neutral' && !mzBubbleOpen){ mzShow('blink', true); setTimeout(()=>{ if(mzFace === 'blink' || mzFace === 'neutral') mzShow('neutral', true); }, 120); }
+    mzBlinkLoop();
+  }, 4000 + Math.random() * 3000);
+})();
+
+// ---- where he sits: bottom right above the tab bar, draggable, tucks into an edge
+function mzPos(){ return mzStore('pos') || {side: 'right', y: null, tucked: false}; }
+function mzPlace(){
+  const p = mzPos(), vw = window.innerWidth, vh = window.innerHeight;
+  const minY = 70, maxY = vh - 170; // never down among the + and Speak buttons and the tab bar
+  const y = p.y === null ? maxY : Math.max(minY, Math.min(maxY, p.y));
+  mzEl.style.top = y + 'px';
+  mzEl.style.left = p.side === 'left' ? (p.tucked ? '-30px' : '12px') : '';
+  mzEl.style.right = p.side === 'right' ? (p.tucked ? '-30px' : '12px') : '';
+  mzEl.classList.toggle('tucked', !!p.tucked);
+}
+(function mzDrag(){
+  let sx = 0, sy = 0, ox = 0, oy = 0, moved = false, down = false;
+  mzEl.addEventListener('pointerdown', e=>{ down = true; moved = false; sx = e.clientX; sy = e.clientY; const r = mzEl.getBoundingClientRect(); ox = r.left; oy = r.top; mzEl.setPointerCapture(e.pointerId); });
+  mzEl.addEventListener('pointermove', e=>{
+    if(!down) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if(!moved && Math.hypot(dx, dy) < 6) return;
+    moved = true; mzEl.classList.add('dragging');
+    mzEl.style.right = ''; mzEl.style.left = (ox + dx) + 'px'; mzEl.style.top = (oy + dy) + 'px';
+  });
+  mzEl.addEventListener('pointerup', e=>{
+    if(!down) return; down = false; mzEl.classList.remove('dragging');
+    if(!moved){ const p = mzPos(); if(p.tucked){ p.tucked = false; mzStore('pos', p); mzPlace(); return; } openMunzoChat(); return; }
+    const r = mzEl.getBoundingClientRect(), vw = window.innerWidth;
+    const side = r.left + r.width / 2 < vw / 2 ? 'left' : 'right';
+    const tucked = side === 'left' ? r.left < 4 : r.right > vw - 4; // flicked to the edge
+    mzStore('pos', {side, y: r.top, tucked}); mzPlace();
+  });
+  window.addEventListener('resize', mzPlace);
+})();
+// Hides while any sheet, form or page is open (and while the app is still opening)
+function mzVisible(){
+  const p = mzPrefs();
+  if(!mzReady || p.mode === 'off') return false;
+  const gate = document.getElementById('gate');
+  if(gate && !gate.classList.contains('hide')) return false;
+  if(document.querySelector('.sheet-backdrop.open, .fullscreen-page.open, #mz-celebrate.on')) return false;
+  return true;
+}
+let mzWasVisible = false;
+function mzUpdateVisibility(){
+  const v = mzVisible();
+  mzEl.classList.toggle('hide', !v && !mzBubbleOpen);
+  if(v && !mzWasVisible && !mzStill()){ mzEl.classList.remove('pop'); void mzEl.offsetWidth; mzEl.classList.add('pop'); }
+  mzWasVisible = v;
+  if(v) mzRunQueue();
+}
+document.querySelectorAll('.sheet-backdrop, .fullscreen-page, #gate').forEach(el=> new MutationObserver(mzUpdateVisibility).observe(el, {attributes: true, attributeFilter: ['class']}));
+function mzApplyPrefs(){
+  const p = mzPrefs();
+  document.body.classList.toggle('mz-still', mzStill());
+  mzPlace(); mzUpdateVisibility();
+  try{ if(typeof render === 'function' && typeof state !== 'undefined' && state && document.getElementById('gate').classList.contains('hide')) render(); }catch(e){}
+}
+
+// ---- bubbles
+let mzBubbleOpen = false, mzBubbleTimer = null, mzQueue = [];
+function mzToday(){ const d = new Date(); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; }
+function mzBubbleAllowed(){
+  const p = mzPrefs(); if(p.mode !== 'on') return false;
+  const quietUntil = mzStore('quiet-until') || 0; if(Date.now() < quietUntil) return false;
+  const day = mzStore('day') || {}; if(day.d === mzToday() && day.n >= 2) return false;
+  return true;
+}
+// Shown only after a save or once the sheet has closed; waits (up to a minute) for that moment.
+function munzoSay(b){
+  if(!mzBubbleAllowed()){ if(b.face) mzReact(b.face, 2200); return; }
+  mzQueue = [{...b, at: Date.now()}]; // only the latest one counts
+  setTimeout(mzRunQueue, 350);
+}
+function mzRunQueue(){
+  if(!mzQueue.length || mzBubbleOpen) return;
+  if(!mzVisible()){ if(Date.now() - mzQueue[0].at > 60000) mzQueue = []; return; }
+  if(!mzBubbleAllowed()){ mzQueue = []; return; }
+  const b = mzQueue.shift();
+  mzOpenBubble(b);
+}
+function mzOpenBubble(b){
+  const el = document.getElementById('mz-bubble'), dim = document.getElementById('mz-dim');
+  const day = mzStore('day') || {}; mzStore('day', {d: mzToday(), n: (day.d === mzToday() ? day.n || 0 : 0) + 1});
+  const style = b.style || 'talk';
+  el.className = 'mz-bubble ' + style + (mzPos().side === 'left' ? ' left' : '');
+  // amounts stay hidden when the eye has hidden them
+  const words = (typeof balancesMasked !== 'undefined' && balancesMasked) ? String(b.text||'').replace(/-?₹[\d,.]+(k|L|Cr)?/g, '₹•••') : b.text;
+  el.innerHTML = `<div class="mz-label">MUNZO</div><div class="mz-text">${storyEsc(words)}</div>`
+    + (b.buttons && b.buttons.length && style !== 'thought' ? `<div class="mz-btns">${b.buttons.map((x, i)=> `<button data-mzbtn="${i}">${storyEsc(x.label)}</button>`).join('')}</div>` : '')
+    + (style === 'thought' ? '<span class="mz-puff p1"></span><span class="mz-puff p2"></span>' : '')
+    + (style === 'celebrate' ? '<span class="mz-spark s1">✦</span><span class="mz-spark s2">✦</span><span class="mz-spark s3">✧</span>' : '');
+  const r = mzEl.getBoundingClientRect();
+  el.style.bottom = (window.innerHeight - r.top + 10) + 'px';
+  mzBubbleOpen = true; mzEl.classList.remove('hide');
+  dim.classList.add('on'); el.classList.add('on');
+  let tapped = false;
+  el.querySelectorAll('[data-mzbtn]').forEach(btn=> btn.addEventListener('click', ev=>{ ev.stopPropagation(); tapped = true; const x = b.buttons[+btn.dataset.mzbtn]; mzCloseBubble(true); if(x && x.fn) setTimeout(x.fn, 320); }));
+  // talking: happy ↔ talking for about as long as the words take, then resting on happy
+  mzClearTimers();
+  const len = Math.min(4000, 400 + (b.text || '').length * 45);
+  const start = Date.now(), base = b.face || 'happy';
+  mzShow(base);
+  const talk = ()=>{ if(!mzBubbleOpen) return; if(Date.now() - start > len){ mzShow(base === 'happy' ? 'happy' : base, true); return; } mzShow(mzFace === 'talking' ? base : 'talking', true); mzLater(talk, 150); };
+  if(style !== 'thought') mzLater(talk, 250);
+  clearTimeout(mzBubbleTimer);
+  mzBubbleTimer = setTimeout(()=> mzCloseBubble(false), style === 'thought' ? 5000 : 8000);
+  el._tapped = ()=> tapped;
+}
+function mzCloseBubble(byButton){
+  if(!mzBubbleOpen) return;
+  const el = document.getElementById('mz-bubble'), dim = document.getElementById('mz-dim');
+  const style = (el.className.match(/talk|thought|celebrate/) || ['talk'])[0];
+  // three closed in a row without a tap (thought clouds have no buttons, so they never count)
+  if(style !== 'thought' && !style.includes('celebrate')){
+    if(byButton) mzStore('ignored', 0);
+    else { const n = (mzStore('ignored') || 0) + 1; mzStore('ignored', n); if(n >= 3){ mzStore('quiet-until', Date.now() + 7 * 864e5); mzStore('ignored', 0); } }
+  }
+  clearTimeout(mzBubbleTimer);
+  el.classList.add('closing'); dim.classList.remove('on');
+  setTimeout(()=>{ el.classList.remove('on', 'closing'); el.innerHTML = ''; mzBubbleOpen = false; mzClearTimers(); mzShow('neutral'); mzUpdateVisibility(); }, 300);
+}
+document.getElementById('mz-dim').addEventListener('click', ()=> mzCloseBubble(false));
+
+// ---- what he reacts to
+function mzIsHealth(t){ return /health|medic|pharm|hospital|doctor|clinic|dental|apollo|medplus|netmeds|1mg|diagnost|lab\b/i.test((t.category||'') + ' ' + (t.payee||'')); }
+function mzUsualSpend(excludeId){
+  const since = Date.now() - 90 * 864e5;
+  const a = state.transactions.filter(t=> t.type === 'expense' && t.id !== excludeId && !t.fromPeople && new Date(t.ts).getTime() >= since).map(t=> t.amount).sort((x, y)=> x - y);
+  return a.length >= 10 ? a[Math.floor(a.length / 2)] : null;
+}
+function mzOpenEntryAs(tx, mode){
+  if(!tx) return;
+  openEditTx(tx);
+  if(mode){ splitSt.edit.mode = mode; splitSt.edit.open = true; renderEditSplitChip(); }
+}
+// After an expense is saved (Add form or the review sheet)
+function munzoAfterExpense(tx){
+  if(!tx || mzPrefs().mode === 'off') return;
+  if(mzIsHealth(tx)){
+    const canClaim = (state.claimPayers||[]).some(p=> /cghs|insur/i.test(p));
+    munzoSay({face: 'caring', text: mzT('care'), buttons: canClaim ? [{label: mzB('claimit'), fn: ()=> mzOpenEntryAs(state.transactions.find(t=> t.id === tx.id), 'reimb')}] : []});
+    return; // never a budget word on a medical spend
+  }
+  const usual = mzUsualSpend(tx.id);
+  if(usual && tx.amount >= Math.max(1000, usual * 3)){
+    munzoSay({face: 'surprised', text: mzT('big', {amt: fmt(tx.amount), payee: tx.payee || txShortCat(tx.category)}), buttons: [
+      {label: mzB('office'), fn: ()=> mzOpenEntryAs(state.transactions.find(t=> t.id === tx.id), 'reimb')},
+      {label: mzB('trip'), fn: async ()=>{ const t = state.transactions.find(x=> x.id === tx.id); if(!t) return; const name = prompt('Trip name (for example "Goa trip")', t.trip || ''); if(!name || !name.trim()) return; t.trip = name.trim(); render(); await saveState(); showToast('Tagged: ' + t.trip); }},
+      {label: mzB('big'), fn: ()=> mzReact('happy', 1500)}
+    ]});
+    return;
+  }
+  // a category passing 90% with days left: one small tip in a thought cloud
+  const b = state.budget.find(x=> x.cat === tx.category) || findBudgetRowForCategory(tx.category);
+  const now = new Date(), daysLeft = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
+  if(b && !b.income && b.budget > 0 && daysLeft >= 3){
+    const after = (b.actual || 0), before = after - spendOf(tx);
+    if(after >= b.budget * 0.9 && before < b.budget * 0.9){
+      munzoSay({face: 'thinking', style: 'thought', text: mzT('jar', {cat: txShortCat(b.cat), pct: Math.round(after / b.budget * 100), days: daysLeft})});
+      return;
+    }
+  }
+  mzReact('wink', 1400);
+}
+// A salary credit: the celebration, once per salary
+function mzIsSalary(t){ return t && t.type === 'income' && !t.claimRole && (/salary|payroll/i.test((t.category||'') + ' ' + (t.payee||'')) || /\bsal(ary)?\b.*\bcr/i.test(t.remarks||'')); }
+function munzoAfterIncome(tx){
+  if(!mzIsSalary(tx) || mzPrefs().mode === 'off') return;
+  const seen = mzStore('salaries') || [];
+  if(seen.includes(tx.id)) return;
+  mzStore('salaries', [...seen, tx.id].slice(-24));
+  if(!mzPrefs().celebrations){ mzReact('proud', 2500); return; }
+  setTimeout(()=> mzCelebrate(tx), 400);
+}
+function mzSavingsTargets(){ return state.accounts.filter(a=> a.id !== 'cash_wallet'); }
+function mzCelebrate(tx){
+  const ov = document.getElementById('mz-celebrate');
+  const bills = typeof lumpyBillsMonthly === 'function' ? lumpyBillsMonthly() : 0;
+  const goal = typeof goalsMonthlyNeed === 'function' ? Math.round(goalsMonthlyNeed()) : 0;
+  const save = goal > 0 ? goal : Math.round(tx.amount * 0.1 / 100) * 100;
+  ov.innerHTML = `<div class="mz-coins">${Array.from({length: 18}, (_, i)=> `<span style="left:${(i*53)%100}%; animation-delay:${(i%6)*0.25}s">${i%3 ? '🪙' : '✨'}</span>`).join('')}</div>
+    <div class="mz-cel-card">
+      <img class="mz-cel-face" src="${MZ_DIR}munzo-proud.png" alt="">
+      <div class="mz-cel-title">${storyEsc(mzT('salary'))}</div>
+      <div class="mz-cel-amt">${(typeof balancesMasked !== 'undefined' && balancesMasked) ? '₹•••••' : fmt(tx.amount)}</div>
+      <div class="mz-plan">
+        ${bills > 0 ? `<div>Bills for the month: covered ✓</div>` : ''}
+        <div>Save first: <b>${fmt(save)}</b></div>
+      </div>
+      <button class="btn-primary" id="mz-save-btn">Move ${fmt(save)} to savings</button>
+      <button class="btn-ghost" id="mz-later-btn">${storyEsc(mzB('later'))}</button>
+    </div>`;
+  ov.classList.add('on'); mzUpdateVisibility();
+  const close = ()=>{ ov.classList.remove('on'); ov.innerHTML = ''; mzUpdateVisibility(); mzReact('proud', 2000); };
+  document.getElementById('mz-later-btn').addEventListener('click', close);
+  document.getElementById('mz-save-btn').addEventListener('click', async ()=>{
+    const targets = mzSavingsTargets().filter(a=> a.id !== tx.account);
+    if(!targets.length){ alert('Add a savings account first (Accounts → +).'); return; }
+    let to = mzStore('savings-to');
+    if(!targets.find(a=> a.id === to)){
+      const pick = prompt('Move it to which account?\n' + targets.map((a, i)=> (i + 1) + '. ' + a.name).join('\n'), '1');
+      const k = parseInt(pick); if(!(k >= 1 && k <= targets.length)) return;
+      to = targets[k - 1].id; mzStore('savings-to', to);
+    }
+    if(!state.accounts.find(a=> a.id === tx.account)){ alert('The salary account was not found.'); return; }
+    state.transactions.push({id: genId('tx'), ts: new Date().toISOString(), type: 'transfer', from: tx.account, to, amount: save, remarks: 'Saved first from salary'});
+    close(); render(); await saveState();
+    showToast(`${fmt(save)} moved to ${targetName(to)}. A transfer, not spending.`, 3500);
+  });
+}
+function munzoAfterPayback(name, amount){ munzoSay({face: 'happy', text: mzT('payback', {name, amt: fmt(amount)})}); }
+function munzoAfterClaim(claim, amount){ munzoSay({face: 'happy', text: mzT('claim', {claim, amt: fmt(amount)})}); }
+// The review list emptied by the person (not by the app opening)
+let mzPendingSeen = null;
+function munzoWatchReview(){
+  const n = (state.pendingImports || []).filter(p=> !p.possible).length;
+  if(mzPendingSeen !== null && mzPendingSeen > 0 && n === 0 && mzPrefs().mode !== 'off') mzReact('excited', 2600);
+  mzPendingSeen = n;
+}
+// Back after 3+ days away
+function munzoOnOpen(){
+  const last = mzStore('last-open'); mzStore('last-open', Date.now());
+  if(!last || Date.now() - last < 3 * 864e5) return;
+  mzShow('sleepy'); setTimeout(()=> mzShow('happy'), 1400); setTimeout(()=> mzShow('neutral'), 3200);
+  const n = (state.pendingImports || []).filter(p=> !p.possible).length;
+  if(n > 0) setTimeout(()=> munzoSay({face: 'happy', text: mzT('back', {n}), buttons: [
+    {label: mzB('go'), fn: ()=>{ goTab('home'); const w = document.getElementById('pending-review-wrap'); if(w) w.scrollIntoView({behavior: 'smooth', block: 'start'}); }},
+    {label: mzB('later'), fn: ()=>{}}
+  ]}), 1600);
+}
+
+// ---- Ask Munzo
+function openMunzoChat(){
+  const log = document.getElementById('mz-chat-log');
+  log.innerHTML = `<div class="mz-msg bot">${storyEsc(mzT('hello'))}</div>`;
+  document.getElementById('mz-chat-input').value = '';
+  document.getElementById('mz-chat-backdrop').classList.add('open');
+}
+function mzChatSay(who, html){ const log = document.getElementById('mz-chat-log'); log.insertAdjacentHTML('beforeend', `<div class="mz-msg ${who}">${html}</div>`); log.scrollTop = log.scrollHeight; }
+function mzTodayAllowance(){
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth();
+  const daysLeft = new Date(y, m + 1, 0).getDate() - now.getDate() + 1;
+  const rows = state.budget.filter(b=> !b.income && !b.special && b.budget > 0 && !isInvestmentCat(b.cat));
+  const planned = rows.reduce((s, b)=> s + b.budget, 0), spent = rows.reduce((s, b)=> s + (b.actual || 0), 0);
+  if(planned > 0){
+    const left = planned - spent;
+    return left > 0 ? `About <b>${fmt(left / daysLeft)}</b> a day for the rest of ${now.toLocaleDateString('en-IN', {month: 'long'})} (${fmt(left)} left of your ${fmt(planned)} plan).`
+      : `This month’s plan is used up. Going gently till the 1st keeps it from growing.`;
+  }
+  const p = periodBounds('month', now), d = analysisData(p.start, p.end);
+  return d.income > 0 ? `About <b>${fmt(Math.max(0, d.net) / daysLeft)}</b> a day, from what is left of this month’s income (${fmt(Math.max(0, d.net))}).` : `Set a monthly budget (Home → Budget) and I can tell you a daily amount.`;
+}
+function mzWeekSummary(){
+  const end = new Date(), start = new Date(Date.now() - 7 * 864e5);
+  const d = analysisData(start, end);
+  const top = Object.entries(d.expCats).sort((a, b)=> b[1] - a[1]).slice(0, 3);
+  if(!top.length) return 'Nothing spent in the last 7 days. 🙂';
+  return `Last 7 days: <b>${fmt(d.spending)}</b>. Most went to ${top.map(([c, v])=> `${storyEsc(txShortCat(c))} (${fmt(v)})`).join(', ')}.`;
+}
+function mzAsk(q){
+  q = String(q || '').trim(); if(!q) return;
+  mzChatSay('me', storyEsc(q));
+  document.getElementById('mz-chat-input').value = '';
+  const s = q.toLowerCase();
+  if(/kitna kharch|how much can i spend|aaj|today|daily|per day/.test(s)){ mzChatSay('bot', mzTodayAllowance()); return; }
+  if(/where did|kahan gaya|this week|is hafte|week/.test(s)){ mzChatSay('bot', mzWeekSummary() + ` <button class="link-btn" data-mzgo="insights">Open Insights</button>`); mzWireGo(); return; }
+  if(/split|baant|share a bill/.test(s)){ mzChatSay('bot', 'Tap + , type the amount, then tap the <b>Just me</b> chip and choose <b>Split</b>. Pick who it was with; their shares go to People. <button class="link-btn" data-mzgo="add-split">Start a split</button>'); mzWireGo(); return; }
+  // anything else: the help book and the help assistant
+  const t = (typeof matchHelpTopic === 'function') ? matchHelpTopic(q) : null;
+  if(t){ mzChatSay('bot', storyEsc(t.answer).replace(/\n/g, '<br>') + ` <button class="link-btn" data-mzgo="help" data-mzq="${storyEsc(q)}">More in Help</button>`); mzWireGo(); return; }
+  mzChatSay('bot', 'Let me look that up… <button class="link-btn" data-mzgo="help" data-mzq="' + storyEsc(q) + '">Ask in Help</button>'); mzWireGo();
+}
+function mzWireGo(){
+  document.querySelectorAll('#mz-chat-log [data-mzgo]').forEach(b=> b.onclick = ()=>{
+    const go = b.dataset.mzgo, q = b.dataset.mzq || '';
+    document.getElementById('mz-chat-backdrop').classList.remove('open');
+    setTimeout(()=>{
+      if(go === 'insights') goTab('insights');
+      else if(go === 'add-split'){ openAddTxSheet(); splitSt.tx.mode = 'split'; splitSt.tx.me = true; splitSt.tx.open = true; renderTxChips(); }
+      else if(go === 'help'){ openHelp(); const i = document.getElementById('help-input'); if(i && q){ i.value = q; askHelp(); } }
+    }, 250);
+  });
+}
+document.querySelectorAll('[data-mzchip]').forEach(c=> c.addEventListener('click', ()=> mzAsk(c.textContent)));
+document.getElementById('mz-chat-send').addEventListener('click', ()=> mzAsk(document.getElementById('mz-chat-input').value));
+document.getElementById('mz-chat-input').addEventListener('keydown', e=>{ if(e.key === 'Enter') mzAsk(e.target.value); });
+document.getElementById('mz-chat-close').addEventListener('click', ()=> document.getElementById('mz-chat-backdrop').classList.remove('open'));
+document.getElementById('mz-chat-backdrop').addEventListener('click', e=>{ if(e.target.id === 'mz-chat-backdrop') e.target.classList.remove('open'); });
+document.getElementById('mz-chat-mic').addEventListener('click', ()=>{
+  const R = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!R){ document.getElementById('mz-chat-input').focus(); return; }
+  const rec = new R(); rec.lang = voiceLang(); rec.interimResults = false; rec.continuous = false;
+  rec.onresult = e=>{ const t = e.results[0][0].transcript; document.getElementById('mz-chat-input').value = t; mzAsk(t); };
+  try{ rec.start(); showToast('Listening…', 1500); }catch(e){}
+});
+
+// ---- Settings → Munzo
+function renderMunzoSettings(){
+  const box = document.getElementById('munzo-settings-box'); if(!box) return;
+  const p = mzPrefs();
+  const seg = (k, opts)=> `<div class="seg" data-mzpref="${k}" style="margin-bottom:8px;">${opts.map(([v, l])=> `<button data-v="${v}" class="${String(p[k]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  const tog = (k, l)=> `<label class="mz-tog"><span>${l}</span><input type="checkbox" data-mztog="${k}" ${p[k] ? 'checked' : ''}></label>`;
+  box.innerHTML = seg('mode', [['on','On'],['quiet','Quiet'],['off','Off']])
+    + `<p class="section-sub" style="margin:-2px 0 10px;">Quiet: faces only, no bubbles. At most 2 bubbles a day.</p>`
+    + seg('lang', [['hinglish','Hinglish'],['en','English'],['hi','हिंदी']])
+    + tog('celebrations', 'Celebrations (salary day)') + tog('lessMotion', 'Less motion') + tog('rounded', 'Rounded numbers (₹31.7k)') + tog('sounds', 'Sounds');
+  box.querySelectorAll('[data-mzpref] button').forEach(b=> b.addEventListener('click', ()=>{ mzSetPref(b.parentElement.dataset.mzpref, b.dataset.v); renderMunzoSettings(); }));
+  box.querySelectorAll('[data-mztog]').forEach(c=> c.addEventListener('change', ()=>{ mzSetPref(c.dataset.mztog, c.checked); renderMunzoSettings(); }));
+}
+mzPreload();
+mzPlace();
+
 (async function init(){
   try{
     const q = new URLSearchParams(location.search);
@@ -10560,6 +11060,7 @@ async function declineSpokenMatch(spId, otherId){
   renderGreeting();
   render();
   try{ if(new URLSearchParams(location.search).get('voice')==='1'){ history.replaceState(null, '', location.pathname); openVoice(); } }catch(e){}
+  setTimeout(()=>{ try{ if(currentHid) munzoOnOpen(); }catch(e){} }, 1500);
   initCloudSync(()=>{ render(); });
   if(gmailJustConnected) showToast(gmailJustConnected + ' connected. Its bank alerts are read from now on.', 5000);
 
