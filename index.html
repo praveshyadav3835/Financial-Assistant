@@ -1373,7 +1373,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-28 · v117-sync-fix</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-28 · v118-no-double-add</p>
   </div>
 </div>
 
@@ -2994,6 +2994,17 @@ async function saveState(){
   });
   if(obChanged) saveOutbox(ob);
   if(!cloudReady) return; // local save + outbox already protect the data; cloud reconciles once connected
+  // The screen does not wait for the internet: the change is safe on the phone (and in the
+  // outbox) already. The cloud copy is sent behind, one send at a time; saves made while one
+  // is going out are sent together right after it.
+  if(saveState._running){ saveState._again = true; return; }
+  saveState._running = true;
+  (async ()=>{
+    try{ do{ saveState._again = false; await sendStateToCloud(); } while(saveState._again); }
+    finally{ saveState._running = false; }
+  })();
+}
+async function sendStateToCloud(){
   // Snapshot everything we intend to persist SYNCHRONOUSLY, before any await. Otherwise, an
   // incoming real-time update from the other device (which replaces state[field] wholesale)
   // could land in the gap between steps below and silently wipe out a local edit before we
@@ -5524,6 +5535,21 @@ function buildTsFromDateInput(inputId){
   const [y,m,d] = dateVal.split('-').map(Number);
   return new Date(y, m-1, d, now.getHours(), now.getMinutes(), now.getSeconds()).toISOString();
 }
+// A save button counts one tap: further taps while it is saving (or a slow phone repeats the
+// tap) are ignored for a moment.
+['tx-save','ri-approve-btn','person-save','edittx-save','editpe-save','voice-ok','pb-yes'].forEach(id=>{
+  const b = document.getElementById(id); if(!b) return;
+  b.addEventListener('click', e=>{
+    if(b.dataset.busy){ e.stopImmediatePropagation(); e.preventDefault(); return; }
+    b.dataset.busy = '1';
+    // stopped by a question or a missing choice (the sheet is still open): the next tap counts
+    const bd = b.closest('.sheet-backdrop');
+    setTimeout(()=>{ if(bd && bd.classList.contains('open')) delete b.dataset.busy; }, 400);
+    setTimeout(()=>{ delete b.dataset.busy; }, 1500);
+  }, true);
+});
+// A sheet opened afresh takes taps again at once.
+document.querySelectorAll('.sheet-backdrop').forEach(bd=> new MutationObserver(()=>{ if(bd.classList.contains('open')) bd.querySelectorAll('[data-busy]').forEach(x=> delete x.dataset.busy); }).observe(bd, {attributes:true, attributeFilter:['class']}));
 document.getElementById('tx-save').addEventListener('click', async ()=>{
   const amount = parseFloat(txAmount);
   if(!amount || amount<=0){ alert('Enter an amount.'); return; }
@@ -5555,7 +5581,11 @@ document.getElementById('tx-save').addEventListener('click', async ()=>{
       household: type==='expense',
       remarks: [document.getElementById('tx-note').value.trim(), whoami ? ('Added by '+whoami) : ''].filter(Boolean).join(' · ')
     };
-    { const err = forWhomCheck('tx'); if(err){ alert(err); return; } applyForWhom('tx', tx); }
+    { const err = forWhomCheck('tx'); if(err){ alert(err); return; } }
+    const twin = state.transactions.find(t=> t.type===tx.type && Math.abs((t.amount||0) - amount) < 0.01 && t.account===tx.account && t.category===tx.category && (t.payee||'')===(tx.payee||'') && Date.now() - (t.addedAt||0) < 60000);
+    if(twin && !confirm(`You added the same ${fmt(amount)} a moment ago. Add it again?`)){ txBackdrop.classList.remove('open'); return; }
+    tx.addedAt = Date.now();
+    applyForWhom('tx', tx);
     state.transactions.push(tx);
     const budgetCat = state.budget.find(b=>b.cat===tx.category);
     recomputeBudgetActuals();
