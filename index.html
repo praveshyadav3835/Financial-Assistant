@@ -794,6 +794,21 @@
   #gate .mzi .jar-mini{display:inline-block; width:48px; height:52px; border-radius:12px; border:2px solid rgba(255,255,255,.18); position:relative; overflow:hidden; margin:0 3px; background:rgba(255,255,255,.04);}
   #gate .mzi .jar-mini i{position:absolute; left:0; right:0; bottom:0; background:linear-gradient(180deg, rgba(111,177,255,.7), rgba(111,177,255,.35));}
   #gate .mzi .jar-mini b{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:18px;}
+  /* ---- Ring for selected households (v128, D-28Oct-6 Phase E) ---- */
+  .ring-wrap{text-align:center; margin-top:6px;}
+  .ring-mm{font-size:13px; color:var(--ink-soft); margin:2px 0 10px;} .ring-mm b{color:var(--ink); font-weight:600;}
+  .ring-seg{display:inline-flex; background:var(--chip); border:1px solid var(--line); border-radius:999px; padding:3px; margin-bottom:10px;}
+  .ring-seg button{border:none; background:none; color:var(--ink-soft); font:inherit; font-size:13.5px; padding:6px 16px; border-radius:999px; cursor:pointer;}
+  .ring-seg button.on{background:var(--paper-dim); color:var(--ink);}
+  .ring-box{position:relative; width:210px; height:210px; margin:0 auto;}
+  .ring-box svg{position:absolute; inset:0;}
+  .ring-in{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .ring-in .l1{font-size:13px; color:var(--ink-soft);} .ring-in .big{font-size:38px; font-weight:700; letter-spacing:-.02em; line-height:1.1;} .ring-in .l3{font-size:13px; color:var(--ink-soft);}
+  .ring-note{font-size:13px; color:var(--ink-soft); margin-top:8px;}
+  .fx-row{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-top:1px solid var(--line);}
+  .fx-row .sub{font-size:12px;} .fx-paid{color:var(--sage); font-weight:600;} .fx-wait{color:var(--ink-soft); font-weight:600;}
+  .mood-line.learn{color:var(--ink); background:var(--chip); border-color:var(--line);}
+  .rg-row{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-top:1px solid var(--line);}
 </style>
 </head>
 <body>
@@ -834,12 +849,14 @@
         <div class="mood-line hide" id="home-mood"></div>
         <div class="owed-chips hide" id="home-owed"></div>
       </div>
+      <div class="ring-wrap hide" id="ring-wrap"></div>
       <div class="pace" id="trend-chart-wrap"></div>
       <div style="margin-top:18px;">
         <div id="home-review-wrap"></div>
         <div id="home-win-wrap"></div>
       </div>
       <!-- v123: review → jars → recent, as cards (screen pack B1–B6, C2) -->
+      <div id="home-fixed-wrap"></div>
       <div class="home-card" id="home-budget-panel">
         <div class="hc-head"><b id="home-budget-title">Your jars this month</b><button class="link-btn" id="home-budget-edit-btn" style="color:var(--peri);">See all</button></div>
         <div id="home-budget-list" style="padding-bottom:8px;"></div>
@@ -1543,6 +1560,16 @@
     <div class="bell-empty hide" id="review-empty">All caught up ✓</div>
   </div>
 </div>
+<div class="fullscreen-page" id="ring-admin-page">
+  <div class="fs-header">
+    <button class="fs-back" id="ring-admin-back" aria-label="Back">←</button>
+    <h2>Ring: test households</h2>
+  </div>
+  <div class="fs-body">
+    <p class="section-sub">Tick the households that see the ring on Home. Everyone else keeps today’s Home. A change shows the next time they open the app.</p>
+    <div class="card" id="ring-admin-list"><div class="eng-sub">Loading…</div></div>
+  </div>
+</div>
 <div class="fullscreen-page" id="help-page">
   <div class="fs-header">
     <button class="fs-back" id="help-back-btn" aria-label="Back">←</button>
@@ -1615,6 +1642,7 @@
     <div class="card" id="reader-box" style="margin-bottom:6px;"></div>
     <button class="btn-ghost admin-only hide" id="tools-engine-report-btn" style="margin-top:0;">Email accuracy</button>
     <button class="btn-ghost admin-only hide" id="tools-helpadmin-btn">Help questions from users</button>
+    <button class="btn-ghost admin-only hide" id="tools-ring-btn">Ring: test households</button>
     <button class="btn-ghost admin-only hide" id="tools-preview-firstlook-btn">Preview the first look (as a new user)</button>
     <div class="admin-only hide eng-sub" id="server-version-line" style="margin:10px 0 0;"></div>
 
@@ -1635,7 +1663,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-29 · v127-onboarding</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-29 · v128-ring</p>
   </div>
 </div>
 
@@ -2632,6 +2660,7 @@ function listenToReaderStatus(){
   if(!db || !currentHid || readerListeningFor === currentHid) return;
   readerListeningFor = currentHid;
   const forHid = currentHid;
+  setTimeout(()=>{ try{ loadRingSwitch(); }catch(e){} }, 1500);
   hh('readerStatus').onSnapshot(snap=>{
     if(forHid !== currentHid) return;
     readerStatus = snap.exists ? snap.data() : null;
@@ -4284,6 +4313,154 @@ function renderHomeInsight(){
   if(card) card.addEventListener('click', ()=> goTab('budget'));
 }
 
+// ---- RING FOR SELECTED HOUSEHOLDS (v128, D-28Oct-6 Phase E; D-28Oct-2 ring, D-28Oct-3 money month) ----
+// The switch lives on the server (config/features, set from the owner's screen). Off when unknown.
+function ringKey(){ return 'fa-ring-' + (currentHid || 'x'); }
+function ringOn(){ return lsGet(ringKey(), false) === true; }
+async function loadRingSwitch(){
+  if(!authUser || !currentHid) return;
+  try{ const r = await readerCall('features', {method:'GET'}); if(r.status === 200 && r.data && r.data.ok){ const was = ringOn(); lsSet(ringKey(), !!r.data.ring); if(was !== !!r.data.ring) render(); } }catch(e){}
+}
+let ringView = 'week';
+const DAY_MS = 864e5;
+function dayStart(d){ const x = new Date(d); x.setHours(0,0,0,0); return x; }
+function isFixedCat(cat){
+  const b = (state.budget||[]).find(x=> x.cat === cat);
+  if(b && b.fixed !== undefined) return !!b.fixed;
+  return /\brent\b|\bemi\b|loan|\bsips?\b|insurance|school|\bfees?\b|monthly transfer|mutual fund|wealth|invest/i.test(String(cat||''));
+}
+function firstTxDate(){ let m = null; state.transactions.forEach(t=>{ const d = new Date(t.ts); if(!m || d < m) m = d; }); return m; }
+// Money month: from the day the salary actually arrived; salaries within ~10 days share one.
+function moneyMonth(now){
+  now = now || new Date();
+  const sal = state.transactions.filter(t=> (t.isSalary || mzIsSalary(t)) && new Date(t.ts) <= now && now - new Date(t.ts) < 40 * DAY_MS).sort((a,b)=> new Date(b.ts) - new Date(a.ts));
+  if(!sal.length) return null;
+  let start = dayStart(sal[0].ts);
+  sal.forEach(t=>{ const d = dayStart(t.ts); if(start - d <= 10 * DAY_MS && d < start) start = d; });
+  let end = new Date(start); end.setMonth(end.getMonth() + 1); end.setDate(end.getDate() - 1);
+  if(dayStart(now) > end) end = new Date(dayStart(now).getTime() + 2 * DAY_MS); // a late salary stretches what is left
+  return {start, end, salaries: sal.filter(t=> dayStart(t.ts) >= start)};
+}
+function ringData(now){
+  now = now || new Date();
+  const first = firstTxDate(), today = dayStart(now);
+  const daysIn = first ? Math.floor((today - dayStart(first)) / DAY_MS) + 1 : 0;
+  const mm = moneyMonth(now);
+  if(!first || daysIn < 14 || !mm){
+    const ms = new Date(now.getFullYear(), now.getMonth(), 1);
+    const spent = state.transactions.filter(t=> t.type === 'expense' && new Date(t.ts) >= ms && new Date(t.ts) <= now).reduce((a,t)=> a + spendOf(t), 0);
+    return {state:'learning', day: Math.max(1, Math.min(14, daysIn || 1)), spent};
+  }
+  const inMM = t=> new Date(t.ts) >= mm.start && new Date(t.ts) <= now;
+  const income = state.transactions.filter(t=> t.type === 'income' && inMM(t)).reduce((a,t)=> a + incomeOf(t), 0);
+  const fixedCats = {};
+  (state.budget||[]).filter(b=> !b.income && isFixedCat(b.cat)).forEach(b=> fixedCats[b.cat] = {cat:b.cat, budget:b.budget||0, paid:0});
+  let flexSpent = 0;
+  state.transactions.filter(t=> t.type === 'expense' && inMM(t)).forEach(t=>{ const v = spendOf(t); if(isFixedCat(t.category)){ (fixedCats[t.category] = fixedCats[t.category] || {cat:t.category, budget:0, paid:0}).paid += v; } else flexSpent += v; });
+  const fixed = Object.values(fixedCats).filter(f=> f.budget > 0 || f.paid > 0);
+  const reserved = fixed.reduce((a,f)=> a + Math.max(f.budget, f.paid), 0);
+  const savings = Math.round(income * 0.10);
+  let flexible = income - reserved - savings;
+  const flexBudget = (state.budget||[]).filter(b=> !b.income && !b.special && !isFixedCat(b.cat)).reduce((a,b)=> a + (b.budget||0), 0);
+  if(flexBudget > 0 && flexBudget <= flexible && flexBudget >= flexible * 0.6) flexible = flexBudget; // the budget, when it is sensible
+  const totalDays = Math.round((mm.end - mm.start) / DAY_MS) + 1, dayNo = Math.round((today - mm.start) / DAY_MS) + 1;
+  const daysLeft = Math.max(1, totalDays - dayNo + 1);
+  const left = flexible - flexSpent;
+  const weekEnd = new Date(today); weekEnd.setDate(today.getDate() + ((7 - today.getDay()) % 7)); // till Sunday
+  const weekDaysLeft = Math.max(1, Math.min(daysLeft, Math.round((weekEnd - today) / DAY_MS) + 1));
+  const perDay = left / daysLeft, normalDay = flexible / totalDays;
+  const estimate = mm.start - dayStart(first) < 30 * DAY_MS;
+  const st = flexible <= 0 ? 'usedup' : left <= 0 ? 'usedup' : (estimate ? 'estimate' : 'confident');
+  return {state: st, mm, totalDays, dayNo, daysLeft, weekDaysLeft, income, reserved, savings, flexible, flexSpent, left, perDay, tomorrow: Math.max(0, Math.round(normalDay * 0.4)), fixed, estimate};
+}
+function ringSvg(frac, color, dashed){
+  const r = 92, c = 2 * Math.PI * r, f = Math.max(0, Math.min(1, frac));
+  if(dashed) return `<svg viewBox="0 0 210 210"><circle cx="105" cy="105" r="${r}" fill="none" stroke="var(--line)" stroke-width="10" stroke-dasharray="3 9"/><circle cx="105" cy="105" r="${r}" fill="none" stroke="var(--ink-soft)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${(c*f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 105 105)" opacity=".7"/></svg>`;
+  return `<svg viewBox="0 0 210 210"><circle cx="105" cy="105" r="${r}" fill="none" stroke="var(--paper-dim)" stroke-width="14"/><circle cx="105" cy="105" r="${r}" fill="none" stroke="${color}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${(c*f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 105 105)" style="transition:stroke-dasharray .6s ease;"/></svg>`;
+}
+function renderRing(){
+  const on = ringOn();
+  const wrap = document.getElementById('ring-wrap'), hero = document.getElementById('home-cashflow-card'), graph = document.getElementById('trend-chart-wrap'), fx = document.getElementById('home-fixed-wrap');
+  if(!wrap) return;
+  wrap.classList.toggle('hide', !on); hero.classList.toggle('hide', on); graph.classList.toggle('hide', on);
+  if(!on){ wrap.innerHTML = ''; fx.innerHTML = ''; return; }
+  const d = ringData();
+  const mood = homeMood();
+  const pill = m=> m ? `<div class="mood-line ${m.cls||''}">${storyEsc(m.text)}</div>` : '';
+  if(d.state === 'learning'){
+    wrap.innerHTML = `<div class="ring-box" style="margin-top:14px;">${ringSvg(d.day / 14, '', true)}<div class="ring-in"><div class="l1">Learning your month</div><div class="big">Day ${d.day}</div><div class="l3">of 14</div></div></div>
+      <div class="ring-note">Spent so far <b class="maskable" style="color:var(--ink);">${fmtR(d.spent)}</b></div>${pill({cls:'', text:'🌱 I’m getting to know your month'}).replace('mood-line', 'mood-line learn')}`;
+    fx.innerHTML = ''; return;
+  }
+  const fmtD = x=> x.toLocaleDateString('en-IN', {day:'numeric', month:'short'});
+  const head = `<div class="ring-mm">Money month · <b>${fmtD(d.mm.start)} – ${fmtD(d.mm.end)}</b> · day ${d.dayNo} of ${d.totalDays}</div>`;
+  const approx = d.estimate ? '≈' : '';
+  let inner, color, frac, note = '', moodHtml = pill(mood);
+  if(d.state === 'usedup'){
+    color = 'var(--gold)'; frac = 1;
+    inner = `<div class="l1">${ringView === 'week' ? 'This week’s share' : 'This month’s share'}</div><div class="big">Used up</div><div class="l3">tomorrow <span class="maskable">${fmtR(d.tomorrow)}</span></div>`;
+    note = `<div class="ring-note">The extra <b class="maskable" style="color:var(--ink);">${fmtR(-d.left)}</b> is spread over the next ${d.daysLeft} days.</div>`;
+    moodHtml = pill({cls:'amber', text:'🙂 No worries, tomorrow is fresh'});
+  } else if(ringView === 'week'){
+    color = '#6FB1FF'; frac = d.left / d.flexible;
+    inner = `<div class="l1">You can spend</div><div class="big maskable">${approx}${fmtR(Math.max(0, d.perDay))}</div><div class="l3">a day · ${d.weekDaysLeft} day${d.weekDaysLeft===1?'':'s'} left</div>`;
+  } else {
+    color = '#6FB1FF'; frac = d.left / d.flexible;
+    inner = `<div class="l1">Left this month</div><div class="big maskable">${approx}${fmtR(Math.max(0, d.left))}</div><div class="l3">${d.daysLeft} day${d.daysLeft===1?'':'s'} to go</div>`;
+  }
+  wrap.innerHTML = head + `<div class="ring-seg" data-noswipe><button data-rv="week" class="${ringView==='week'?'on':''}">This week</button><button data-rv="month" class="${ringView==='month'?'on':''}">Month</button></div>`
+    + `<div class="ring-box">${ringSvg(frac, color)}<div class="ring-in">${inner}</div></div>${moodHtml}${note}`;
+  wrap.querySelectorAll('[data-rv]').forEach(b=> b.addEventListener('click', ()=>{ ringView = b.dataset.rv; renderRing(); applyMaskUI(); }));
+  // This month's fixed: paid ✓ / waiting
+  const rows = d.fixed.slice().sort((a,b)=> (b.paid >= b.budget*0.9) - (a.paid >= a.budget*0.9) || Math.max(b.budget,b.paid) - Math.max(a.budget,a.paid)).slice(0, 5);
+  fx.innerHTML = rows.length ? `<div class="home-card"><div class="hc-head"><b>This month’s fixed</b><span style="color:var(--peri); font-size:13.5px;"><span class="maskable">${fmtR(d.reserved)}</span> reserved</span></div>
+    ${rows.map(f=>{ const paid = f.paid > 0 && f.paid >= f.budget * 0.9; return `<div class="fx-row"><div><div>${catEmoji(f.cat)} ${storyEsc(catShort(f.cat))}</div></div>${paid ? `<span class="fx-paid maskable">${fmtR(f.paid)} paid ✓</span>` : `<span class="fx-wait maskable">${fmtR(Math.max(0, f.budget - f.paid))} waiting</span>`}</div>`; }).join('')}<div style="height:6px;"></div></div>` : '';
+}
+// Munzo asks once (ring households): a big early payment, and a likely salary
+function munzoRingAsk(tx){
+  if(!ringOn() || !tx || mzPrefs().mode === 'off') return;
+  const asked = lsGet('fa-ring-asked', []);
+  const mark = k=> lsSet('fa-ring-asked', [...asked, k].slice(-200));
+  if(tx.type === 'income' && !mzIsSalary(tx) && !tx.claimRole && (tx.amount||0) >= 10000 && !asked.includes('s|' + tx.id)){
+    mark('s|' + tx.id);
+    munzoSay({face:'thinking', text:`${fmt(tx.amount)} from ${tx.payee || 'someone'}. Is this your salary?`, buttons:[
+      {label:'Yes, salary', fn: async ()=>{ tx.isSalary = true; await saveState(); render(); }}, {label:'No', fn: ()=>{}}]});
+    return;
+  }
+  const mm = moneyMonth();
+  if(tx.type === 'expense' && mm && !isFixedCat(tx.category) && (new Date(tx.ts) - mm.start) <= 5 * DAY_MS){
+    const inc = mm.salaries.reduce((a,t)=> a + (t.amount||0), 0);
+    const row = (state.budget||[]).find(b=> b.cat === tx.category);
+    if(inc > 0 && (tx.amount||0) >= inc * 0.1 && row && row.fixed === undefined && !asked.includes('f|' + tx.category)){
+      mark('f|' + tx.category);
+      munzoSay({face:'thinking', text:`${fmt(tx.amount)} to ${tx.payee || catShort(tx.category)}, early in the month. Does this happen every month?`, buttons:[
+        {label:'Yes, it’s fixed', fn: async ()=>{ row.fixed = true; await saveState(); render(); }}, {label:'No, one-time', fn: async ()=>{ row.fixed = false; await saveState(); }}]});
+    }
+  }
+}
+// Owner's screen: which households see the ring
+async function openRingAdmin(){
+  openFullscreen('ring-admin-page');
+  const el = document.getElementById('ring-admin-list'); el.innerHTML = '<div class="eng-sub">Loading…</div>';
+  try{
+    const r = await readerCall('features', {method:'GET', query:'list=1'});
+    if(!(r.status === 200 && r.data && r.data.ok && Array.isArray(r.data.households))) throw new Error('no list');
+    const on = new Set(r.data.ringHouseholds || []);
+    el.innerHTML = r.data.households.map(h=> `<div class="rg-row"><div style="min-width:0;"><div class="name">${storyEsc(h.name || h.id)}</div><div class="sub" style="overflow-wrap:anywhere;">${storyEsc((h.emails||[]).join(', '))}</div></div><label class="mz-switch"><input type="checkbox" data-ringhh="${storyEsc(h.id)}" ${on.has(h.id)?'checked':''}> <span>${on.has(h.id)?'On':'Off'}</span></label></div>`).join('') || '<div class="eng-sub">No households yet.</div>';
+    el.querySelectorAll('[data-ringhh]').forEach(cb=> cb.addEventListener('change', async ()=>{
+      cb.disabled = true;
+      const res = await readerCall('features', {body:{householdId: cb.dataset.ringhh, ring: cb.checked}});
+      cb.disabled = false;
+      if(!(res.status === 200 && res.data && res.data.ok)){ cb.checked = !cb.checked; showToast('Could not save. Try again.'); return; }
+      cb.nextElementSibling.textContent = cb.checked ? 'On' : 'Off';
+      if(cb.dataset.ringhh === currentHid){ lsSet(ringKey(), cb.checked); render(); }
+      showToast(cb.checked ? 'Ring on for this household' : 'Ring off');
+    }));
+  }catch(e){ el.innerHTML = '<div class="eng-sub">Could not load the households. The server needs v128.</div>'; }
+}
+document.getElementById('tools-ring-btn').addEventListener('click', openRingAdmin);
+document.getElementById('ring-admin-back').addEventListener('click', ()=> closeFullscreen('ring-admin-page'));
+
 // ---- HOME FOR EVERYONE (v122, D-28Oct-6 Phase B) ----
 const CAT_EMOJI = {chart:'📈', trendUp:'📈', sparkle:'✨', wallet:'💰', heart:'💝', cart:'🛒', utensils:'🍽️', fuel:'⛽', broom:'🧹', bolt:'💡', home:'🏠', bag:'🛍️', film:'🎬', car:'🚕', user:'👤', bank:'🏦', medkit:'🏥', gift:'🎁', dots:'…'};
 function catEmoji(cat){ return CAT_EMOJI[catMeta(cat).key] || '…'; }
@@ -4937,6 +5114,7 @@ function render(){
   document.getElementById('trend-chart-wrap').innerHTML = buildTrendChartSVG(true);
   renderHomeBudget();
   try{ renderHomeWin(); renderClaimNotices(); updateBell(); }catch(e){ console.warn('Home', e); }
+  try{ renderRing(); }catch(e){ console.warn('Ring', e); }
 
   const recentEl = document.getElementById('recent-list');
   const recent = [...state.transactions].sort((a,b)=> new Date(b.ts)-new Date(a.ts)).slice(0,3);
@@ -6292,6 +6470,7 @@ document.getElementById('tx-save').addEventListener('click', async ()=>{
     if(!shown && type==='expense' && window.__mzLastTx){ const t0 = window.__mzLastTx; showUndoToast(`${catEmoji(t0.category)} Dropped ${fmt(t0.amount)} into ${catShort(t0.category)}`, async ()=>{ if(t0.forWhom === 'split') removeSplitShares(t0); state.transactions = state.transactions.filter(x=> x !== t0); recomputeBudgetActuals(); await saveState(); render(); showToast('Removed'); }); }
     else if(!shown) showToast(type==='transfer' ? 'Transfer added' : type==='person' ? (lastPersonSaveCountedSpend ? `Added as ${txShortCat(lastPersonSaveCountedSpend)} spending` : 'Added') : type==='income' ? 'Income added' : 'Added'); }
   try{ if(type==='expense') munzoAfterExpense(window.__mzLastTx); else if(type==='income') munzoAfterIncome(window.__mzLastTx); }catch(e){ console.warn('Munzo', e); }
+  try{ setTimeout(()=> munzoRingAsk(window.__mzLastTx), 1200); }catch(e){}
 });
 
 // ---- EDIT TRANSACTION ----
