@@ -760,6 +760,40 @@
   #budgetdetail-backdrop .tx-amt.neg{color:var(--ink);}
   .badge .bl{color:var(--ink);} .badge.off .bl{color:var(--ink-soft);}
   .badge .bc{background:color-mix(in srgb, var(--gold) 14%, #1a1712);}
+  /* ---- Onboarding with the full-body Munzo (v127) ---- */
+  #gate .intro.mzi{position:relative; height:100%; min-height:100%; background:#0d121a; color:#fff; padding-bottom:calc(env(safe-area-inset-bottom,0px) + 22px);}
+  #gate .mzi .intro-skip{color:rgba(255,255,255,.7); z-index:3;}
+  #gate .mzi .intro-viewport{align-items:stretch;}
+  #gate .mzi .intro-track{height:100%;}
+  #gate .mzi .intro-slide{height:100%;}
+  #gate .mzi .mzi-words{flex:0 0 auto; min-height:150px; padding-bottom:4px;}
+  #gate .mzi .intro-dots{margin:14px 0 18px;}
+  #gate .intro.mzi{padding-top:calc(env(safe-area-inset-top,0px) + 14px);}
+  #gate .mzi .mzi-jl{display:block; font-size:10.5px; opacity:.75; margin-top:3px;}
+  #gate .mzi .mzi-ask{position:absolute; left:16px; right:16px; bottom:calc(env(safe-area-inset-bottom,0px) + 16px); background:#1b2433; border:1px solid rgba(255,255,255,.14); border-radius:22px; padding:18px 18px 14px; box-shadow:0 -10px 40px rgba(0,0,0,.5); z-index:5; text-align:left;}
+  #gate .mzi .mzi-ask h3{margin:0 0 6px; font-size:18px; color:#fff;}
+  #gate .mzi .mzi-ask p{margin:0 0 14px; color:rgba(255,255,255,.75); font-size:14.5px; line-height:1.45;}
+  #gate .mzi-shade{position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:4;}
+  #gate .mzi .intro-slide{display:flex; flex-direction:column; padding:0 24px; position:relative;}
+  #gate .mzi .mzi-stage{position:relative; flex:1 1 auto; min-height:220px; margin:8px -24px 10px; overflow:visible;}
+  #gate .mzi .mzi-glow{position:absolute; inset:0; pointer-events:none; -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 12%, #000 70%, transparent 100%); mask-image:linear-gradient(180deg, transparent 0, #000 12%, #000 70%, transparent 100%);}
+  #gate .mzi .mzi-stage, #gate .mzi .mzi-words{position:relative; z-index:1;}
+  #gate .mzi .intro-viewport{overflow:hidden;}
+  #gate .mzi .mzi-img{position:absolute; bottom:0; height:94%; max-height:440px; left:50%; transform:translateX(-50%); filter:drop-shadow(0 10px 24px rgba(0,0,0,.45));}
+  #gate .mzi .mzi-img.right{left:auto; right:4%; transform:none;} #gate .mzi .mzi-img.left{left:4%; transform:none;}
+  #gate .mzi .glass{position:absolute; background:rgba(28,36,52,.62); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.16); border-radius:16px; color:#fff; text-align:left; font-size:13.5px; padding:10px 12px; box-shadow:0 8px 24px rgba(0,0,0,.3);}
+  #gate .mzi .spark{position:absolute; font-size:20px;}
+  #gate .mzi .intro-slide h2{color:#fff; font-size:25px; font-weight:700; margin:4px 0 12px;}
+  #gate .mzi .intro-slide p{color:rgba(255,255,255,.72); font-size:15px;}
+  #gate .mzi .intro-slide p b{color:#fff; font-weight:600;}
+  #gate .mzi .intro-dots span{background:rgba(255,255,255,.25);} #gate .mzi .intro-dots span.on{background:#6FB1FF;}
+  #gate .mzi .trust{display:flex; align-items:center; gap:12px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:11px 14px; margin:0 0 8px; text-align:left; font-size:14px; font-weight:500; color:#fff;}
+  #gate .mzi .trust span:first-child{font-size:18px;}
+  #gate .mzi .btn-google{width:100%; background:#fff !important; color:#1a1f29 !important; border:none; border-radius:18px; padding:16px; font:inherit; font-size:16.5px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer;}
+  #gate .mzi .intro-note{color:rgba(255,255,255,.6) !important; font-size:12px; margin-top:8px;}
+  #gate .mzi .jar-mini{display:inline-block; width:48px; height:52px; border-radius:12px; border:2px solid rgba(255,255,255,.18); position:relative; overflow:hidden; margin:0 3px; background:rgba(255,255,255,.04);}
+  #gate .mzi .jar-mini i{position:absolute; left:0; right:0; bottom:0; background:linear-gradient(180deg, rgba(111,177,255,.7), rgba(111,177,255,.35));}
+  #gate .mzi .jar-mini b{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:18px;}
 </style>
 </head>
 <body>
@@ -1601,7 +1635,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-29 · v126-colours-badges</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-29 · v127-onboarding</p>
   </div>
 </div>
 
@@ -2023,27 +2057,44 @@ function myEmail(){ return ((authUser && authUser.email) || '').toLowerCase(); }
 function myFirstName(){ return ((authUser && authUser.displayName) || '').trim().split(/\s+/)[0] || ''; }
 
 // ---------- first look: three screens, then one Google step
+const MZ_FULL = n=> 'munzo/munzo-full-' + n + '.png';
+const GOOGLE_G_COLOR = '<svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
+// Four screens with the full-body Munzo (screen pack, onboarding). The last one signs in with
+// Google and connects the Gmail where the bank alerts arrive, in the same step.
 const INTRO = [
-  {t: 'Your bank alerts become entries', p: 'Every spend and income your bank emails you appears here by itself. You only check and tap Add. No typing.',
-   art: '<rect x="18" y="30" width="76" height="52" rx="10" fill="none" stroke="currentColor" stroke-width="5"/><path d="M20 36l36 26 36-26" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/><circle cx="98" cy="84" r="20" fill="var(--accent-c, #3A6FF0)"/><path d="M89 84l6 6 12-12" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>'},
-  {t: 'Know where the month is going', p: 'See what is left of your budget, where the money went, and what is coming up, updated as you spend.',
-   art: '<circle cx="60" cy="60" r="38" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="12"/><path d="M60 22a38 38 0 1 1-33 57" fill="none" stroke="var(--accent-c, #3A6FF0)" stroke-width="12" stroke-linecap="round"/><text x="60" y="68" text-anchor="middle" font-size="22" font-weight="700" fill="currentColor">72%</text>'},
-  {t: 'Yours, and nobody else\u2019s', p: 'Only your bank and card alert emails are read. Nothing is added without your tap, and only your household can open your data.',
-   art: '<rect x="30" y="54" width="60" height="44" rx="9" fill="none" stroke="currentColor" stroke-width="5"/><path d="M42 54V42a18 18 0 0 1 36 0v12" fill="none" stroke="currentColor" stroke-width="5"/><circle cx="60" cy="74" r="6" fill="var(--accent-c, #3A6FF0)"/><path d="M60 80v8" stroke="var(--accent-c, #3A6FF0)" stroke-width="5" stroke-linecap="round"/>'},
-  {t: 'Run it together', p: 'Invite your partner. You both see the same accounts and budget, and the People Ledger keeps track of who owes whom.',
-   art: '<circle cx="42" cy="44" r="15" fill="none" stroke="currentColor" stroke-width="5"/><path d="M16 94c2-18 13-28 26-28s24 10 26 28" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><circle cx="82" cy="44" r="15" fill="none" stroke="var(--accent-c, #3A6FF0)" stroke-width="5"/><path d="M60 94c2-18 11-28 22-28s22 10 24 28" fill="none" stroke="var(--accent-c, #3A6FF0)" stroke-width="5" stroke-linecap="round"/>'}
+  {btn: 'Hi Munzo! →', glow: 'radial-gradient(60% 55% at 70% 40%, rgba(124,82,230,.55), transparent 70%), radial-gradient(50% 50% at 20% 70%, rgba(47,111,228,.4), transparent 70%)',
+   stage: `<img class="mzi-img" src="${MZ_FULL('wave')}" alt=""><div class="glass" style="right:6%; top:16%;">Namaste! 👋<br>I'm <b>Munzo</b>.</div><span class="spark" style="left:12%; top:30%;">✨</span><span class="spark" style="right:14%; top:62%;">✨</span><span class="spark" style="left:18%; top:70%;">🪙</span>`,
+   t: 'Meet your money buddy', p: 'I keep your household’s money tidy, <b>without the boring bits</b>. No spreadsheets, no lectures. Promise. 🤞'},
+  {btn: 'Nice! →', glow: 'radial-gradient(60% 55% at 30% 40%, rgba(47,111,228,.55), transparent 70%), radial-gradient(50% 50% at 75% 75%, rgba(28,156,120,.45), transparent 70%)',
+   stage: `<img class="mzi-img right" src="${MZ_FULL('catch')}" alt=""><div class="glass" style="left:5%; top:36%; width:56%; display:flex; align-items:center; gap:10px;"><span style="font-size:18px;">🍽️</span><span style="flex:1;">Swiggy<br><small style="opacity:.7;">Today · Axis · Food</small></span><b style="color:#F08A9A;">₹450</b><span style="width:22px; height:22px; border-radius:50%; background:#4F8DF7; display:inline-flex; align-items:center; justify-content:center; font-size:12px;">✓</span></div><div class="glass" style="left:5%; top:60%; width:46%; background:rgba(88,62,170,.45);">🎙️ “50 Blinkit”<br><small style="opacity:.7;">said it, done ✓</small></div>`,
+   t: 'Your bank alerts become entries', p: 'Every spend your bank emails you shows up <b>by itself</b>. You just check and tap ✓. Paid cash? <b>Just say it.</b>'},
+  {btn: 'Love it →', glow: 'radial-gradient(55% 55% at 25% 45%, rgba(28,156,82,.5), transparent 70%), radial-gradient(50% 50% at 80% 75%, rgba(227,182,87,.45), transparent 70%)',
+   stage: `<img class="mzi-img left" src="${MZ_FULL('jar')}" alt=""><div class="glass" style="right:5%; top:14%; text-align:center;"><span style="display:inline-block;"><span class="jar-mini"><i style="height:62%"></i><b>🍽️</b></span><span class="mzi-jl">Food</span></span><span style="display:inline-block;"><span class="jar-mini"><i style="height:45%"></i><b>🛒</b></span><span class="mzi-jl">Grocery</span></span><span style="display:inline-block;"><span class="jar-mini"><i style="height:30%; background:linear-gradient(180deg, rgba(79,202,99,.7), rgba(79,202,99,.35));"></i><b>🚕</b></span><span class="mzi-jl">Travel</span></span><div style="margin-top:8px;"><span style="border:1px solid rgba(79,202,99,.5); color:#7EE08E; border-radius:999px; padding:3px 10px; font-size:12px;">🙂 On track</span></div></div><div class="glass" style="right:5%; top:62%; background:rgba(120,95,40,.45); border-color:rgba(227,182,87,.45);">🏆 <b>This week’s win</b><br><small>₹800 less than planned!</small></div>`,
+   t: 'Know where the month is going', p: 'Your budget becomes <b>jars that fill up</b>. A friendly line tells you how it’s going, and <b>small wins</b> get a little cheer. 🎉'},
+  {btn: 'google', glow: 'radial-gradient(55% 55% at 50% 35%, rgba(47,111,228,.5), transparent 70%), radial-gradient(45% 45% at 85% 70%, rgba(124,82,230,.5), transparent 70%)',
+   stage: `<img class="mzi-img" src="${MZ_FULL('shield')}" alt="">`, short: true,
+   t: 'Your money, your eyes only', p: `<div class="trust"><span>🚫</span><span>We never read your SMS</span></div><div class="trust"><span>📧</span><span>Only bank &amp; card alert emails, nothing else</span></div><div class="trust"><span>📱</span><span>Your data is saved on your phone, so it works even offline</span></div>`}
 ];
 let introAt = 0;
 function introHtml(){
-  return `<div class="intro">
+  return `<div class="intro mzi">
     <button class="link-btn intro-skip" id="intro-skip">Skip</button>
-    <div class="intro-viewport"><div class="intro-track" id="intro-track">${INTRO.map(s=> `<div class="intro-slide"><svg class="intro-art" viewBox="0 0 120 120" aria-hidden="true">${s.art}</svg><h2>${s.t}</h2><p>${s.p}</p></div>`).join('')}</div></div>
+    <div class="intro-viewport"><div class="intro-track" id="intro-track">${INTRO.map(s=> `<div class="intro-slide"><div class="mzi-glow" style="background:${s.glow};"></div><div class="mzi-stage">${s.stage}</div><div class="mzi-words"><h2>${s.t}</h2>${s.short ? s.p : `<p>${s.p}</p>`}</div></div>`).join('')}</div></div>
     <div class="intro-dots">${INTRO.map((_, i)=> `<span data-introdot="${i}"></span>`).join('')}</div>
     <div class="intro-foot">
       <button class="btn-primary" id="intro-next">Next</button>
-      <p class="gate-note intro-note" id="intro-note">One Google step signs you in and lets the app read only your bank and card alert emails. Your data can be opened only by your household.</p>
+      <p class="gate-note intro-note" id="intro-note">Kept on your phone and backed up to your private, encrypted space.</p>
     </div>
   </div>`;
+}
+// After "Continue with Google": which Gmail to pick, then Google.
+function askBankGmail(){
+  const box = document.querySelector('#gate .intro.mzi'); if(!box || document.getElementById('mzi-ask')) return;
+  box.insertAdjacentHTML('beforeend', `<div class="mzi-shade" id="mzi-shade"></div><div class="mzi-ask" id="mzi-ask"><div style="font-size:26px; margin-bottom:6px;">🏦</div><h3>Use the Gmail your bank emails</h3><p>Google will ask which account to use. Pick the Gmail where your bank and card alerts arrive, and tick <b>“View your email messages”</b>. This one step signs you in and connects it, once for all.</p><button class="btn-google" id="mzi-ask-go">${GOOGLE_G_COLOR}Continue</button><button class="link-btn" id="mzi-ask-back" style="display:block; margin:10px auto 0; color:rgba(255,255,255,.7);">Back</button></div>`);
+  const close = ()=>{ ['mzi-ask','mzi-shade'].forEach(id=>{ const e = document.getElementById(id); if(e) e.remove(); }); };
+  document.getElementById('mzi-shade').addEventListener('click', close);
+  document.getElementById('mzi-ask-back').addEventListener('click', close);
+  document.getElementById('mzi-ask-go').addEventListener('click', ()=>{ const b = document.getElementById('mzi-ask-go'); b.disabled = true; b.textContent = 'Opening Google…'; signInOneStep(); });
 }
 function introGo(i){
   introAt = Math.max(0, Math.min(INTRO.length - 1, i));
@@ -2052,13 +2103,20 @@ function introGo(i){
   document.querySelectorAll('[data-introdot]').forEach((d, k)=> d.classList.toggle('on', k === introAt));
   const last = introAt === INTRO.length - 1;
   const next = document.getElementById('intro-next');
-  next.innerHTML = 'Next';
-  document.getElementById('intro-note').style.visibility = 'hidden';
+  next.className = last ? 'btn-google' : 'btn-primary';
+  next.disabled = false;
+  next.innerHTML = last ? (authUser ? 'Continue' : GOOGLE_G_COLOR + 'Continue with Google') : INTRO[introAt].btn;
+  document.getElementById('intro-note').style.visibility = last ? 'visible' : 'hidden';
   document.getElementById('intro-skip').style.visibility = last ? 'hidden' : 'visible';
 }
 function wireIntro(){
   introAt = 0; introGo(0);
-  document.getElementById('intro-next').addEventListener('click', ()=> introAt === INTRO.length - 1 ? showBankPicker(false) : introGo(introAt + 1));
+  // the last screen signs in and connects Gmail in one Google step; the banks come right after
+  document.getElementById('intro-next').addEventListener('click', ()=>{
+    if(introAt < INTRO.length - 1){ introGo(introAt + 1); return; }
+    if(introPreview || authUser){ showBankPicker(!!authUser && !introPreview); return; }
+    askBankGmail();
+  });
   document.getElementById('intro-skip').addEventListener('click', ()=> introGo(INTRO.length - 1));
   document.querySelectorAll('[data-introdot]').forEach(d=> d.addEventListener('click', ()=> introGo(+d.getAttribute('data-introdot'))));
   const vp = document.querySelector('.intro-viewport'); let x0 = null, y0 = null;
@@ -2076,7 +2134,7 @@ function showBankPicker(signedIn){
   const chip = (name, kind)=> `<button class="ob-chip ${(had[kind]||[]).includes(name) ? 'on' : ''}" data-obkind="${kind}" data-obname="${storyEsc(name)}">${storyEsc(name)}</button>`;
   g.innerHTML = `<div class="ob">
     <h2>Which banks do you use?</h2>
-    <p class="ob-sub">Pick every bank account and credit card you use. Their alert emails are read for you.</p>
+    <p class="ob-sub">Pick every bank account and credit card you use. ${signedIn && myEmail() ? 'Their alert emails in ' + storyEsc(myEmail()) + ' are read for you.' : 'Their alert emails are read for you.'}</p>
     <div class="ob-label">Bank accounts</div>
     <div class="ob-chips">${ONBOARD_BANKS.map(b=> chip(b, 'banks')).join('')}</div>
     <div class="ob-label">Credit cards</div>
@@ -2213,8 +2271,11 @@ async function afterSetupSteps(preview){
   if(!preview){
     try{ const r = await readerCall('claimInbox', {body: {}}); if(r.status === 200 && r.data.ok) info = r.data; }catch(e){ console.warn('claimInbox failed', e); }
     try{ sessionStorage.removeItem('fa-first-month'); }catch(e){}
-    if(readerStatus) readerStatus.noAlertAccounts = info.noAlertAccounts || [];
-    else readerStatus = {inboxes: [], noAlertAccounts: info.noAlertAccounts || []};
+    if(!readerStatus) readerStatus = {inboxes: []};
+    readerStatus.noAlertAccounts = info.noAlertAccounts || [];
+    if(Array.isArray(info.inboxes) && info.inboxes.length) readerStatus.inboxes = info.inboxes;
+    else if(info.claimed && !readerInboxes().some(i=> i.email === myEmail())) readerStatus.inboxes = [...readerInboxes(), {email: myEmail(), state: 'ok'}];
+    try{ applyHouseholdUI(); }catch(e){}
   } else {
     info.noAlertAccounts = (readerStatus && readerStatus.noAlertAccounts) || [];
   }
@@ -2258,7 +2319,7 @@ function showFirstMonth(stage, d){
       `<button class="link-btn fm-later" id="fm-home">Maybe later</button>`;
   } else {
     title = d.connected ? 'You are all set' : 'Connect Gmail';
-    body = d.connected ? `<p>${foundLine || 'Your bank alerts are read from now on.'}</p>` : `<p>Gmail is not connected yet, so bank alerts cannot be read.</p>`;
+    body = d.connected ? `<p>${foundLine || 'Your bank alerts are read from now on.'}</p>` : `<p>Gmail is not connected yet, so bank alerts cannot be read. On Google’s screen, tick <b>“View your email messages”</b> so the app can read the bank alerts.</p>`;
     foot = d.connected ? `<button class="btn-primary" id="fm-home">Go to Home</button>` : `<button class="btn-primary" id="fm-connect">Connect Gmail</button><button class="link-btn fm-later" id="fm-home">Maybe later</button>`;
   }
   g.innerHTML = `<div class="intro fm">
