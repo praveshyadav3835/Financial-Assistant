@@ -19,8 +19,8 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- Outfit is the app font. It has no rupee sign, so Figtree (similar shapes) is loaded behind it for that one glyph. -->
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Inter is the app font (the screen pack's font); it has the rupee sign. -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   /* ============================================================================
      Visual style: dark, calm, colour only on small accents. Followed from the
@@ -48,13 +48,13 @@
     --accent-glow:0 8px 22px rgba(47,98,230,0.35);
     --shadow-sm:0 4px 14px rgba(15,23,32,0.06);
     --shadow-md:0 14px 36px rgba(15,23,32,0.14);
-    --font:'Outfit','Figtree',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   }
   [data-theme="dark"]{
     --bg:#0E1318; --bg-grad:linear-gradient(172deg,#11171C 0%,#0C1014 100%);
     --paper:#11171C; --paper-dim:#1C232B; --card:#171D23;
     --glass:linear-gradient(124deg,rgba(50,52,58,0.80) 8%,rgba(18,20,24,0.88) 85%);
-    --panel:linear-gradient(165deg,#24282F 0%,#14181D 55%);
+    --panel:linear-gradient(165deg,#222C3B 0%,#171E2A 55%);
     --chip:radial-gradient(circle at 30% 25%,#2B2F36,#181B20);
     --ink:#FFFFFF; --ink-soft:#9AA3AE;
     --coral:#6FBAFC; --coral-dim:rgba(111,186,252,0.13);
@@ -516,7 +516,7 @@
   /* The screen shown before a household is open: welcome, set-up, or a short notice. */
   #gate{position:fixed; inset:0; z-index:90; background:var(--bg-grad); color:var(--ink); overflow-y:auto; -webkit-overflow-scrolling:touch;}
   #gate .gate-inner{max-width:480px; margin:0 auto; padding:calc(env(safe-area-inset-top,0px) + 44px) 22px calc(env(safe-area-inset-bottom,0px) + 40px);}
-  #gate .gate-mark{width:58px; height:58px; border-radius:50%; background:var(--accent-grad); color:#fff; font-family:'Figtree',sans-serif; font-size:30px; display:flex; align-items:center; justify-content:center; margin:0 auto 14px; box-shadow:var(--accent-glow);}
+  #gate .gate-mark{width:58px; height:58px; border-radius:50%; background:var(--accent-grad); color:#fff; font-family:var(--font); font-size:30px; display:flex; align-items:center; justify-content:center; margin:0 auto 14px; box-shadow:var(--accent-glow);}
   #gate h1{font-size:24px; font-weight:600; text-align:center; margin:0 0 10px;}
   #gate .gate-sub{font-size:15px; line-height:1.5; color:var(--ink-soft); text-align:center; margin:0 0 22px;}
   #gate .gate-note{font-size:12.5px; line-height:1.5; color:var(--ink-soft); text-align:center; margin:14px 0 0;}
@@ -708,6 +708,54 @@
   .nt-row .nt-t{font-size:15px; color:var(--ink);} .nt-row .nt-s{font-size:12.5px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .nt-row .nt-act{border:none; background:none; color:var(--peri); font:inherit; font-size:14.5px; cursor:pointer; padding:4px 2px; flex-shrink:0;}
   .nt-row .nt-ok{color:var(--sage); font-size:15px; flex-shrink:0;}
+  /* ---- Phase C (v124) ---- */
+  .slide-track{position:relative; height:62px; border-radius:31px; background:linear-gradient(90deg, color-mix(in srgb, var(--peri) 30%, var(--card)), var(--card)); border:1px solid color-mix(in srgb, var(--peri) 45%, transparent); margin-top:6px; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none;}
+  .slide-coin{position:absolute; left:5px; top:5px; width:52px; height:52px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #F8D77A, #D9A63A 70%, #B9852A); color:#6B4A0E; font-size:22px; font-weight:700; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.35); cursor:grab; z-index:2;}
+  .slide-text{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:15.5px; color:var(--ink); pointer-events:none;}
+  .slide-jar{position:absolute; right:7px; top:7px; width:48px; height:48px; border-radius:12px; border:2px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:22px; pointer-events:none;}
+  #tx-save.as-link{background:none; border:none; box-shadow:none; color:var(--ink-soft); font-size:13.5px; font-weight:400; padding:8px 0 0; width:auto; display:block; margin:0 auto;}
+  .ins-card{background:var(--card); border:1px solid var(--line); border-radius:22px; padding:14px 16px; margin-top:14px;}
+  .ins-card .hc-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
+  .ins-card .hc-head b{font-size:16px;}
+  .badges{display:flex; gap:14px; overflow-x:auto; scroll-snap-type:x mandatory; padding:4px 2px 2px; scrollbar-width:none;}
+  .badges::-webkit-scrollbar{display:none;}
+  .badge{flex:0 0 76px; text-align:center; scroll-snap-align:start; cursor:pointer; border:none; background:none; color:var(--ink); font:inherit; padding:0;}
+  .badge .bc{width:62px; height:62px; margin:0 auto 6px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:27px; border:3px solid var(--gold); background:color-mix(in srgb, var(--gold) 22%, var(--card));}
+  .badge.off .bc{border-color:var(--line); background:var(--paper-dim); filter:grayscale(1); opacity:.55;}
+  .badge .bl{font-size:11.5px; line-height:1.25; color:var(--gold);} .badge.off .bl{color:var(--ink-soft);}
+  .cb-row{padding:10px 0; border-top:1px solid var(--line); cursor:pointer;}
+  .cb-top{display:flex; align-items:center; gap:10px; font-size:15px;}
+  .cb-top .n{flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .cb-bar{height:7px; border-radius:4px; background:var(--paper-dim); margin:7px 0 0 32px; overflow:hidden;}
+  .cb-bar > div{height:100%; border-radius:4px;}
+  .fm-row{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-top:1px solid var(--line);}
+  .pp-row{display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid var(--line);}
+  .pp-row:first-child{border-top:none;}
+  .pp-ini{width:42px; height:42px; border-radius:50%; background:var(--paper-dim); display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0; cursor:pointer;}
+  .pp-body{flex:1; min-width:0; cursor:pointer;} .pp-body .sub{color:var(--ink-soft); font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .pp-right{text-align:right;} .pp-right .amt{font-weight:600;} .pp-right .amt.in{color:var(--sage);} .pp-right .amt.out{color:var(--gold);}
+  .pp-act{border:none; background:none; color:var(--peri); font:inherit; font-size:13.5px; padding:2px 0; cursor:pointer;}
+  /* ---- v124 type and screen-pack details ---- */
+  body{letter-spacing:-0.005em;}
+  header.cover .greet{font-size:18px !important; text-overflow:clip !important;}
+  .hero-num{font-weight:700; letter-spacing:-.02em;}
+  .hero-num .cur{font-size:inherit; font-weight:inherit; vertical-align:baseline; position:static; top:0; margin-right:1px;}
+  .page-title{font-size:15px; font-weight:600; letter-spacing:.22em;}
+  .amount-display .rs{font-size:inherit; font-weight:700; vertical-align:baseline; position:static; top:0; margin-right:1px; font-size:52px;}
+  .amount-display .val{font-size:52px; font-weight:700; letter-spacing:-.02em;}
+  .keypad{gap:10px;}
+  .keypad button{padding:0; height:56px; font-size:21px; font-weight:500; border-radius:12px; background:color-mix(in srgb, var(--ink) 9%, transparent); border:none;}
+  .keypad button.del{color:var(--ink); font-size:20px;}
+  .tx-chip.in{display:flex; flex-direction:column; align-items:flex-start; text-align:left; border-radius:22px; padding:7px 16px 8px; background:var(--panel); border:1px solid var(--line); line-height:1.25;}
+  .tx-chip.in .in-lbl{font-size:11px; color:var(--ink-soft);}
+  .tx-chip.in .in-val{font-size:15px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;}
+  .chip-col .chip-lbl{display:none;}
+  #budget-page, #budgetdetail-backdrop, #tab-money, #tab-people, #acctstatement-backdrop, #person-backdrop, #editpersonentry-backdrop{--debt: var(--gold); --icon-neg: var(--gold);}
+  #budget-page .bp-bar-spent.over, #budgetdetail-backdrop .bar-fill.over, #budget-page .bar-fill.over{background:linear-gradient(90deg, color-mix(in srgb, var(--gold) 70%, transparent), var(--gold));}
+  #budget-page .neg-t, #budget-page .neg, #budgetdetail-backdrop .neg-t{color:var(--gold) !important;}
+  #budgetdetail-backdrop .tx-amt.neg{color:var(--ink);}
+  .badge .bl{color:var(--ink);} .badge.off .bl{color:var(--ink-soft);}
+  .badge .bc{background:color-mix(in srgb, var(--gold) 14%, #1a1712);}
 </style>
 </head>
 <body>
@@ -816,12 +864,11 @@
       </div>
       <div id="people-pane">
       <div class="hero">
-        <div class="lbl">Balance with people</div>
+        <div class="lbl">You're owed</div>
         <div class="hero-num maskable" id="people-net">—</div>
-        <div class="subs"><span>You'll get: <b class="pos-t maskable" id="people-recv">—</b></span><span>You'll pay: <b class="neg-t maskable" id="people-pay">—</b></span></div>
+        <div class="subs"><span>You owe <b class="maskable" id="people-pay">—</b><span id="people-pay-n"></span></span><b class="hide" id="people-recv"></b></div>
       </div>
-      <div class="panel">
-        <div class="ph"><b>People Ledger</b></div>
+      <div class="home-card" style="margin-top:16px; padding-bottom:4px;">
         <div id="people-list"></div>
       </div>
       </div>
@@ -853,16 +900,19 @@
         <div class="subs"><span>Income: <b class="acc maskable" id="analysis-income">—</b></span><span>Left: <b class="maskable" id="analysis-net">—</b></span></div>
         <div id="analysis-compare" style="font-size:12.5px; color:var(--ink-soft); margin-top:6px;"></div>
       </div>
-      <div class="panel">
+      <div id="ins-badges"></div>
+      <div class="ins-card">
         <div class="period-tabs" id="analysis-catmode-tabs">
           <button data-catmode="expense" class="on">Expenses</button>
           <button data-catmode="income">Income</button>
         </div>
         <div style="display:flex; justify-content:center; margin:6px 0 10px;"><svg id="analysis-donut" viewBox="0 0 170 170" width="200" height="200"></svg></div>
-        <p class="section-sub" style="text-align:center; margin-bottom:6px;">Tap a category to see its transactions</p>
         <div id="analysis-cat-list"></div>
-
-        <div id="ins-savings"></div>
+      </div>
+      <div id="ins-plan"></div>
+      <div id="ins-festival"></div>
+      <div class="ins-card" id="ins-savings"></div>
+      <div class="panel">
         <div id="ins-vsusual"></div>
         <div id="ins-trend"></div>
         <div id="ins-payees"></div>
@@ -932,7 +982,7 @@
     <div class="amount-display">
       <span class="rs">₹</span><span class="val" id="amount-val">0</span>
     </div>
-    <div class="tx-chip-hint hide" id="tx-chip-hint">Suggested from your past entries</div>
+    <div class="tx-chip-hint hide" id="tx-chip-hint"></div>
     <div class="tx-chips" id="tx-chips"></div>
     <div class="split-panel hide" id="tx-split-panel"></div>
     <div class="cat-grid hide" id="cat-grid"></div>
@@ -992,6 +1042,7 @@
       </div>
     </div>
 
+    <div class="slide-track" id="tx-slide" data-noswipe><div class="slide-coin" id="tx-slide-coin">₹</div><div class="slide-text" id="tx-slide-text">Slide to add →</div><div class="slide-jar" id="tx-slide-jar">🛒</div></div>
     <button class="btn-primary" id="tx-save">Add</button>
     <button class="btn-ghost hide" id="tx-cancel">Cancel</button>
   </div>
@@ -1545,7 +1596,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-29 · v123-home-pack</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-29 · v124-delight-inter</p>
   </div>
 </div>
 
@@ -3421,7 +3472,7 @@ function openBudgetDetail(cat){
   const rowsHtml = catTx.map(t=>`
     <div class="tx-item" data-editbudgettx="${t.id}" style="cursor:pointer;">
       <div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
-      <div class="tx-body"><div class="tx-top"><span class="tx-title">${t.payee}</span><span class="tx-amt ${t.type==='income'?'pos':'neg'} maskable">${t.type==='income'?'+':'-'}${fmt(t.type==='income' ? t.amount : spendOf(t))}</span></div>
+      <div class="tx-body"><div class="tx-top"><span class="tx-title">${t.payee}</span><span class="tx-amt ${t.type==='income'?'pos':'neg'} maskable">${t.type==='income'?'+':''}${fmt(t.type==='income' ? t.amount : spendOf(t))}</span></div>
       <div class="tx-meta">${new Date(t.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${targetName(t.account)}${t.forWhom==='split' ? ' · your share of ' + fmt(t.amount) : ''}</div></div>
     </div>`).join('') +
     catPeople.map(e=>{
@@ -3429,7 +3480,7 @@ function openBudgetDetail(cat){
       return `
     <div class="tx-item" data-editpersonbudgettx="${e.id}" style="cursor:pointer;">
       <div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
-      <div class="tx-body"><div class="tx-top"><span class="tx-title">${person?person.name:'Someone'} paid — you owe them</span><span class="tx-amt neg maskable">-${fmt(Math.abs(e.delta))}</span></div>
+      <div class="tx-body"><div class="tx-top"><span class="tx-title">${person?person.name:'Someone'} paid — you owe them</span><span class="tx-amt neg maskable">${fmt(Math.abs(e.delta))}</span></div>
       <div class="tx-meta">${new Date(e.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · People Ledger — real spending, they paid for you</div></div>
     </div>`;
     }).join('');
@@ -4180,19 +4231,25 @@ function renderHomeJars(){
   const f = monthFrac();
   const sensible = b=> (b.budget||0) >= 10;
   const regs = regularBudgets().filter(b=> (b.budget||0) > 0 || (b.actual||0) > 0);
-  const withLimit = regs.filter(sensible).sort((x,y)=> (y.actual/y.budget) - (x.actual/x.budget) || y.actual - x.actual);
+  // the 4 closest to full; a jar that is full moves out and the next one comes in
+  const ratio = b=> b.actual / b.budget;
+  const notFull = regs.filter(b=> sensible(b) && ratio(b) < 1).sort((x,y)=> ratio(y) - ratio(x) || y.actual - x.actual);
+  const withLimit = notFull.length ? notFull : regs.filter(sensible).sort((x,y)=> ratio(y) - ratio(x));
   const noLimit = regs.filter(b=> !sensible(b) && b.actual > 0).sort((x,y)=> y.actual - x.actual);
   const top = [...withLimit, ...noLimit].slice(0, 4);
+  const prevPct = jarPctBefore; jarPctBefore = {};
   if(!top.length){ el.innerHTML = '<div class="empty" style="padding:14px 0;">No budget yet. Tap See all to set one up.</div>'; return; }
   el.innerHTML = '<div class="jars">' + top.map(b=>{
     const meta = catMeta(b.cat);
     const lim = sensible(b), r = lim ? b.actual / b.budget : 0;
     const cls = !lim ? 'nolimit' : r >= 0.9 ? 'amber' : (f >= 0.25 && r < f * 0.6) ? 'green' : 'blue';
-    const pct = lim ? Math.min(100, Math.round(r * 100)) : 0;
+    const pct = lim ? Math.min(90, Math.round(r * 100)) : 0; jarPctBefore[b.cat] = pct;
+    const startPct = (prevPct[b.cat] !== undefined && prevPct[b.cat] !== pct) ? prevPct[b.cat] : pct;
     const figs = lim ? `₹${jarK(b.actual)} / ${jarK(b.budget)}` : `₹${jarK(b.actual)}`;
-    return `<button class="jar ${cls}" data-jarcat="${storyEsc(b.cat)}" aria-label="${storyEsc(catShort(b.cat))}"><div class="jar-glass"><div class="jar-fill" style="height:${pct}%"></div><div class="jar-ic">${catEmoji(b.cat)}</div></div><div class="jar-name">${storyEsc(catShort(b.cat))}</div><div class="jar-figs maskable">${figs}</div></button>`;
+    return `<button class="jar ${cls}" data-jarcat="${storyEsc(b.cat)}" aria-label="${storyEsc(catShort(b.cat))}"><div class="jar-glass"><div class="jar-fill" data-to="${pct}" style="height:${startPct}%"></div><div class="jar-ic">${catEmoji(b.cat)}</div></div><div class="jar-name">${storyEsc(catShort(b.cat))}</div><div class="jar-figs maskable">${figs}</div></button>`;
   }).join('') + '</div>';
   el.querySelectorAll('[data-jarcat]').forEach(j=> j.addEventListener('click', ()=> openBudgetDetail(j.getAttribute('data-jarcat'))));
+  requestAnimationFrame(()=> requestAnimationFrame(()=> el.querySelectorAll('.jar-fill[data-to]').forEach(f=> f.style.height = f.dataset.to + '%')));
 }
 // B2: mood line from the budget pace, and what is owed each way
 function homeMood(){
@@ -4213,7 +4270,7 @@ function renderHomeMood(isCurrent){
   mood.textContent = m ? m.text : '';
   const t = totals();
   const back = Math.max(0, t.recv || 0) + claimsOwedTotal(), owe = Math.abs(t.pay || 0);
-  owed.innerHTML = (back >= 1 ? `<button class="owed-chip in" data-owedgo="1">Coming back to you <b class="maskable">${fmtR(back)}</b></button>` : '')
+  owed.innerHTML = (back >= 1 ? `<button class="owed-chip in" data-owedgo="1">You're owed <b class="maskable">${fmtR(back)}</b></button>` : '')
     + (owe >= 1 ? `<button class="owed-chip out" data-owedgo="1">You owe <b class="maskable">${fmtR(owe)}</b></button>` : '');
   owed.classList.toggle('hide', !(back >= 1 || owe >= 1));
   owed.querySelectorAll('[data-owedgo]').forEach(b=> b.addEventListener('click', e=>{ e.stopPropagation(); goTab('people'); }));
@@ -4426,6 +4483,166 @@ function updateBell(){
   document.getElementById('review-back-btn').addEventListener('click', ()=> closeFullscreen('review-page'));
 })();
 
+// ---- PHASE C · moments of delight (v124) ----
+// C1: slide the coin into the jar to add; "or tap to add" under it; Less motion keeps a plain button.
+function updateSlideAdd(){
+  const btn = document.getElementById('tx-save'), track = document.getElementById('tx-slide'); if(!btn || !track) return;
+  const amt = parseFloat(txAmount)||0, still = (typeof mzStill === 'function') && mzStill();
+  const type = (typeof txCurrentType === 'function') ? txCurrentType() : 'expense';
+  track.classList.toggle('hide', still);
+  btn.classList.toggle('as-link', !still);
+  btn.textContent = still ? (amt>0 ? `Add ${fmt(amt)}` : 'Add') : 'or tap to add';
+  document.getElementById('tx-slide-text').textContent = `Slide to add${amt>0 ? ' ' + fmt(amt) : ''} →`;
+  document.getElementById('tx-slide-jar').textContent = type === 'expense' ? (txSelectedCat ? catEmoji(txSelectedCat) : '🫙') : type === 'income' ? '💰' : type === 'transfer' ? '🔁' : '🤝';
+}
+(function wireSlideAdd(){
+  const track = document.getElementById('tx-slide'), coin = document.getElementById('tx-slide-coin'); if(!track) return;
+  let x0 = null, dx = 0;
+  const max = ()=> track.clientWidth - coin.offsetWidth - 10;
+  const back = ()=>{ coin.style.transition = 'transform .25s ease'; coin.style.transform = ''; };
+  coin.addEventListener('pointerdown', e=>{ x0 = e.clientX; dx = 0; coin.style.transition = ''; try{ coin.setPointerCapture(e.pointerId); }catch(_){} e.preventDefault(); });
+  coin.addEventListener('pointermove', e=>{ if(x0 === null) return; dx = Math.max(0, Math.min(max(), e.clientX - x0)); coin.style.transform = `translateX(${dx}px)`; });
+  const end = ()=>{
+    if(x0 === null) return; x0 = null;
+    if(dx >= max() * 0.85){
+      coin.style.transition = 'transform .12s ease'; coin.style.transform = `translateX(${max()}px)`;
+      try{ navigator.vibrate && navigator.vibrate(30); }catch(_){}
+      setTimeout(()=>{ document.getElementById('tx-save').click(); setTimeout(back, 250); }, 120);
+    } else back();
+  };
+  coin.addEventListener('pointerup', end); coin.addEventListener('pointercancel', end);
+  new MutationObserver(()=>{ if(document.getElementById('tx-backdrop').classList.contains('open')){ coin.style.transition = ''; coin.style.transform = ''; updateSlideAdd(); } }).observe(document.getElementById('tx-backdrop'), {attributes:true, attributeFilter:['class']});
+})();
+// C2: the jar fills a little after adding
+let jarPctBefore = {};
+// C3: a short line of context per person, and the WhatsApp reminder
+function personContext(id){
+  const es = state.personLedger.filter(e=> e.personId === id).sort((a,b)=> new Date(b.ts) - new Date(a.ts));
+  const paidForMe = es.filter(e=> e.type === 'received' && e.category && e.category !== BORROWED);
+  if(paidForMe.length && paidForMe.length >= es.length / 2) return 'Paid for you · ' + paidForMe.length + ' item' + (paidForMe.length === 1 ? '' : 's');
+  const words = [];
+  es.slice().reverse().forEach(e=>{ let r = String(e.remarks||'').replace(/^(Split|Share)\s*[·:-]\s*/i,'').split(' · ')[0].trim(); if(/^(You gave|You got|Opening balance)$/i.test(r)) r = ''; if(r && !words.includes(r) && words.length < 2) words.push(r); });
+  return words.join(' + ') || (es.length ? es.length + ' entr' + (es.length === 1 ? 'y' : 'ies') : '');
+}
+function remindText(p, bal){
+  const ctx = personContext(p.id), what = /entr(y|ies)$|^Paid for you/.test(ctx) ? '' : ctx.toLowerCase();
+  const first = String(p.name||'').trim().split(/\s+/)[0];
+  return `Hey ${first}, ${what ? what + ' ' : ''}${fmt(bal)} whenever you can 🙂`;
+}
+function remindPerson(id){
+  const p = state.people.find(x=> x.id === id); if(!p) return;
+  window.open('https://wa.me/?text=' + encodeURIComponent(remindText(p, personBalance(id))), '_blank');
+}
+// C4: badges
+const BADGES = [
+  {id:'first-month', em:'📅', name:'First month logged', how:'Keep a full month in the app.'},
+  {id:'3-weeks', em:'🎯', name:'3 weeks on plan', how:'Three weeks in a row under the plan.'},
+  {id:'splits', em:'🤝', name:'All splits settled', how:'Everyone paid back their share of your splits.'},
+  {id:'saved-3', em:'💰', name:'Saved first 3 months', how:'Three months in a row with something saved.'},
+  {id:'claim', em:'🧾', name:'First claim paid', how:'A claim payment came in.'},
+  {id:'30-days', em:'🔥', name:'30 days of daily use', how:'Open the app on 30 different days.'},
+  {id:'goal', em:'🏁', name:'First savings goal reached', how:'Reach the target of a savings goal.'},
+  {id:'review-week', em:'✨', name:'No review left for a week', how:'Keep the review list empty for 7 days.'},
+  {id:'festival-jar', em:'🪔', name:'First Festival jar', how:'Start a Festival jar (a savings goal for a festival).'}
+];
+function lsGet(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function badgeChecks(){
+  const now = new Date(), tx = state.transactions;
+  const monthHas = (y, m, n)=>{ const b = monthBounds(y, m); return tx.filter(t=> new Date(t.ts) >= b.start && new Date(t.ts) < b.end).length >= n; };
+  const months = [...Array(12)].map((_, k)=> new Date(now.getFullYear(), now.getMonth() - 1 - k, 1));
+  const out = {};
+  out['first-month'] = months.some(d=> monthHas(d.getFullYear(), d.getMonth(), 10));
+  // weeks on plan
+  const regs = regularBudgets().filter(b=> (b.budget||0) >= 10), cats = new Set(regs.map(b=> b.cat));
+  const weekPlan = regs.reduce((a,b)=> a + b.budget, 0) * 7 / 30.4;
+  let run = 0, best = 0;
+  if(weekPlan > 0){ for(let k = 12; k >= 1; k--){ const ws = weekStart(now); ws.setDate(ws.getDate() - 7*k); const we = new Date(ws); we.setDate(ws.getDate() + 7);
+    const spent = tx.filter(t=> t.type === 'expense' && cats.has(t.category) && new Date(t.ts) >= ws && new Date(t.ts) < we).reduce((a,t)=> a + spendOf(t), 0);
+    const any = tx.some(t=> new Date(t.ts) >= ws && new Date(t.ts) < we);
+    if(any && spent <= weekPlan){ run++; best = Math.max(best, run); } else run = 0; } }
+  out['3-weeks'] = best >= 3;
+  const splitPeople = new Set(state.personLedger.filter(e=> e.txId).map(e=> e.personId));
+  out['splits'] = splitPeople.size > 0 && [...splitPeople].every(id=> personBalance(id) <= 0.5);
+  let srun = 0, sbest = 0;
+  months.slice().reverse().forEach(d=>{ const b = monthBounds(d.getFullYear(), d.getMonth()); const sv = splitSpending(b.start, b.end); if(sv.income > 0 && sv.saved > 0){ srun++; sbest = Math.max(sbest, srun); } else srun = 0; });
+  out['saved-3'] = sbest >= 3;
+  out['claim'] = tx.some(t=> t.claimRole === 'receipt');
+  out['30-days'] = lsGet('fa-use-days', []).length >= 30;
+  out['goal'] = (state.savingsGoals||[]).some(g=> (g.target||0) > 0 && (g.saved||0) >= g.target);
+  const since = lsGet('fa-review-empty-since', null);
+  out['review-week'] = !!since && Date.now() - since >= 7 * 864e5;
+  out['festival-jar'] = (state.savingsGoals||[]).some(g=> /festival|diwali|त्योहार/i.test(g.name||''));
+  return out;
+}
+function trackUseAndReview(){
+  const day = new Date().toISOString().slice(0,10), days = lsGet('fa-use-days', []);
+  if(!days.includes(day)){ days.push(day); lsSet('fa-use-days', days.slice(-60)); }
+  const n = (state.pendingImports||[]).filter(p=> !p.possible).length, since = lsGet('fa-review-empty-since', null);
+  if(n === 0 && !since) lsSet('fa-review-empty-since', Date.now()); else if(n > 0 && since) lsSet('fa-review-empty-since', null);
+}
+function earnedBadges(){
+  const kept = lsGet('fa-badges', []), now = badgeChecks();
+  const fresh = BADGES.filter(b=> now[b.id] && !kept.includes(b.id)).map(b=> b.id);
+  if(fresh.length){
+    lsSet('fa-badges', kept.concat(fresh));
+    if(kept.length || lsGet('fa-badges-seen', false)){ const b = BADGES.find(x=> x.id === fresh[0]); setTimeout(()=>{ showToast(b.em + ' Badge: ' + b.name); try{ mzReact('proud', 2600); }catch(e){} }, 900); }
+  }
+  lsSet('fa-badges-seen', true);
+  return kept.concat(fresh);
+}
+function renderBadges(){
+  const el = document.getElementById('ins-badges'); if(!el) return;
+  const got = earnedBadges();
+  const list = [...BADGES.filter(b=> got.includes(b.id)), ...BADGES.filter(b=> !got.includes(b.id))];
+  el.innerHTML = `<div class="ins-card"><div class="hc-head"><b>Your badges</b><span style="color:var(--peri); font-size:13.5px;">${got.length} of ${BADGES.length} · swipe ›</span></div>
+    <div class="badges" data-noswipe>${list.map(b=> `<button class="badge ${got.includes(b.id)?'':'off'}" data-badge="${b.id}"><div class="bc">${b.em}</div><div class="bl">${b.name}</div></button>`).join('')}</div></div>`;
+  el.querySelectorAll('[data-badge]').forEach(x=> x.addEventListener('click', ()=>{ const b = BADGES.find(y=> y.id === x.dataset.badge); showToast(got.includes(b.id) ? b.name + ': earned 🎉' : b.how, 2600); }));
+}
+// D5 table, used here for festival months and the band on the graph (update every year)
+const FESTIVALS = [
+  {name:'Holi', d:'2025-03-14'}, {name:'Eid', d:'2025-03-31'}, {name:'Raksha Bandhan', d:'2025-08-09'}, {name:'Karwa Chauth', d:'2025-10-10'}, {name:'Diwali', d:'2025-10-20'}, {name:'Christmas', d:'2025-12-25'},
+  {name:'Holi', d:'2026-03-04'}, {name:'Eid', d:'2026-03-20'}, {name:'Raksha Bandhan', d:'2026-08-28'}, {name:'Karwa Chauth', d:'2026-10-29'}, {name:'Diwali', d:'2026-11-08'}, {name:'Christmas', d:'2026-12-25'},
+  {name:'Holi', d:'2027-03-22'}, {name:'Eid', d:'2027-03-10'}, {name:'Raksha Bandhan', d:'2027-08-17'}, {name:'Karwa Chauth', d:'2027-10-18'}, {name:'Diwali', d:'2027-10-29'}, {name:'Christmas', d:'2027-12-25'}
+];
+function festivalWeekIn(y, m){ // a festival whose week (7 days before) falls in this month
+  return FESTIVALS.map(f=> ({...f, at:new Date(f.d + 'T00:00:00')})).filter(f=>{ const s = new Date(f.at); s.setDate(s.getDate() - 7); return (s.getFullYear() === y && s.getMonth() === m) || (f.at.getFullYear() === y && f.at.getMonth() === m); });
+}
+function festivalMonths(){
+  const now = new Date(), rows = [];
+  const spendIn = (y, m)=>{ const b = monthBounds(y, m); return splitSpending(b.start, b.end).spent; };
+  const kept = (y, m)=>{ const b = monthBounds(y, m); return state.transactions.filter(t=> t.type === 'expense' && new Date(t.ts) >= b.start && new Date(t.ts) < b.end).length >= 3; };
+  const months = [...Array(12)].map((_, k)=> new Date(now.getFullYear(), now.getMonth() - 11 + k, 1)).filter(d=> kept(d.getFullYear(), d.getMonth()));
+  const festMonth = d=> FESTIVALS.some(f=>{ const a = new Date(f.d + 'T00:00:00'), s = new Date(a); s.setDate(a.getDate() - 10); return [s, a].some(x=> x.getFullYear() === d.getFullYear() && x.getMonth() === d.getMonth()); });
+  const normal = months.filter(d=> !festMonth(d)).map(d=> spendIn(d.getFullYear(), d.getMonth())).sort((a,b)=> a - b);
+  if(normal.length < 2) return [];
+  const med = normal[Math.floor(normal.length / 2)];
+  FESTIVALS.forEach(f=>{
+    const a = new Date(f.d + 'T00:00:00'); if(a > now || now - a > 365 * 864e5) return;
+    const s = new Date(a); s.setDate(a.getDate() - 10);
+    const ms = [...new Set([s, a].map(x=> x.getFullYear() * 12 + x.getMonth()))].map(k=> new Date(Math.floor(k / 12), k % 12, 1)).filter(d=> kept(d.getFullYear(), d.getMonth()));
+    if(!ms.length) return;
+    const extra = ms.reduce((t, d)=> t + spendIn(d.getFullYear(), d.getMonth()) - med, 0);
+    const key = ms.map(d=> d.getFullYear()*12 + d.getMonth()).join(','), same = rows.find(r=> r.key === key);
+    if(same){ same.name = same.name.replace(/ \d{4}$/, '') + ' · ' + f.name + ' ' + a.getFullYear(); return; }
+    rows.push({key, name: f.name + ' ' + a.getFullYear(), when: ms.map(d=> d.toLocaleDateString('en-IN', {month:'short'})).join('–'), extra: Math.round(extra)});
+  });
+  return rows;
+}
+function renderMonthVsPlan(){
+  const el = document.getElementById('ins-plan'); if(!el) return;
+  const now = new Date(), fest = festivalWeekIn(now.getFullYear(), now.getMonth());
+  const svg = buildTrendChartSVG(true);
+  el.innerHTML = `<div class="ins-card"><div class="hc-head"><b>Month vs plan</b><span style="color:var(--peri); font-size:13.5px;">${now.toLocaleDateString('en-IN',{month:'long'})}</span></div>
+    <div style="position:relative;">${svg}${fest.length ? `<div style="position:absolute; top:0; bottom:22px; left:${Math.max(0, (new Date(fest[0].d).getDate() - 7) / 31 * 100)}%; width:${7/31*100}%; background:color-mix(in srgb, var(--gold) 16%, transparent); border-radius:6px; pointer-events:none;"><div style="position:absolute; top:4px; left:0; right:0; text-align:center; font-size:11px; color:var(--gold); white-space:nowrap;">${fest[0].name} week</div></div>` : ''}</div></div>`;
+}
+function renderFestivalMonths(){
+  const el = document.getElementById('ins-festival'); if(!el) return;
+  const rows = festivalMonths().filter(r=> r.extra >= 500).sort((a,b)=> b.extra - a.extra).slice(0, 4);
+  el.innerHTML = rows.length ? `<div class="ins-card"><div class="hc-head"><b>Festival months</b><span style="color:var(--peri); font-size:13.5px;">last 12 months</span></div>
+    ${rows.map(r=> `<div class="fm-row"><div><div>${storyEsc(r.name)}</div><div class="sub">${r.when}</div></div><b class="maskable" style="color:${r.extra > 0 ? 'var(--gold)' : 'var(--sage)'};">${r.extra > 0 ? '+' : '−'}${fmt(Math.abs(r.extra))}</b></div>`).join('')}</div>` : '';
+}
+
 function showToast(msg, ms){
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -4629,8 +4846,9 @@ function render(){
   document.getElementById('hdr-gap').textContent = fmt(Math.abs(t.gap));
   document.getElementById('hdr-gap').className = 'v maskable' + (t.gap<0?' neg':' pos');
   // People tab headline: the same net gap, split into what is owed each way
-  document.getElementById('people-net').innerHTML = heroHtmlR(t.gap);
-  document.getElementById('people-net').className = 'hero-num maskable ' + (t.gap<0?'neg':'pos');
+  document.getElementById('people-net').innerHTML = heroHtmlR(Math.max(0, t.recv || 0));
+  document.getElementById('people-net').className = 'hero-num maskable';
+  { const owe = activePeople().filter(p=> personBalance(p.id) < -0.5).length; document.getElementById('people-pay-n').textContent = owe ? ' · ' + owe + ' person' + (owe === 1 ? '' : 's') : ''; }
   document.getElementById('people-recv').textContent = fmtR(t.recv);
   document.getElementById('people-pay').textContent = fmtR(Math.abs(t.pay));
 
@@ -4699,19 +4917,15 @@ function render(){
         </div>`).join('') : '<div class="empty" style="padding:14px 0;">No entries yet.</div>'
     }</div>` : '';
     return `<div class="person-block">
-      <div class="row">
-        <div class="chip-icon" data-toggleperson="${p.id}" style="cursor:pointer; color:var(--ink);">${(p.name||'?').trim().charAt(0).toUpperCase()}</div>
-        <div style="flex:1; min-width:0;">
-          <div data-toggleperson="${p.id}" style="cursor:pointer;">
-            <div class="name">${p.name}${chevron}</div>
-          </div>
-          <div class="person-links"><button class="link-btn" data-pdf="${p.id}">Share statement</button><i>·</i><button class="link-btn" data-editperson="${p.id}">Edit</button></div>
-        </div>
-        <div class="row-actions">${settled
+      <div class="pp-row">
+        <div class="pp-ini" data-toggleperson="${p.id}">${storyEsc((p.name||'?').trim().charAt(0).toUpperCase())}</div>
+        <div class="pp-body" data-toggleperson="${p.id}"><div class="name">${storyEsc(p.name)}${chevron}</div><div class="sub">${storyEsc(personContext(p.id))}</div></div>
+        <div class="pp-right">${settled
           ? `<button class="pill-btn sm" data-reopenperson="${p.id}">Reopen</button>`
-          : `<div class="amt maskable ${bal<0?'neg':'pos'}" data-person="${p.id}" style="cursor:pointer;">${fmtR(Math.abs(bal))}</div>${Math.abs(bal)<0.5 ? `<button class="pill-btn sm" data-settleperson="${p.id}">Settle</button>` : ''}`
+          : `<div class="amt maskable ${bal<0?'out':'in'}" data-person="${p.id}" style="cursor:pointer;">${fmtR(Math.abs(bal))}</div>${Math.abs(bal)<0.5 ? `<button class="pill-btn sm" data-settleperson="${p.id}">Settle</button>` : bal > 0 ? `<button class="pp-act" data-remind="${p.id}">Remind</button>` : `<button class="pp-act" data-payback="${p.id}">Pay back</button>`}`
         }</div>
       </div>
+      ${isOpen ? `<div class="person-links" style="margin:0 0 6px 54px;"><button class="link-btn" data-pdf="${p.id}">Share statement</button><i>·</i><button class="link-btn" data-editperson="${p.id}">Edit</button></div>` : ''}
       ${entriesHtml}
     </div>`;
   };
@@ -4740,6 +4954,8 @@ function render(){
     if(entry) openEditPersonEntry(entry);
   }));
   document.querySelectorAll('[data-person]').forEach(el=> el.addEventListener('click', ()=> openPersonSheet(el.getAttribute('data-person'))));
+  document.querySelectorAll('[data-remind]').forEach(el=> el.addEventListener('click', e=>{ e.stopPropagation(); remindPerson(el.getAttribute('data-remind')); }));
+  document.querySelectorAll('[data-payback]').forEach(el=> el.addEventListener('click', e=>{ e.stopPropagation(); openPersonSheet(el.getAttribute('data-payback')); }));
   document.querySelectorAll('[data-pdf]').forEach(el=> el.addEventListener('click', (e)=>{
     e.stopPropagation();
     generatePersonPDF(el.getAttribute('data-pdf'));
@@ -4840,7 +5056,7 @@ function updateAmountDisplay(){
   if(typeof splitSt !== 'undefined' && splitSt.tx.open) renderSplitPanel('tx');
   // keep the button's amount in step with every key press, not only after the next redraw
   const saveBtn = document.getElementById('tx-save');
-  if(saveBtn){ const amt = parseFloat(txAmount)||0; saveBtn.textContent = amt>0 ? `Add ${fmt(amt)}` : 'Add'; }
+  if(saveBtn) updateSlideAdd();
 }
 
 function renderTxFormLists(){
@@ -4908,9 +5124,7 @@ function renderTxFormLists(){
     el.addEventListener('click', ()=>{ txTo = el.dataset.to; renderTxFormLists(); });
   });
 
-  const saveBtn = document.getElementById('tx-save');
-  const amt = parseFloat(txAmount)||0;
-  saveBtn.textContent = amt>0 ? `Add ${fmt(amt)}` : 'Add';
+  updateSlideAdd();
   renderTxChips();
 }
 function txCurrentType(){ return document.querySelector('#tx-type button.on').dataset.v; }
@@ -5393,11 +5607,11 @@ function applyTxGuess(type){
 function renderTxChips(){
   const type = txCurrentType();
   const chips = [];
-  const col = (html, label)=> `<div class="chip-col">${html}<span class="chip-lbl">${label}</span></div>`;
+  const col = (html, label)=>{ const i = html.indexOf('>'), j = html.lastIndexOf('</button>'); const inner = i > -1 && j > i ? html.slice(i+1, j) : ''; return `<div class="chip-col">${i > -1 && j > i ? html.slice(0, i).replace('class="', 'class="in ') + '><span class="in-lbl">' + label + '</span><span class="in-val">' + inner + '</span></button>' + html.slice(j + 9) : html}<span class="chip-lbl">${label}</span></div>`; };
   if(type==='expense' || type==='income'){
     const acct = [...state.accounts, ...state.cards].find(a=> a.id===txSelectedAccount);
-    chips.push(col(`<button class="tx-chip ${catPickerOpen?'open':''}" data-txchip="cat" type="button">${storyEsc(txShortCat(txSelectedCat))} ▾</button>`, 'Category'));
-    chips.push(col(`<button class="tx-chip ${acctPickerOpen?'open':''}" data-txchip="acct" type="button">${storyEsc(acct ? acct.name : 'Account')} ▾</button>`, type==='income' ? 'Received in' : 'Paid from'));
+    chips.push(col(`<button class="tx-chip ${catPickerOpen?'open':''}" data-txchip="cat" type="button">${txSelectedCat ? catEmoji(txSelectedCat) + ' ' : ''}${storyEsc(txShortCat(txSelectedCat))} ▾</button>`, 'Category'));
+    chips.push(col(`<button class="tx-chip ${acctPickerOpen?'open':''}" data-txchip="acct" type="button">${acct ? (state.cards.some(c=> c.id === acct.id) ? '💳 ' : '🏦 ') : ''}${storyEsc(acct ? acct.name : 'Account')} ▾</button>`, type==='income' ? 'Received in' : 'Paid from'));
   }
   chips.push(col(`<button class="tx-chip ${txDatePickerOpen?'open':''}" data-txchip="date" type="button">${txDateLabel()} ▾</button>`, 'Date'));
   if(type==='expense' || type==='income') chips.push(col(splitChipHtml('tx'), 'For'));
@@ -5416,7 +5630,7 @@ function renderTxChips(){
     renderTxFormLists();
     if(k==='date' && txDatePickerOpen){ const d = document.getElementById('tx-date'); try{ d.showPicker && d.showPicker(); }catch(e){} }
   }));
-  document.getElementById('tx-chip-hint').classList.toggle('hide', !(txGuessUsed && (type==='expense' || type==='income')));
+  document.getElementById('tx-chip-hint').classList.add('hide');
   document.getElementById('tx-date-panel').classList.toggle('hide', !txDatePickerOpen);
   if(type!=='expense' && type!=='income'){ document.getElementById('cat-grid').classList.add('hide'); document.getElementById('acct-row').classList.add('hide'); }
 }
@@ -5996,7 +6210,8 @@ document.getElementById('tx-save').addEventListener('click', async ()=>{
       : type==='person' ? (segValue('tx-person-dir')==='gave' ? explainOnce('pe-gave', `Added. Not your spending: you paid, so ${pn} owes you.`)
         : lastPersonSaveCountedSpend ? explainOnce('pe-paid', `Added as ${txShortCat(lastPersonSaveCountedSpend)} spending. No account changed; you owe ${pn}.`)
         : explainOnce('pe-borrowed', `Added. Borrowed money is not spending; you owe ${pn}. Pay back with You gave.`)) : false;
-    if(!shown) showToast(type==='transfer' ? 'Transfer added' : type==='person' ? (lastPersonSaveCountedSpend ? `Added as ${txShortCat(lastPersonSaveCountedSpend)} spending` : 'Added') : type==='income' ? 'Income added' : 'Added'); }
+    if(!shown && type==='expense' && window.__mzLastTx){ const t0 = window.__mzLastTx; showUndoToast(`${catEmoji(t0.category)} Dropped ${fmt(t0.amount)} into ${catShort(t0.category)}`, async ()=>{ if(t0.forWhom === 'split') removeSplitShares(t0); state.transactions = state.transactions.filter(x=> x !== t0); recomputeBudgetActuals(); await saveState(); render(); showToast('Removed'); }); }
+    else if(!shown) showToast(type==='transfer' ? 'Transfer added' : type==='person' ? (lastPersonSaveCountedSpend ? `Added as ${txShortCat(lastPersonSaveCountedSpend)} spending` : 'Added') : type==='income' ? 'Income added' : 'Added'); }
   try{ if(type==='expense') munzoAfterExpense(window.__mzLastTx); else if(type==='income') munzoAfterIncome(window.__mzLastTx); }catch(e){ console.warn('Munzo', e); }
 });
 
@@ -6793,7 +7008,7 @@ function renderAnalysisPage(){
   // Spending against the period just before — only when both periods have something in them.
   const cmpEl = document.getElementById('analysis-compare');
   cmpEl.innerHTML = '';
-  if(analysisMode!=='custom'){
+  if(false && analysisMode!=='custom'){
     const pp = previousPeriodBounds(analysisMode, analysisAnchor);
     const pd = analysisData(pp.start, pp.end);
     if(pd.spending>0 && d.spending>0){
@@ -6816,17 +7031,16 @@ function renderAnalysisPage(){
     const meta = catMeta(cat);
     const pct = total>0 ? (val/total*100) : 0;
     const color = donut.colors[i];
-    return `<div class="row" data-analysiscat="${storyEsc(cat)}" style="cursor:pointer;">
-      <div class="chip-icon" style="color:${color};">${meta.em}</div>
-      <div style="flex:1; min-width:0; margin:0 4px; font-size:15.5px;">${storyEsc(storyCatLabel(cat))}<div style="font-size:11.5px; color:var(--ink-soft); margin-top:2px;">${pct.toFixed(1)}%</div></div>
-      <div class="amt maskable">${fmt(val)}</div>
-      <div style="color:var(--ink-soft); font-size:17px; margin-left:2px;">›</div>
+    return `<div class="cb-row" data-analysiscat="${storyEsc(cat)}">
+      <div class="cb-top"><span style="width:22px; text-align:center;">${catEmoji(cat)}</span><span class="n">${storyEsc(storyCatLabel(cat))}</span><span class="maskable">${fmt(val)}</span><span style="color:var(--ink-soft);">›</span></div>
+      <div class="cb-bar"><div style="width:${Math.max(2, pct).toFixed(1)}%; background:${color};"></div></div>
     </div>`;
   }).join('') : '<div class="empty" style="padding:14px 0;">Nothing in this period.</div>';
   document.querySelectorAll('#analysis-cat-list [data-analysiscat]').forEach(el=>{
     el.addEventListener('click', ()=> openCatTx(el.getAttribute('data-analysiscat'), analysisCatMode, p));
   });
 
+  try{ trackUseAndReview(); renderBadges(); renderMonthVsPlan(); renderFestivalMonths(); }catch(e){ console.warn('Insights', e); }
   renderInsightsExtras(p);
   document.getElementById('analysis-download-btn').onclick = ()=> downloadTransactionsPDF({start:p.start, end:p.end, label:p.main});
   applyMaskUI(); // this redraws on its own (period arrows, tab switch), so hidden balances must be re-hidden here too
@@ -6873,10 +7087,11 @@ function renderInsightsExtras(p){
         ? `Your goals need about <span class="maskable">${fmt(need)}</span> a month; <span class="maskable">${fmt(sv.invested)}</span> was invested, so they are on track.`
         : `Your goals need about <span class="maskable">${fmt(need)}</span> a month; <span class="maskable">${fmt(sv.invested)}</span> was invested, <span class="maskable">${fmt(need - sv.invested)}</span> short.`)
       : '';
-    savEl.innerHTML = `<div class="ph" style="margin-top:30px;"><b>Savings</b></div>
-      <div class="ins-big maskable">${sv.saved < 0 ? '−' : ''}${fmt(Math.abs(sv.saved))}</div>
-      <div class="ins-note" style="margin-top:2px;">${rate===null ? 'No income in this period.' : sv.saved < 0 ? `Spent <span class="maskable">${fmt(-sv.saved)}</span> more than came in.` : `${rate}% of income saved`}</div>
-      ${rate!==null && sv.saved > 0 ? `<div class="ins-bar" role="img" aria-label="${rate}% of income saved"><div style="width:${Math.min(100, rate)}%"></div></div>` : ''}
+    const fj = (state.savingsGoals||[]).find(g=> /festival|diwali/i.test(g.name||''));
+    savEl.classList.remove('hide');
+    savEl.innerHTML = `<div class="hc-head"><b>Savings</b><span style="color:var(--peri); font-size:13.5px;">${storyEsc(p.main)}</span></div>
+      <div style="font-size:16px; line-height:1.4;">${rate===null ? 'No income in this period.' : sv.saved < 0 ? `<b class="maskable">${fmt(-sv.saved)}</b> came from savings this period 💛` : `You kept <b class="maskable" style="color:var(--sage);">${fmt(sv.saved)}</b> this ${analysisMode==='month'?'month':'period'} 👏 · ${rate}% of what came in`}</div>
+      ${rate!==null && sv.saved > 0 ? `<div class="ins-bar" role="img" aria-label="${rate}% of income saved"><div style="width:${Math.min(100, rate)}%; background:var(--sage);"></div></div>` : ''}
       <div style="margin-top:12px;">
         <div class="ins-row"><span class="l">Income</span><span class="r maskable">${fmt(sv.income)}</span></div>
         <div class="ins-row"><span class="l">Spent<small>Investments not counted</small></span><span class="r maskable">${fmt(sv.spent)}</span></div>
@@ -6885,8 +7100,9 @@ function renderInsightsExtras(p){
         <div class="ins-row"><span class="l">kept in the bank</span><span class="r maskable">${kept < 0 ? '−' : ''}${fmt(Math.abs(kept))}</span></div>
       </div>
       ${kept < -0.5 && sv.saved >= 0 ? `<div class="ins-note"><span class="maskable">${fmt(-kept)}</span> more was invested than was saved in this period, from money saved earlier.</div>` : ''}
-      ${goalsNote ? `<div class="ins-note">${goalsNote}</div>` : ''}`;
-  } else savEl.innerHTML = '';
+      ${goalsNote ? `<div class="ins-note">${goalsNote}</div>` : ''}
+      ${fj ? `<div class="ins-note" style="color:var(--gold);">${storyEsc(fj.name)} · <span class="maskable">${fmt(fj.saved||0)}</span> of <span class="maskable">${fmt(fj.target||0)}</span></div>` : ''}`;
+  } else { savEl.innerHTML = ''; savEl.classList.add('hide'); }
 
   // 2. This month against the usual (the average of up to three earlier months)
   const vsEl = document.getElementById('ins-vsusual');
@@ -6988,7 +7204,7 @@ function renderCatTxPage(){
   document.getElementById('cattx-list').innerHTML = list.length ? list.map(t=>`
     <div class="tx-item" data-cattx="${t.id}" style="cursor:pointer;">
       <div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
-      <div class="tx-body"><div class="tx-top"><span class="tx-title">${storyEsc(t.payee||t.category||'')}</span><span class="tx-amt ${t.type==='income'?'pos':'neg'} maskable">${t.type==='income'?'+':'-'}${fmt(t.type==='income' ? t.amount : spendOf(t))}</span></div>
+      <div class="tx-body"><div class="tx-top"><span class="tx-title">${storyEsc(t.payee||t.category||'')}</span><span class="tx-amt ${t.type==='income'?'pos':'neg'} maskable">${t.type==='income'?'+':''}${fmt(t.type==='income' ? t.amount : spendOf(t))}</span></div>
       <div class="tx-meta">${new Date(t.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})} · ${storyEsc(targetName(t.account))}${t.category!==cattxCtx.cat?' · '+storyEsc(t.category||''):''}</div></div>
     </div>`).join('') : '<div class="empty" style="padding:18px 0;">No transactions left in this category for this period.</div>';
   document.querySelectorAll('#cattx-list [data-cattx]').forEach(el=>{
