@@ -1663,7 +1663,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-29 · v128-ring</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-29 · v129-ring-fix</p>
   </div>
 </div>
 
@@ -3400,14 +3400,15 @@ function toggleMask(){
 }
 document.getElementById('mask-toggle-btn').addEventListener('click', toggleMask);
 // The owner sees whether the server has been deployed with what this app needs.
-const APP_NEEDS_SERVER = 'v115';
+const APP_NEEDS_SERVER = 'v128';
+function serverIsNewEnough(v){ const n = x=> parseInt(String(x||'').replace(/\D/g,''), 10) || 0; return n(v) >= n(APP_NEEDS_SERVER); }
 async function checkServerVersion(){
   const el = document.getElementById('server-version-line'); if(!el || !ownerView) return;
   el.textContent = 'Server: checking…';
   try{
     const r = await fetch(READER_BASE + 'version'); const d = r.ok ? await r.json() : null;
     const v = d && d.serverVersion;
-    el.innerHTML = v === APP_NEEDS_SERVER ? `Server: ${storyEsc(v)} ✓ matches this app` : `<span style="color:var(--debt);">Server: ${v ? storyEsc(v) : 'older'}, this app needs ${APP_NEEDS_SERVER}. On the PC run: firebase deploy --only functions</span>`;
+    el.innerHTML = serverIsNewEnough(v) ? `Server: ${storyEsc(v)} ✓ up to date for this app` : `<span style="color:var(--debt);">Server: ${v ? storyEsc(v) : 'older'}, this app needs ${APP_NEEDS_SERVER}. On the PC run: firebase deploy --only functions</span>`;
   }catch(e){ el.textContent = 'Server: could not check (offline?)'; }
 }
 document.getElementById('open-tools-btn').addEventListener('click', ()=> setTimeout(checkServerVersion, 50));
@@ -4440,6 +4441,7 @@ function munzoRingAsk(tx){
 }
 // Owner's screen: which households see the ring
 async function openRingAdmin(){
+  const pg = document.getElementById('ring-admin-page'); if(pg && pg.parentNode !== document.body || pg.nextElementSibling) document.body.appendChild(pg); // above Settings
   openFullscreen('ring-admin-page');
   const el = document.getElementById('ring-admin-list'); el.innerHTML = '<div class="eng-sub">Loading…</div>';
   try{
@@ -8989,7 +8991,7 @@ function renderStatementImport(res){
   }
   resultsEl.innerHTML = `<div class="recon-group-title">${rows.length} not in the app yet · ${from.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}${end ? ' to ' + end.toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : ''}</div>` +
     rows.map((r,i)=> `<label class="recon-row" style="cursor:pointer;"><div><div class="d">${storyEsc(r.desc||'(no description)')}</div><div class="m">${r.date.toLocaleDateString('en-IN')} · ${r.isOut?'paid':'received'} ${fmt(r.amount)}</div></div><input type="checkbox" data-stmtpick="${i}" checked style="width:22px; height:22px;"></label>`).join('') +
-    (res.diag ? `<p class="eng-sub" style="margin-top:10px; overflow-wrap:anywhere;">For you: server ${storyEsc(res.diag.server||'?')}${res.diag.server !== APP_NEEDS_SERVER ? ' (this app needs ' + APP_NEEDS_SERVER + ': deploy the functions)' : ''} · read by ${storyEsc(res.diag.source)} · ${res.diag.rowsBack} rows back${res.diag.statementShows !== null ? ' · the statement shows about ' + res.diag.statementShows : ''} · ${res.diag.textLines} text lines${res.diag.images ? ' · ' + res.diag.images + ' pictures' : ''} · tries ${res.diag.tries}${res.diag.stop ? ' · stopped: ' + storyEsc(res.diag.stop) + ' (' + res.diag.outTokens + ' tokens)' : ''}</p>` : '') +
+    (res.diag ? `<p class="eng-sub" style="margin-top:10px; overflow-wrap:anywhere;">For you: server ${storyEsc(res.diag.server||'?')}${!serverIsNewEnough(res.diag.server) ? ' (this app needs ' + APP_NEEDS_SERVER + ': deploy the functions)' : ''} · read by ${storyEsc(res.diag.source)} · ${res.diag.rowsBack} rows back${res.diag.statementShows !== null ? ' · the statement shows about ' + res.diag.statementShows : ''} · ${res.diag.textLines} text lines${res.diag.images ? ' · ' + res.diag.images + ' pictures' : ''} · tries ${res.diag.tries}${res.diag.stop ? ' · stopped: ' + storyEsc(res.diag.stop) + ' (' + res.diag.outTokens + ' tokens)' : ''}</p>` : '') +
     (res.partial ? `<p class="section-sub" style="margin-top:10px; color:var(--debt);">Only ${res.partial.got} of about ${res.partial.want} entries on this statement could be read. Try uploading it again, or add the rest with +.</p>` : '') +
     (res.unchecked ? `<p class="section-sub" style="margin-top:10px;">Some entries could not be checked against the statement\u2019s balance, so look at each one carefully on Home.</p>` : '') +
     (res.held ? `<p class="section-sub" style="margin-top:10px;">${res.held} line${res.held===1?'':'s'} did not match the statement\u2019s own balance, so ${res.held===1?'it was':'they were'} left out. Add ${res.held===1?'it':'them'} with + if needed.</p>` : '') +
