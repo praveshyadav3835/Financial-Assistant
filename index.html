@@ -87,7 +87,7 @@
   header.cover .who{flex:1; min-width:0;}
   header.cover .hello{font-size:13px; color:var(--ink-soft);}
   header.cover .hello:empty{display:none;}
-  header.cover .greet{font-weight:700; font-size:19px; letter-spacing:.01em; line-height:1.2; color:var(--ink);}
+  header.cover .greet{font-weight:700; font-size:19px; letter-spacing:0; line-height:1.2; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   header.cover .greet .who-name{cursor:pointer;}
   header.cover .meta{font-size:11px; color:var(--ink-soft); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .round-btn{width:44px; height:44px; border-radius:50%; background:var(--chip); border:1px solid var(--line); color:var(--ink); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; box-shadow:var(--shadow-sm); padding:0;}
@@ -646,10 +646,10 @@
   /* ---- Home for everyone (v122, D-28Oct-6 Phase B) ---- */
   .bell-count{position:absolute; top:3px; right:3px; min-width:17px; height:17px; padding:0 4px; border-radius:9px; background:var(--debt); color:#fff; font-size:10.5px; font-weight:700; line-height:17px; text-align:center;}
   .gear-dot{position:absolute; top:6px; right:6px; width:9px; height:9px; border-radius:50%; background:var(--debt);}
-  .mood-line{margin-top:10px; font-size:13.5px; font-weight:600; color:var(--ink);}
-  .mood-line.amber{color:var(--gold);}
+  .mood-line{display:inline-block; max-width:94%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:top; margin-top:12px; padding:6px 16px; border-radius:999px; font-size:14px; font-weight:500; color:var(--sage); background:var(--sage-dim); border:1px solid color-mix(in srgb, var(--sage) 45%, transparent);}
+  .mood-line.amber{color:var(--gold); background:var(--gold-dim); border-color:color-mix(in srgb, var(--gold) 45%, transparent);}
   .owed-chips{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:10px;}
-  .owed-chip{border:1px solid var(--line); background:var(--chip); color:var(--ink); border-radius:999px; padding:6px 12px; font:inherit; font-size:12.5px; cursor:pointer;}
+  .owed-chip{border:1px solid var(--line); background:var(--chip); color:var(--ink-soft); border-radius:999px; padding:5px 12px; font:inherit; font-size:12.5px; cursor:pointer; white-space:nowrap;}
   .owed-chip b{font-weight:700;}
   .owed-chip.in b{color:var(--sage);} .owed-chip.out b{color:var(--gold);}
   .hr-card{padding:12px 14px 6px;}
@@ -680,6 +680,34 @@
   #toast.act{pointer-events:auto;}
   #toast .link-btn{font-size:13.5px; margin-left:6px;}
   .bell-empty{text-align:center; color:var(--ink-soft); padding:40px 10px; font-size:14px;}
+  /* ---- Home matched to the screen pack (v123) ---- */
+  .home-card{background:var(--card); border:1px solid var(--line); border-radius:22px; padding:14px 16px 8px; margin-bottom:14px;}
+  .home-card .hc-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+  .home-card .hc-head b{font-size:16px; font-weight:700;}
+  .emo-ic{width:42px; height:42px; border-radius:50%; background:var(--paper-dim); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;}
+  .hr-ok{background:none !important; border:1.5px solid var(--peri) !important; color:var(--peri) !important; font-weight:500 !important;}
+  .hr-under{background:linear-gradient(90deg, transparent, var(--debt)) !important;}
+  .jars{gap:8px;}
+  .jar-glass{width:100%; height:64px; border-radius:14px; border:2px solid var(--line); border-top-width:2px; background:var(--paper-dim);}
+  .jar-fill{background:linear-gradient(180deg, color-mix(in srgb, var(--peri) 55%, transparent), color-mix(in srgb, var(--peri) 30%, transparent)); opacity:1; border-top:2px solid color-mix(in srgb, var(--peri) 70%, transparent);}
+  .jar.amber .jar-fill{background:linear-gradient(180deg, color-mix(in srgb, var(--gold) 55%, transparent), color-mix(in srgb, var(--gold) 30%, transparent)); border-top-color:var(--gold);}
+  .jar.green .jar-fill{background:linear-gradient(180deg, color-mix(in srgb, var(--sage) 60%, transparent), color-mix(in srgb, var(--sage) 35%, transparent)); border-top-color:var(--sage);}
+  .jar-ic{font-size:22px; line-height:1;}
+  .jar-name{font-weight:400; color:var(--ink-soft); font-size:12.5px; margin-top:2px;}
+  .jar-figs{color:var(--ink); font-weight:700; font-size:12.5px;}
+  .caught-card{flex-direction:column; text-align:center; gap:4px; padding:18px 16px;}
+  .caught-card .big{font-size:30px; line-height:1.2;}
+  .caught-card .name{font-size:17px; font-weight:700;}
+  .win-card{border-color:var(--line);}
+  .rc-row{display:flex; align-items:center; gap:12px; padding:10px 0; border-top:1px solid var(--line); cursor:pointer;}
+  .rc-row .rc-body{flex:1; min-width:0;} .rc-row .name, .rc-row .sub{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .rc-row .amt{color:var(--ink); font-weight:600;}
+  .hr-body .sub, .rc-row .sub{color:var(--ink-soft); font-size:13px;} .rc-row .amt.in{color:var(--sage);}
+  .nt-row{position:relative; overflow:hidden; border-top:1px solid var(--line); touch-action:pan-y;}
+  .nt-row .nt-body{flex:1; min-width:0;}
+  .nt-row .nt-t{font-size:15px; color:var(--ink);} .nt-row .nt-s{font-size:12.5px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .nt-row .nt-act{border:none; background:none; color:var(--peri); font:inherit; font-size:14.5px; cursor:pointer; padding:4px 2px; flex-shrink:0;}
+  .nt-row .nt-ok{color:var(--sage); font-size:15px; flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -725,17 +753,15 @@
         <div id="home-review-wrap"></div>
         <div id="home-win-wrap"></div>
       </div>
-      <!-- v122: notices live behind the bell; the full review list on its own page; budget as jars. -->
-      <div class="panel">
-        <div id="home-budget-panel">
-          <div class="ph"><b id="home-budget-title">Your jars this month</b><button class="link-btn" id="home-budget-edit-btn" style="color:var(--peri);">See all</button></div>
-          <div id="home-budget-list"></div>
-          <button class="link-btn hide" id="home-budget-addcat">+ Add a category</button>
-        </div>
-        <div style="margin-top:26px;">
-          <div class="ph"><b>Recent activity</b><button class="link-btn" id="see-all-month-btn">See all</button></div>
-          <div class="list-plain" id="recent-list"></div>
-        </div>
+      <!-- v123: review → jars → recent, as cards (screen pack B1–B6, C2) -->
+      <div class="home-card" id="home-budget-panel">
+        <div class="hc-head"><b id="home-budget-title">Your jars this month</b><button class="link-btn" id="home-budget-edit-btn" style="color:var(--peri);">See all</button></div>
+        <div id="home-budget-list" style="padding-bottom:8px;"></div>
+        <button class="link-btn hide" id="home-budget-addcat">+ Add a category</button>
+      </div>
+      <div class="home-card">
+        <div class="hc-head"><b>Recent activity</b><button class="link-btn" id="see-all-month-btn" style="color:var(--peri);">See all</button></div>
+        <div id="recent-list"></div>
       </div>
     </section>
 
@@ -1210,11 +1236,12 @@
 <!-- ADJUST BALANCE SHEET -->
 <div class="sheet-backdrop" id="adjustbal-backdrop">
   <div class="sheet">
-    <h3 id="adjustbal-title">Fix balance</h3>
+    <h3 id="adjustbal-title">Edit account</h3>
+    <div class="field"><label>Name</label><input id="adjustbal-name" maxlength="40" autocomplete="off"></div>
     <p class="section-sub" id="adjustbal-current">Current: —</p>
     <div class="field">
       <label id="adjustbal-label">Actual balance</label>
-      <input id="adjustbal-target" type="number" inputmode="decimal" placeholder="0">
+      <input id="adjustbal-target" type="number" inputmode="decimal" placeholder="Leave empty to change only the name">
     </div>
     <div class="field"><label>Note (optional)</label><input id="adjustbal-remarks" placeholder="e.g. bank fee not added"></div>
     <p class="section-sub" id="adjustbal-preview"></p>
@@ -1391,10 +1418,16 @@
   </div>
 </div>
 
+<div class="sheet-backdrop" id="notices-backdrop">
+  <div class="sheet">
+    <h3 style="margin-bottom:8px;">Notices</h3>
+    <div id="notices-list"></div>
+  </div>
+</div>
 <div class="fullscreen-page" id="bell-page">
   <div class="fs-header">
     <button class="fs-back" id="bell-back-btn" aria-label="Back">←</button>
-    <h2>Updates</h2>
+    <h2>Details</h2>
   </div>
   <div class="fs-body" id="bell-body">
     <div id="signin-card-wrap"></div>
@@ -1512,7 +1545,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-29 · v122-home</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-29 · v123-home-pack</p>
   </div>
 </div>
 
@@ -1520,7 +1553,7 @@
   <div class="fs-header">
     <button class="fs-back" id="acctstatement-close" aria-label="Back">←</button>
     <h2 id="acctstatement-title">Statement</h2>
-    <button class="fs-action" id="acctstatement-adjust-btn" title="Fix balance" aria-label="Fix balance"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-6"/><path d="M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+    <button class="fs-action" id="acctstatement-adjust-btn" title="Edit name or balance" aria-label="Edit name or balance"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-6"/><path d="M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
     <button class="fs-action" id="acctstatement-add-btn" title="Add a transaction" aria-label="Add a transaction" style="font-size:22px; line-height:1;">+</button>
   </div>
   <div class="fs-body">
@@ -3620,7 +3653,7 @@ function renderGreeting(){
   document.getElementById('hdr-hello').textContent = ''; // no greeting line
   document.getElementById('hdr-avatar').textContent = whoami ? whoami.trim().charAt(0).toUpperCase() : '?';
   const el = document.getElementById('hdr-greet');
-  el.innerHTML = `Hi <span class="who-name" id="who-switch">${storyEsc(whoami || 'there')}</span> 👋`;
+  const nm = String(whoami || 'there'); el.innerHTML = `Hi <span class="who-name" id="who-switch">${storyEsc(nm.charAt(0).toUpperCase() + nm.slice(1))}</span> 👋`;
   document.getElementById('who-switch').addEventListener('click', showWhoamiPicker);
 }
 function renderAvatar(){ /* kept so old calls don't break — the avatar is drawn by renderGreeting() */ }
@@ -4020,7 +4053,7 @@ function monthTotals(){
   return {income, expense, net: income-expense};
 }
 
-function buildTrendChartSVG(){
+function buildTrendChartSVG(graphOnly){
   const now = new Date();
   const specialCats = new Set(state.budget.filter(b=>b.special).map(b=>b.cat));
   const totalBudget = state.budget.filter(b=>!b.income && !b.special).reduce((s,b)=>s+b.budget,0);
@@ -4113,7 +4146,7 @@ function buildTrendChartSVG(){
       <span>${totalBudget>0 ? `${hasSpecial?'Regular spending':''}${overBudget && lumpyExtra>=1 ? `${hasSpecial?' · ':''}<span class="maskable">${fmt(Math.min(lumpyExtra, Math.abs(remaining)))}</span> of it is lumpy bills above their monthly average` : ''}` : ''}</span>
       ${hasSpecial ? `<span><span class="acc">●</span> Total <span class="maskable">${fmt(grandTotalSpent)}</span> · <span style="color:var(--gold);">●</span> excluding one-time <span class="maskable">${fmt(totalSpent)}</span></span>` : ''}
     </div>`;
-  return svg + headHtml;
+  return graphOnly ? svg : svg + headHtml;
 }
 
 function renderHomeInsight(){
@@ -4135,6 +4168,8 @@ function renderHomeInsight(){
 }
 
 // ---- HOME FOR EVERYONE (v122, D-28Oct-6 Phase B) ----
+const CAT_EMOJI = {chart:'📈', trendUp:'📈', sparkle:'✨', wallet:'💰', heart:'💝', cart:'🛒', utensils:'🍽️', fuel:'⛽', broom:'🧹', bolt:'💡', home:'🏠', bag:'🛍️', film:'🎬', car:'🚕', user:'👤', bank:'🏦', medkit:'🏥', gift:'🎁', dots:'…'};
+function catEmoji(cat){ return CAT_EMOJI[catMeta(cat).key] || '…'; }
 function jarK(n){ const v = Math.abs(n||0); return v >= 1e5 ? (v/1e5).toFixed(1).replace(/\.0$/,'') + 'L' : v >= 1000 ? (v/1000).toFixed(1).replace(/\.0$/,'') + 'k' : String(Math.round(v)); }
 function catShort(cat){ const l = (typeof storyCatLabel === 'function') ? storyCatLabel(cat) : String(cat||''); return String(l||'').split(' (')[0]; }
 function monthFrac(){ const n = new Date(); return n.getDate() / new Date(n.getFullYear(), n.getMonth()+1, 0).getDate(); }
@@ -4155,7 +4190,7 @@ function renderHomeJars(){
     const cls = !lim ? 'nolimit' : r >= 0.9 ? 'amber' : (f >= 0.25 && r < f * 0.6) ? 'green' : 'blue';
     const pct = lim ? Math.min(100, Math.round(r * 100)) : 0;
     const figs = lim ? `₹${jarK(b.actual)} / ${jarK(b.budget)}` : `₹${jarK(b.actual)}`;
-    return `<button class="jar ${cls}" data-jarcat="${storyEsc(b.cat)}" aria-label="${storyEsc(catShort(b.cat))}"><div class="jar-glass"><div class="jar-fill" style="height:${pct}%"></div><div class="jar-ic">${meta.em}</div></div><div class="jar-name">${storyEsc(catShort(b.cat))}</div><div class="jar-figs maskable">${figs}</div></button>`;
+    return `<button class="jar ${cls}" data-jarcat="${storyEsc(b.cat)}" aria-label="${storyEsc(catShort(b.cat))}"><div class="jar-glass"><div class="jar-fill" style="height:${pct}%"></div><div class="jar-ic">${catEmoji(b.cat)}</div></div><div class="jar-name">${storyEsc(catShort(b.cat))}</div><div class="jar-figs maskable">${figs}</div></button>`;
   }).join('') + '</div>';
   el.querySelectorAll('[data-jarcat]').forEach(j=> j.addEventListener('click', ()=> openBudgetDetail(j.getAttribute('data-jarcat'))));
 }
@@ -4165,7 +4200,7 @@ function homeMood(){
   if(!regs.length) return null;
   const B = regs.reduce((a,b)=> a + b.budget, 0), S = regs.reduce((a,b)=> a + (b.actual||0), 0);
   const close = regs.filter(b=> b.actual >= 0.9 * b.budget).sort((x,y)=> (y.actual/y.budget) - (x.actual/x.budget))[0];
-  if(close) return {cls:'amber', text: '🙂 Mostly on track · ' + catShort(close.cat) + (close.actual > close.budget ? ' needs a look' : ' is close')};
+  if(close) return {cls:'amber', text: '🙂 Mostly on track · ' + catShort(close.cat) + ' is close'};
   if(S > B * monthFrac() * 1.15 && S > 0) return {cls:'amber', text:'🙂 Mostly on track · spending is a little ahead'};
   return {cls:'', text:"🙂 You're on track"};
 }
@@ -4196,7 +4231,7 @@ function renderHomeReview(items, otherCount, possibleCount){
   const empty = document.getElementById('review-empty'); if(empty) empty.classList.toggle('hide', n > 0);
   if(!n){
     const show = readerOn() || (state.importOutcomes||[]).length > 0;
-    wrap.innerHTML = show ? `<div class="card caught-card" id="caught-card" style="margin-bottom:16px;"><div class="ck">✓</div><div><div class="name">All caught up</div><div class="sub">Every bank alert is sorted. Nothing to do.</div></div></div>` : '';
+    wrap.innerHTML = show ? `<div class="home-card caught-card" id="caught-card" style="display:flex;"><div class="big">✅</div><div class="name">All caught up</div><div class="sub">Every bank alert is sorted. Nothing to do.</div></div>` : '';
     if(document.getElementById('review-page').classList.contains('open')) closeFullscreen('review-page');
     return;
   }
@@ -4206,17 +4241,18 @@ function renderHomeReview(items, otherCount, possibleCount){
     const acctObj = it.accountId ? [...state.accounts, ...state.cards].find(a=> a.id === validatedAccountId(it.accountId, it.sourceEmail)) : null;
     const day = new Date(it.ts).toLocaleDateString('en-IN', {day:'numeric', month:'short'});
     const where = acctObj ? acctObj.name : (it.fromSpoken ? 'spoken · choose the bank' : 'choose the account');
-    const hint = paybackHint(it) || claimHint(it) || (isDup ? 'Looks already added' : (it.category && !it.fromSpoken ? catShort(it.category) + '?' : ''));
+    const extra = paybackHint(it) || claimHint(it);
+    const hint = isDup ? 'Looks already added' : [it.category && !it.fromSpoken ? catShort(it.category) : '', extra].filter(Boolean).join(' · ');
     return `<div class="hr-row" data-noswipe data-hrid="${it.id}"><div class="hr-under">Not a transaction</div><div class="hr-slide">
-      <div class="chip-icon" style="background:${meta.bg}; color:${meta.tint}; ${isDup?'opacity:.55;':''}">${meta.em}</div>
+      <div class="emo-ic" style="${isDup?'opacity:.55;':''}">${it.category ? catEmoji(it.category) : (paybackHint(it) ? '🤝' : '…')}</div>
       <div class="hr-body"><div class="name">${storyEsc(it.payee||'')}</div><div class="sub" style="${acctObj?'':'color:var(--debt);'}">${day} · ${storyEsc(where)}</div>${hint ? `<div class="hr-hint" style="${isDup?'color:var(--sage);':''}">${storyEsc(hint)}</div>` : ''}</div>
       <div class="amt ${it.type==='income'?'pos':'neg'} maskable">${fmt(it.amount)}</div>
       ${quickOk(it) ? `<button class="hr-ok" data-hrok="${it.id}" aria-label="${isDup ? 'Already added' : 'Add as suggested'}">✓</button>` : ''}
     </div></div>`;
   }).join('');
   const rest = n - Math.min(3, items.length);
-  wrap.innerHTML = `<div class="card queue-card hr-card" style="margin-bottom:16px;">
-    <div class="hr-head"><span class="t"><span class="q-dot"></span>${n} to review · 30 sec ⏱</span><button class="link-btn" id="review-see-all">See all</button></div>
+  wrap.innerHTML = `<div class="home-card hr-card">
+    <div class="hr-head"><span class="t">${n} to review · 30 sec ⏱</span><button class="link-btn" id="review-see-all">See all</button></div>
     ${rows}
     ${rest > 0 ? `<div class="hr-more" id="review-more">+ ${rest} more${otherCount ? ' (transfers or matches to confirm)' : possibleCount ? ' (possible ones from other senders)' : ''}</div>` : ''}
   </div>`;
@@ -4307,7 +4343,7 @@ function renderHomeWin(){
   const w = weekWin();
   let gone = null; try{ gone = localStorage.getItem('fa-win-closed'); }catch(e){}
   if(!w || gone === w.key){ wrap.innerHTML = ''; return; }
-  wrap.innerHTML = `<div class="card win-card" style="margin-bottom:16px;"><div class="wi">🏆</div><div style="flex:1;"><div class="name">This week's win</div><div class="sub"><span class="maskable">${fmtR(w.saved)}</span> less than planned. That's ${w.what}, saved.</div></div><button class="link-btn" id="win-close" aria-label="Close" style="font-size:18px; padding:2px 6px;">✕</button></div>`;
+  wrap.innerHTML = `<div class="home-card win-card" style="display:flex; padding:14px 16px;"><div class="wi">🏆</div><div style="flex:1; font-size:14.5px;"><b>This week's win:</b> <span class="maskable">${fmtR(w.saved)}</span> less than planned. That's ${w.what}, saved.</div><button class="link-btn" id="win-close" aria-label="Close" style="font-size:18px; padding:2px 6px;">✕</button></div>`;
   document.getElementById('win-close').addEventListener('click', ()=>{ try{ localStorage.setItem('fa-win-closed', w.key); }catch(e){} renderHomeWin(); });
   let shown = null; try{ shown = localStorage.getItem('fa-win-mz'); }catch(e){}
   if(shown !== w.key){ try{ localStorage.setItem('fa-win-mz', w.key); }catch(e){} setTimeout(()=>{ try{ mzReact('proud', 2600); }catch(e){} }, 1500); }
@@ -4325,17 +4361,67 @@ function renderClaimNotices(){
 }
 // The bell's count: every notice card waiting behind it (the last-check summary is only information)
 const BELL_WRAPS = ['signin-card-wrap','reader-card-wrap','home-balance-wrap','home-no-email-wrap','heads-up-wrap','home-budget-nudge','claim-notice-wrap','hide-kind-wrap','learning-match-wrap'];
+function noticeCleared(){ try{ return JSON.parse(localStorage.getItem('fa-notice-clear') || '{}'); }catch(e){ return {}; } }
+function agoText(iso){ if(!iso) return ''; const m = Math.round((Date.now() - new Date(iso).getTime()) / 6e4); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m/60) + ' h ago' : Math.round(m/1440) + ' days ago'; }
+function openNoticeDetail(id){
+  document.getElementById('notices-backdrop').classList.remove('open');
+  openFullscreen('bell-page');
+  setTimeout(()=>{ const el = document.getElementById(id); if(el) el.scrollIntoView({block:'start'}); }, 50);
+}
+// One short row per notice (screen pack B1). Everything that used to stack on Home.
+function buildNotices(){
+  const out = [];
+  const close = ()=> document.getElementById('notices-backdrop').classList.remove('open');
+  const has = id=>{ const el = document.getElementById(id); return el && el.innerHTML.trim(); };
+  if(has('signin-card-wrap')) out.push({key:'signin', ic:'🔑', t:'Sign-in', s:'Your account needs a look', act:'Open', fn:()=> openNoticeDetail('signin-card-wrap'), count:true});
+  if(readerOn()){
+    const ib = readerInboxes(), lapsed = ib.filter(i=> i.state === 'reconnect');
+    const lr = (typeof readerStatus !== 'undefined' && readerStatus && readerStatus.lastRun) || null;
+    if(lapsed.length) out.push({key:'reader-lapsed', ic:'📧', t:'Email reader', s: lapsed.map(i=> i.email).join(', ') + ' needs connecting again', act:'Fix', fn:()=>{ close(); openSettingsPage(); }, count:true});
+    else out.push({key:'reader-ok', ic:'📧', t:'Email reader', s: [lr && lr.at ? 'Last checked ' + agoText(lr.at) : '', ib.length ? ib.length + ' inbox' + (ib.length===1?'':'es') : '', 'all fine'].filter(Boolean).join(' · '), ok:true, fn:()=> openNoticeDetail('last-fetch-summary-wrap')});
+    const sugs = (typeof ownerView !== 'undefined' && ownerView && typeof addressSuggestions === 'function') ? addressSuggestions() : [];
+    sugs.forEach(g=> out.push({key:'addr|' + g.sender, ic:'🔗', t:'New bank address', s: g.sender + ' · tie to ' + targetName(g.picks[0].id) + '?', act:'Tie', fn:()=>{ close(); openSettingsPage(); }, count:true}));
+  }
+  (state.accounts.concat(state.cards)).filter(a=> a.needsBalance).forEach(a=> out.push({key:'bal|' + a.id, ic:'💰', t:"Add today's balance", s:a.name, act:'Set', fn:()=>{ close(); openAdjustBalance(a.id, state.cards.some(c=> c.id === a.id)); }, count:true}));
+  if(state.lastBudgetReviewMonth !== currentMonthKey() && completedBudgetMonths().length){
+    const now = new Date(), prev = new Date(now.getFullYear(), now.getMonth()-1, 1).toLocaleDateString('en-IN',{month:'long'});
+    out.push({key:'budget|' + currentMonthKey(), ic:'📊', t:'Set ' + now.toLocaleDateString('en-IN',{month:'long'}) + "'s budget", s:'See ' + prev + "'s budget vs spent", act:'Review', fn:()=>{ close(); openBudgetPage(); }, count:true});
+  }
+  const open = (state.claims||[]).filter(claimOpen);
+  open.filter(c=> c.status === 'collecting' && claimDays(c.createdAt) >= 7 && claimNums(c).items.length).forEach(c=> out.push({key:'clnot|' + c.id, ic:'🧾', t:'Claim not submitted', s: c.name + ' · collecting for ' + claimDays(c.createdAt) + ' days', act:'Open', fn:()=>{ close(); openClaim(c.id); }, count:true}));
+  open.filter(c=> c.status === 'submitted' && claimDays(c.submittedAt) >= 30).forEach(c=> out.push({key:'clwait|' + c.id, ic:'⏳', t: (c.payer ? c.payer.split(' ·')[0] + ' ' : '') + 'claim waiting', s:'Submitted ' + claimDays(c.submittedAt) + ' days ago, ' + (claimNums(c).received ? 'part received' : 'nothing received'), act:'Open', fn:()=>{ close(); openClaim(c.id); }, count:true}));
+  accountsWithoutEmail().forEach(a=> out.push({key:'noemail|' + a.id, ic:'📄', t: a.name + (a.known ? ' doesn’t email UPI' : ' sends no emails'), s:'Paste the SMS or speak it for UPI payments', act:'Paste', fn:()=>{ close(); openSmsSheet(a.id); }, count:true, clear: async ()=>{ if(!Array.isArray(state.noEmailOk)) state.noEmailOk = []; state.noEmailOk.push(a.id); await saveState(); renderNoEmailCard(); }}));
+  if(has('learning-match-wrap')) out.push({key:'learn', ic:'🎓', t:'Entries matched to email', s:'Confirm them to teach the reader', act:'Open', fn:()=> openNoticeDetail('learning-match-wrap'), count:true});
+  if(has('hide-kind-wrap')) out.push({key:'hidekind', ic:'🙈', t:'Mails you keep rejecting', s:'Stop showing them?', act:'Open', fn:()=> openNoticeDetail('hide-kind-wrap'), count:true});
+  const cl = noticeCleared();
+  return out.filter(n=> !cl[n.key]);
+}
+function renderNotices(){
+  const el = document.getElementById('notices-list'); if(!el) return;
+  const list = buildNotices();
+  el.innerHTML = list.length ? list.map((n,i)=> `<div class="nt-row" data-noticei="${i}" data-noswipe><div class="nt-body"><div class="nt-t">${n.ic} ${storyEsc(n.t)}</div><div class="nt-s">${storyEsc(n.s)}</div></div>${n.ok ? '<span class="nt-ok">✓</span>' : `<button class="nt-act" data-noticeact="${i}">${n.act}</button>`}</div>`).join('') : '<div class="bell-empty">Nothing new. You’re all set ✓</div>';
+  el.querySelectorAll('[data-noticeact]').forEach(b=> b.addEventListener('click', e=>{ e.stopPropagation(); list[+b.dataset.noticeact].fn(); }));
+  el.querySelectorAll('.nt-row').forEach(r=>{
+    const n = list[+r.dataset.noticei];
+    r.addEventListener('click', ()=>{ if(r._swiped) return; n.fn(); });
+    // swipe to clear
+    r.innerHTML = `<div class="hr-under">Clear</div><div class="hr-slide" style="background:var(--panel); padding:11px 0;">${r.innerHTML}</div>`;
+    r.querySelectorAll('[data-noticeact]').forEach(b=> b.addEventListener('click', e=>{ e.stopPropagation(); if(r._swiped) return; n.fn(); }));
+    wireSwipeLeft(r, async ()=>{ if(n.clear) await n.clear(); else { const c = noticeCleared(); c[n.key] = Date.now(); try{ localStorage.setItem('fa-notice-clear', JSON.stringify(c)); }catch(e){} } renderNotices(); updateBell(); });
+  });
+}
 function updateBell(){
-  const cnt = BELL_WRAPS.reduce((a,id)=>{ const el = document.getElementById(id); if(!el) return a; const k = el.querySelectorAll('.heads-up-card, .card').length; return a + (k || (el.innerHTML.trim() ? 1 : 0)); }, 0);
+  let cnt = 0; try{ cnt = buildNotices().filter(n=> n.count).length; }catch(e){}
   const b = document.getElementById('bell-count');
   if(b){ b.textContent = cnt > 9 ? '9+' : String(cnt); b.classList.toggle('hide', !cnt); }
-  const any = cnt > 0 || !!document.getElementById('last-fetch-summary-wrap').innerHTML.trim();
+  const any = !!document.querySelector('#bell-body > div:not(#bell-empty)') && [...document.querySelectorAll('#bell-body > div:not(#bell-empty)')].some(d=> d.innerHTML.trim());
   document.getElementById('bell-empty').classList.toggle('hide', any);
 }
 (function wireBell(){
   let t = null;
   new MutationObserver(()=>{ clearTimeout(t); t = setTimeout(updateBell, 30); }).observe(document.getElementById('bell-body'), {childList:true, subtree:true});
-  document.getElementById('open-bell-btn').addEventListener('click', ()=>{ updateBell(); openFullscreen('bell-page'); });
+  document.getElementById('open-bell-btn').addEventListener('click', ()=>{ renderNotices(); document.getElementById('notices-backdrop').classList.add('open'); });
+  document.getElementById('notices-backdrop').addEventListener('click', e=>{ if(e.target.id === 'notices-backdrop') e.target.classList.remove('open'); });
   document.getElementById('bell-back-btn').addEventListener('click', ()=> closeFullscreen('bell-page'));
   document.getElementById('review-back-btn').addEventListener('click', ()=> closeFullscreen('review-page'));
 })();
@@ -4551,7 +4637,7 @@ function render(){
   document.getElementById('home-date').textContent = new Date().toLocaleDateString('en-IN',{weekday:'short', day:'numeric', month:'short'});
   renderHomeCashFlowCard();
 
-  document.getElementById('trend-chart-wrap').innerHTML = buildTrendChartSVG();
+  document.getElementById('trend-chart-wrap').innerHTML = buildTrendChartSVG(true);
   renderHomeBudget();
   try{ renderHomeWin(); renderClaimNotices(); updateBell(); }catch(e){ console.warn('Home', e); }
 
@@ -4560,10 +4646,10 @@ function render(){
   recentTxRefs = recent;
   recentEl.innerHTML = recent.length? recent.map((tx,i)=>{
     if(tx.type==='transfer'){
-      return `<div class="tx-item" data-editrecent="${i}" style="cursor:pointer;"><div class="chip-icon" style="color:var(--peri);">${ICON.swap}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${targetName(tx.from)} → ${targetName(tx.to)}</span><span class="tx-amt">${fmt(tx.amount)}</span></div><div class="tx-meta">${tx.remarks||'internal transfer'}</div></div></div>`;
+      return `<div class="rc-row" data-editrecent="${i}"><div class="emo-ic">🔁</div><div class="rc-body"><div class="name">${storyEsc(targetName(tx.from))} → ${storyEsc(targetName(tx.to))}</div><div class="sub">${storyEsc(tx.remarks||'Transfer')}</div></div><div class="amt maskable">${fmt(tx.amount)}</div></div>`;
     }
-    const meta = catMeta(tx.category);
-    return `<div class="tx-item" data-editrecent="${i}" style="cursor:pointer;"><div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${tx.payee}</span><span class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmt(tx.amount)}</span></div><div class="tx-meta">${targetName(tx.account)} · ${tx.category}${tx.forWhom==='split' ? ' · your share ' + fmt(spendOf(tx)) : tx.forWhom==='reimbursed' ? ' · claim ' + storyEsc(claimName(tx.claimId)) : tx.claimRole==='receipt' ? ' · claim payment' : tx.claimRole==='advance' ? ' · claim advance' : ''}</div></div></div>`;
+    const extra = tx.forWhom==='split' ? ' · your share ' + fmt(spendOf(tx)) : tx.forWhom==='reimbursed' ? ' · claim ' + storyEsc(claimName(tx.claimId)) : tx.claimRole==='receipt' ? ' · claim payment' : tx.claimRole==='advance' ? ' · claim advance' : '';
+    return `<div class="rc-row" data-editrecent="${i}"><div class="emo-ic">${catEmoji(tx.category)}</div><div class="rc-body"><div class="name">${storyEsc(tx.payee||'')}</div><div class="sub">${storyEsc(targetName(tx.account))} · ${storyEsc(catShort(tx.category))}${extra}</div></div><div class="amt maskable ${tx.type==='income'?'in':''}">${tx.type==='income'?'+':'-'}${fmt(tx.amount)}</div></div>`;
   }).join('') : '<div class="empty">No transactions yet. Tap + to add one.</div>';
   document.querySelectorAll('[data-editrecent]').forEach(el=>{
     el.addEventListener('click', ()=> openEditTx(recentTxRefs[parseInt(el.getAttribute('data-editrecent'))]));
@@ -7565,7 +7651,8 @@ function openAdjustBalance(id, isCard, suggestedTarget){
   adjustTargetId = id; adjustIsCard = isCard;
   const name = targetName(id);
   const current = currentBalanceFor(id, isCard);
-  document.getElementById('adjustbal-title').textContent = 'Fix balance — ' + name;
+  document.getElementById('adjustbal-title').textContent = 'Edit ' + (isCard ? 'card' : 'account');
+  { const t = [...state.accounts, ...state.cards].find(x=> x.id === id); document.getElementById('adjustbal-name').value = t ? t.name : name; }
   document.getElementById('adjustbal-current').textContent = `App balance: ${fmt(current)}`;
   document.getElementById('adjustbal-label').textContent = isCard ? 'Actual amount due' : 'Actual balance';
   document.getElementById('adjustbal-target').value = (typeof suggestedTarget === 'number') ? suggestedTarget : '';
@@ -7591,7 +7678,14 @@ adjustbalBackdrop.addEventListener('click', e=>{ if(e.target===adjustbalBackdrop
 new MutationObserver(()=>{ if(!adjustbalBackdrop.classList.contains('open') && adjustGap){ markGapSeen(); adjustGap = null; } }).observe(adjustbalBackdrop, {attributes:true, attributeFilter:['class']});
 document.getElementById('adjustbal-save').addEventListener('click', async ()=>{
   const target = parseFloat(document.getElementById('adjustbal-target').value);
-  if(isNaN(target)){ alert('Enter the actual balance.'); return; }
+  // a new name is kept on the account itself; entries point to the account, not its name
+  const acctObj = [...state.accounts, ...state.cards].find(x=> x.id === adjustTargetId);
+  const newName = document.getElementById('adjustbal-name').value.trim();
+  const renamed = !!(acctObj && newName && newName !== acctObj.name);
+  if(!newName){ alert('Enter a name.'); return; }
+  if(isNaN(target) && !renamed){ alert('Enter the actual balance.'); return; }
+  if(renamed) acctObj.name = newName;
+  if(isNaN(target)){ await saveState(); render(); try{ if(document.getElementById('acctstatement-backdrop').classList.contains('open')) openAcctStatement(adjustTargetId, adjustIsCard); }catch(e){} document.getElementById('adjustbal-backdrop').classList.remove('open'); showToast('Renamed'); return; }
   markGapSeen(); adjustGap = null;
   const current = currentBalanceFor(adjustTargetId, adjustIsCard);
   const diff = target - current;
@@ -7613,7 +7707,8 @@ document.getElementById('adjustbal-save').addEventListener('click', async ()=>{
   await saveState();
   render();
   document.getElementById('adjustbal-backdrop').classList.remove('open');
-  showToast(Math.abs(diff) >= 0.5 ? 'Balance fixed' : 'Already matching. No change needed.');
+  try{ if(renamed && document.getElementById('acctstatement-backdrop').classList.contains('open')) openAcctStatement(adjustTargetId, adjustIsCard); }catch(e){}
+  showToast(Math.abs(diff) >= 0.5 ? (renamed ? 'Renamed and balance fixed' : 'Balance fixed') : (renamed ? 'Renamed' : 'Already matching. No change needed.'));
 });
 
 const reconBackdrop = document.getElementById('recon-backdrop');
@@ -7761,7 +7856,7 @@ function renderAcctStatement(targetId, isCard){
   document.getElementById('acctstatement-hero').innerHTML = `<div class="card stmt-hero">
       <div class="netsummary-label">${isCard?'Amount Due':'Available Balance'}${target.tag?' · '+storyEsc(target.tag):''}</div>
       <div class="netsummary-value maskable ${isCard ? (liveTotal>0?'neg':'') : (liveTotal<0?'neg':'pos')}">${fmt(liveTotal)}</div>
-      <div class="stmt-incorrect">Incorrect ${isCard?'amount':'balance'}? <button id="acctstatement-edit-link">Edit</button></div>
+      <div class="stmt-incorrect">Change the name or fix the ${isCard?'amount':'balance'}? <button id="acctstatement-edit-link">Edit</button></div>
     </div>`;
   document.getElementById('acctstatement-edit-link').addEventListener('click', ()=> openAdjustBalance(targetId, isCard));
   // Upload statement, always here for every bank account and card (not Cash Wallet or the sinking fund)
