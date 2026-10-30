@@ -1100,8 +1100,8 @@ setTimeout(function(){
         <div id="ins-payees"></div>
 
         <div class="ph" style="margin-top:30px;"><b>Month-end</b></div>
-        <button class="btn-primary" id="gen-report-btn">Month-end report (PDF)</button>
-        <p class="section-sub" style="margin-top:10px;">A snapshot PDF of accounts, budget and people — good for record-keeping or sharing with family.</p>
+        <button class="btn-primary" id="gen-report-btn">📊 Month report</button>
+        <p class="section-sub" style="margin-top:10px;">Your month as a story: money in and out, how far the salary went, where it went, and Munzo's ideas. ⬇ PDF inside saves it to share.</p>
       </div>
     </section>
   </main>
@@ -1802,7 +1802,7 @@ setTimeout(function(){
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-31 · v134-swipe-reader</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-31 · v134b-report-button</p>
   </div>
 </div>
 
@@ -8227,7 +8227,8 @@ function stepHomeMonth(delta){
 document.getElementById('home-cf-prev').addEventListener('click', ()=> stepHomeMonth(-1));
 document.getElementById('home-cf-next').addEventListener('click', ()=> stepHomeMonth(1));
 
-document.getElementById('gen-report-btn').addEventListener('click', generateMonthEndReport);
+// v134b: the old snapshot PDF is replaced by the month report (for the month on screen in Insights)
+document.getElementById('gen-report-btn').addEventListener('click', ()=>{ const a = analysisMode === 'month' ? analysisAnchor : new Date(); openMonthReport(a.getFullYear(), a.getMonth()); });
 document.getElementById('clear-since-btn').addEventListener('click', async ()=>{
   const defaultDate = (typeof HISTORY_START_DATE!=='undefined') ? HISTORY_START_DATE : new Date().toISOString().slice(0,10);
   const dateStr = prompt('Delete all expenses, income and transfers from this date onward (YYYY-MM-DD):', defaultDate);
