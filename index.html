@@ -826,6 +826,10 @@
   .hh-meta{font-size:12.5px; color:var(--ink-soft); margin-top:4px; overflow-wrap:anywhere;}
   .hh-acts{display:flex; justify-content:space-between; align-items:center; margin-top:8px;}
   .hh-del{border:none; background:none; color:var(--gold); font:inherit; font-size:13.5px; cursor:pointer; padding:4px 0;}
+  /* ---- v131: a part of Home that failed says so ---- */
+  .render-error{margin:14px 0 0; padding:12px 14px; border-radius:14px; border:1px solid color-mix(in srgb, var(--gold) 50%, transparent); background:color-mix(in srgb, var(--gold) 10%, transparent); cursor:pointer;}
+  .render-error .t{font-weight:600; font-size:14px; color:var(--gold);} .render-error .s{font-size:12.5px; color:var(--ink-soft); margin-top:2px;}
+  .hh-warn{font-size:12.5px; color:var(--gold); margin-top:4px;}
 </style>
 </head>
 <body>
@@ -866,6 +870,7 @@
         <div class="mood-line hide" id="home-mood"></div>
         <div class="owed-chips hide" id="home-owed"></div>
       </div>
+      <div class="render-error hide" id="render-error"><div class="t">⚠️ Something went wrong drawing this screen</div><div class="s">Your entries are safe. Tap to copy the details and send them to Pravesh.</div></div>
       <div class="ring-wrap hide" id="ring-wrap"></div>
       <div class="pace" id="trend-chart-wrap"></div>
       <div style="margin-top:18px;">
@@ -1687,7 +1692,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-29 · v130-ring-why</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-30 · v131-safe-home</p>
   </div>
 </div>
 
@@ -1739,14 +1744,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
-if(typeof pdfjsLib !== 'undefined'){
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-}
+// v131: the PDF, CSV and report tools load after the page (defer), so set the PDF worker then.
+function setPdfWorker(){ if(typeof pdfjsLib !== 'undefined' && !setPdfWorker.done){ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; setPdfWorker.done = true; } }
+setPdfWorker(); document.addEventListener('DOMContentLoaded', setPdfWorker);
 const fmt = n => {
   const neg = n < 0;
   const v = Math.abs(Math.round(n));
@@ -1959,7 +1964,16 @@ function readStateForCurrentHousehold(){
 // Fields added after a device's data was first saved. Filled in on every load rather than
 // through a schemaVersion bump: a bump makes the first device to see it push its whole
 // local settings document over the cloud copy, which is far more than a new empty list needs.
+function fillMissingLists(){
+  if(!state || typeof state !== 'object') return;
+  Object.entries(STARTER).forEach(([k, v])=>{
+    if(Array.isArray(v)){ if(!Array.isArray(state[k])) state[k] = Object.prototype.hasOwnProperty.call(COLLECTION_FIELDS_LIST, k) ? [] : JSON.parse(JSON.stringify(v)); }
+    else if(v && typeof v === 'object'){ if(!state[k] || typeof state[k] !== 'object' || Array.isArray(state[k])) state[k] = JSON.parse(JSON.stringify(v)); }
+  });
+}
+const COLLECTION_FIELDS_LIST = {transactions:1, personLedger:1, pendingImports:1, dismissedImports:1, people:1, balanceAdjustments:1, accounts:1, cards:1, processedGmailIds:1, budgetMonths:1, importOutcomes:1, claims:1};
 function normalizeState(){
+  fillMissingLists();
   if(!Array.isArray(state.budgetMonths)) state.budgetMonths = [];
   if(!Array.isArray(state.importOutcomes)) state.importOutcomes = [];
   if(!Array.isArray(state.transferPairDeclined)) state.transferPairDeclined = [];
@@ -3167,6 +3181,7 @@ function attachAllListeners(){
     if(snap.exists){
       const d = snap.data();
       META_FIELDS.forEach(k=>{ if(d[k]!==undefined) state[k] = d[k]; });
+      fillMissingLists();
       saveLocalOnly();
       render();
     }
@@ -4554,6 +4569,7 @@ async function openRingAdmin(){
     document.getElementById('ring-admin-sum').innerHTML = `<b style="color:var(--ink);">${hs.length} households · ${users.size} users</b>${unused.length ? ` · ${unused.length} unfinished set-ups (not in use)` : ''}. Ring on/off shows the next time they open the app.`;
     el.innerHTML = (unused.length ? `<button class="btn-ghost" id="hh-del-unused" style="width:100%; margin:0 0 10px;">Delete the ${unused.length} unfinished set-ups</button>` : '') + hs.map(h=> `<div class="hh-card">
       <div class="top"><div style="min-width:0;"><div class="name">${storyEsc(h.name || h.id)}</div><div class="hh-meta">${storyEsc((h.emails||[]).join(', ') || 'no member address')}</div></div>${h.id === 'legacy' ? '<span class="hh-tag ok">first</span>' : h.inUse === false ? '<span class="hh-tag no">not in use</span>' : '<span class="hh-tag ok">in use</span>'}</div>
+      ${(h.settingsMissing||[]).length ? `<div class="hh-warn">Settings missing: ${storyEsc(h.settingsMissing.join(', '))} (filled in by the app from v131)</div>` : ''}
       <div class="hh-meta">Created ${when(h.createdAt)} · ${h.txCount ?? '?'} entries · ${h.accountCount ?? '?'} accounts · Gmail ${h.inbox ? '✓' : '—'}${h.lastEntry ? ' · last entry ' + when(h.lastEntry) : ''}</div>
       <div class="hh-acts"><label style="display:flex; align-items:center; gap:8px; font-size:14px;"><input type="checkbox" data-ringhh="${storyEsc(h.id)}" ${on.has(h.id)?'checked':''}> <span>Ring ${on.has(h.id)?'on':'off'}</span></label>${h.id === 'legacy' ? '' : `<button class="hh-del" data-delhh="${storyEsc(h.id)}" data-inuse="${h.inUse===false?0:1}" data-name="${storyEsc(h.name||h.id)}">Delete</button>`}</div>
     </div>`).join('') || '<div class="eng-sub">No households yet.</div>';
@@ -5203,6 +5219,20 @@ function renderNoEmailCardIn(wrap, wid){
   }));
 }
 function render(){
+  try{ fillMissingLists(); renderAll(); showRenderError(null); }
+  catch(e){
+    console.error('render failed', e); showRenderError(e);
+    try{ document.getElementById('home-date').textContent = new Date().toLocaleDateString('en-IN',{weekday:'short', day:'numeric', month:'short'}); renderGreeting(); }catch(_){}
+  }
+}
+function showRenderError(e){
+  const box = document.getElementById('render-error'); if(!box) return;
+  if(!e){ box.classList.add('hide'); return; }
+  const where = String(e.stack || '').split('\n').slice(1, 3).map(l=> l.trim().replace(/\(?https?:\/\/[^)]*?:(\d+):\d+\)?/, 'line $1')).join(' · ');
+  box._details = `The 25th v131 · ${e.message} · ${where}`;
+  box.classList.remove('hide');
+}
+function renderAll(){
   normalizeBudgetFlags(); // a category with a budget is a regular expense, never a "trip"
   normalizePeopleFlags();
   // Budget "actual" is this calendar month only — recomputed on every render so a month
@@ -7129,6 +7159,7 @@ function generatePersonPDF(id){
     rows.push([dateStr, label, amtStr, fmtPdf(running)]);
   });
 
+  if(!window.jspdf){ alert('The PDF tool has not loaded yet — check your connection and reload the app.'); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   doc.setFont('helvetica', 'bold');
@@ -7174,6 +7205,7 @@ function generateMonthEndReport(){
   };
   const t = totals();
   const m = monthTotals();
+  if(!window.jspdf){ alert('The PDF tool has not loaded yet — check your connection and reload the app.'); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   let y = 18;
@@ -8050,6 +8082,7 @@ function downloadTransactionsPDF({start, end, label, cat, mode}){
   const income = flows.filter(t=>t.type==='income').reduce((s,t)=>s+incomeOf(t),0);
   const expense = flows.filter(t=>t.type==='expense').reduce((s,t)=>s+spendOf(t),0);
 
+  if(!window.jspdf){ alert('The PDF tool has not loaded yet — check your connection and reload the app.'); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const headStyles = { font:'helvetica', fontStyle:'bold', fillColor:[59,42,58], textColor:[251,243,236] };
@@ -8692,6 +8725,7 @@ function findColExact(headers, exactWords){
   return -1;
 }
 function parseCsvToRows(csvText){
+  if(typeof Papa === 'undefined'){ alert('The CSV reader has not loaded yet — check your connection and try again.'); return; }
   const parsed = Papa.parse(csvText.trim(), {skipEmptyLines:true});
   const rows = parsed.data;
   if(!rows.length){ return {error:'Could not read any rows from that CSV.'}; }
@@ -8796,6 +8830,7 @@ function parsePdfLineToRow(line){
 }
 async function parsePdfToRows(file){
   const buf = await file.arrayBuffer();
+  setPdfWorker();
   const pdf = await pdfjsLib.getDocument({data:buf}).promise;
   const lines = [];
   for(let p=1; p<=pdf.numPages; p++){
@@ -8931,6 +8966,7 @@ async function statementText(file){
     return {text: await file.text()};
   }
   if(typeof pdfjsLib === 'undefined') return {error: 'The PDF reader did not load. Check your connection and try again.'};
+  setPdfWorker();
   const buf = await file.arrayBuffer();
   const pw = (document.getElementById('recon-pw') || {}).value || '';
   let pdf;
@@ -11987,6 +12023,11 @@ function renderMunzoSettings(){
 mzPreload();
 mzPlace();
 
+document.getElementById('render-error').addEventListener('click', async ()=>{
+  const box = document.getElementById('render-error'); const text = box._details || '';
+  let ok = false; try{ await navigator.clipboard.writeText(text); ok = true; }catch(e){}
+  if(ok) showToast('Copied. Paste it in WhatsApp to Pravesh.'); else prompt('Copy this and send it to Pravesh:', text);
+});
 (async function init(){
   try{
     const q = new URLSearchParams(location.search);
