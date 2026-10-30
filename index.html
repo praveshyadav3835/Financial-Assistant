@@ -2,6 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script>
+/* v132: if the app has not started 10 seconds after opening, say so instead of a half-drawn
+   screen, with the errors the phone saw, so the cause can be sent and fixed. */
+window.__bootErrs = [];
+window.addEventListener('error', function(e){ try{ window.__bootErrs.push((e.message || 'load failed') + (e.filename ? ' @' + String(e.filename).split('/').pop().split('?')[0] + ':' + (e.lineno || '') : (e.target && e.target.src ? ' @' + e.target.src.split('/').slice(2,3).join('') : ''))); }catch(_){} }, true);
+setTimeout(function(){
+  if(window.__appStarted) return;
+  try{
+    var d = document.createElement('div'); d.id = 'boot-stuck';
+    var details = 'The 25th v132 · ' + (navigator.onLine ? 'online' : 'offline') + ' · ' + (window.firebase ? 'sync loaded' : 'sync not loaded') + ' · ' + (window.__bootErrs.join(' | ') || 'no errors') + ' · ' + navigator.userAgent.slice(0, 80);
+    d.setAttribute('style', 'position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:28px;text-align:center;background:#0f1724;color:#e8eef7;font:15px/1.45 system-ui,sans-serif;');
+    d.innerHTML = '<div style="font-size:40px">⏳</div><div style="font-size:19px;font-weight:700">Still loading…</div><div style="opacity:.75;max-width:320px">Slow or blocked internet can stop the app from starting. Your entries are safe.</div>'
+      + '<button id="boot-retry" style="margin-top:6px;padding:12px 26px;border-radius:999px;border:0;background:#3b82f6;color:#fff;font:600 15px system-ui">Try again</button>'
+      + '<button id="boot-copy" style="padding:8px 16px;border-radius:999px;border:1px solid #33415a;background:none;color:#9fb3cc;font:14px system-ui">Copy details for Pravesh</button>';
+    document.body.appendChild(d);
+    document.getElementById('boot-retry').onclick = function(){ location.reload(); };
+    document.getElementById('boot-copy').onclick = function(){ try{ navigator.clipboard.writeText(details).then(function(){ alert('Copied. Paste it in WhatsApp to Pravesh.'); }, function(){ prompt('Copy this:', details); }); }catch(_){ prompt('Copy this:', details); } };
+  }catch(_){}
+}, 10000);
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>Financial Assistant</title>
 
@@ -1692,7 +1712,7 @@
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-30 · v131-safe-home</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-30 · v132c-safe-start</p>
   </div>
 </div>
 
@@ -6142,10 +6162,10 @@ function parseBankSMS(text, sourceEmail){
   // still describing money leaving you, but the bare word "credited" anywhere in the text was
   // being read as proof of income and winning the classification. "Credited" now only counts
   // as income evidence when it's your own account being credited, not a beneficiary's.
-  const hasCreditVerb = /received|deposit(ed)?|refund|\bcredit\s+by\b|has\s+a\s+credit|credited\s+(to\s+|in\s+)?your\b|\bcredited\b(?!\s+to\b)/i.test(clean);
+  const hasCreditVerb = /received|deposit(ed)?|refund|\bcredit\s+by\b|has\s+(a\s+)?credit\b|\bcredit\s+of\s+(rs|inr|₹)|जमा|credited\s+(to\s+|in\s+)?your\b|\bcredited\b(?!\s+to\b)/i.test(clean);
   // money sent to someone else ("Vendor payment to NAME of INR ... credited to the beneficiary's account")
   const toBeneficiary = /credited\s+to\s+(the\s+)?beneficiar|\bbeneficiary'?s?\s+(a\/c|acct|account)|(vendor|bulk|fund)\s+(payment|transfer)\s+to\b|\bpayment\s+to\s+.{2,80}?\s+of\s+(inr|rs\.?|₹)/i.test(clean);
-  const hasDebitVerb = toBeneficiary || /debited|debit of|spent|used for|used to make|withdrawn|\btransferred\b|\bsent\b|\bpaid\b|payment.{0,15}(of|was|done|made|successful)|\bdebit\s+by\b|has\s+a\s+debit/i.test(clean);
+  const hasDebitVerb = toBeneficiary || /debited|debit of|spent|used for|used to make|withdrawn|\btransferred\b|\bsent\b|\bpaid\b|payment.{0,15}(of|was|done|made|successful)|\bdebit\s+by\b|has\s+(a\s+)?debit\b|\bdebit\s+of\s+(rs|inr|₹)|नामे/i.test(clean);
   const hasFromAccount = /\bfrom\s+(your\s+)?(a\/c|acct|account)\b/i.test(clean);
   const hasToAccount = /\b(to|in)\s+(your\s+)?(a\/c|acct|account)\b|credited\s+to\s+your\b/i.test(clean);
 
@@ -6219,6 +6239,7 @@ function parseBankSMS(text, sourceEmail){
     upiRef = upiInfoMatch[1];
     payee = upiInfoMatch[2];
   }
+  else if((m = clean.match(/\b(?:credit|debit)\s+for\s+([A-Za-z0-9 &.'\/-]{2,40}?)\s+of\s+(?:inr|rs\.?|₹)/i))) payee = m[1];
   else if((m = payeeSearchText.match(/\bat\s+([A-Z0-9 &._'-]{2,40}?)(?:\s+on\s+\d|\.|,|$)/i))) payee = m[1];
   else if((m = payeeSearchText.match(/to\s+VPA\s+([a-zA-Z0-9._-]+)@/i))) payee = m[1];
   else if((m = payeeSearchText.match(/for\s+UPI-([A-Za-z0-9 .-]{2,30}?)-/i))) payee = m[1];
@@ -10200,10 +10221,10 @@ function renderReviewChips(imp){
     });
   });
 
-  // Defaults to whatever category the email parser already guessed, since that guess doesn't
-  // go away just because this is being logged as "for someone" instead of a regular expense.
+  // v132: no category until the household picks one. You got + no category = Borrowed (not
+  // spending), as in the People form since v110; the reader's expense guess is never carried over.
   const personCatOptions = [...new Set([...state.budget.filter(b=>!b.income).map(b=>b.cat), OTHER_EXPENSE_CAT])];
-  if(riPersonSelectedCat===null) riPersonSelectedCat = personCatOptions.includes(imp.category) ? imp.category : null;
+  if(riPersonSelectedCat && !personCatOptions.includes(riPersonSelectedCat)) riPersonSelectedCat = null;
   document.getElementById('ri-person-cat-grid').innerHTML = personCatOptions.map(c=>{
     const meta = catMeta(c);
     return `<div class="cat-chip ${c===riPersonSelectedCat?'on':''}" data-ripersoncat="${c}"><div class="em" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="lb">${c.split(' (')[0].split(',')[0]}</div></div>`;
@@ -10216,8 +10237,9 @@ function renderReviewChips(imp){
     document.getElementById('ri-person-cat-summary').innerHTML =
       `<div class="ps-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="ps-name">${riPersonSelectedCat}</div><div class="ps-change">${riPersonCatPickerOpen?'Cancel':'Change'}</div>`;
   } else {
-    document.getElementById('ri-person-cat-summary').innerHTML =
-      `<div class="ps-icon" style="background:var(--paper-dim);">＋</div><div class="ps-name" style="color:var(--ink-soft);">Not tagged</div><div class="ps-change">${riPersonCatPickerOpen?'Cancel':'Add'}</div>`;
+    document.getElementById('ri-person-cat-summary').innerHTML = segValue('ri-person-dir') === 'received'
+      ? `<div class="ps-icon" style="background:var(--paper-dim);">＋</div><div class="ps-name">Borrowed <span style="color:var(--ink-soft); font-weight:400;">(not spending)</span></div><div class="ps-change">${riPersonCatPickerOpen?'Cancel':'Change'}</div>`
+      : `<div class="ps-icon" style="background:var(--paper-dim);">＋</div><div class="ps-name" style="color:var(--ink-soft);">Not tagged</div><div class="ps-change">${riPersonCatPickerOpen?'Cancel':'Add'}</div>`;
   }
   document.getElementById('ri-person-cat-summary').onclick = ()=>{ riPersonCatPickerOpen = !riPersonCatPickerOpen; renderReviewChips(imp); };
   document.getElementById('ri-person-cat-grid').classList.toggle('hide', !riPersonCatPickerOpen);
@@ -10228,7 +10250,7 @@ function renderReviewChips(imp){
       ? `Counts as ${riPersonSelectedCat} spending in your budget. They paid, so you'll pay them back.`
       : riDirNow==='gave'
         ? "Not counted in your budget. You paid, so it is a loan, not your expense."
-        : "Choose a category to count this as spending (only when they paid for you).";
+        : "Borrowed is not spending: you owe them. Choose a category only if they paid for something of yours.";
   }
 
   const targets = (riSelectedType==='expense' || effectiveMode==='transfer') ? [...state.accounts, ...state.cards] : state.accounts;
@@ -12033,13 +12055,18 @@ document.getElementById('render-error').addEventListener('click', async ()=>{
     const q = new URLSearchParams(location.search);
     if(q.get('gmail')==='connected'){ gmailJustConnected = q.get('inbox') || 'Inbox'; history.replaceState(null, '', location.pathname); }
   }catch(e){}
-  await loadTheme();
-  loadMaskPref();
-  await loadState();
-  await loadWhoami();
-  if(!currentHid) showGate('checking'); // a device with no household yet: nothing to show until sign-in is settled
-  renderGreeting();
+  // v132: each step on its own, so one that fails cannot stop the app from starting
+  const step = (name, f)=>{ try{ const r = f(); if(r && r.catch) return r.catch(e=>{ console.error(name, e); (window.__bootErrs||[]).push(name + ': ' + e.message); }); }catch(e){ console.error(name, e); (window.__bootErrs||[]).push(name + ': ' + e.message); } };
+  await step('theme', loadTheme);
+  step('mask', loadMaskPref);
+  await step('state', loadState);
+  if(!state || typeof state !== 'object'){ state = JSON.parse(JSON.stringify(STARTER)); step('normalize', normalizeState); }
+  await step('whoami', loadWhoami);
+  if(!currentHid) step('gate', ()=> showGate('checking')); // a device with no household yet: nothing to show until sign-in is settled
+  step('greeting', renderGreeting);
   render();
+  window.__appStarted = true;
+  { const b = document.getElementById('boot-stuck'); if(b) b.remove(); }
   try{ if(new URLSearchParams(location.search).get('voice')==='1'){ history.replaceState(null, '', location.pathname); openVoice(); } }catch(e){}
   setTimeout(()=>{ try{ if(currentHid) munzoOnOpen(); }catch(e){} }, 1500);
   initCloudSync(()=>{ render(); });
