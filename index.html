@@ -774,7 +774,7 @@ setTimeout(function(){
   .tx-chip.in .in-lbl{font-size:11px; color:var(--ink-soft);}
   .tx-chip.in .in-val{font-size:15px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;}
   .chip-col .chip-lbl{display:none;}
-  #budget-page, #budgetdetail-backdrop, #tab-money, #tab-people, #acctstatement-backdrop, #person-backdrop, #editpersonentry-backdrop{--debt: var(--gold); --icon-neg: var(--gold);}
+  #budget-page, #budgetdetail-backdrop, #tab-money, #tab-people, #tab-insights, #cattx-page, #monthview-backdrop, #acctstatement-backdrop, #person-backdrop, #editpersonentry-backdrop{--debt: var(--gold); --icon-neg: var(--gold);}
   #budget-page .bp-bar-spent.over, #budgetdetail-backdrop .bar-fill.over, #budget-page .bar-fill.over{background:linear-gradient(90deg, color-mix(in srgb, var(--gold) 70%, transparent), var(--gold));}
   #budget-page .neg-t, #budget-page .neg, #budgetdetail-backdrop .neg-t{color:var(--gold) !important;}
   #budgetdetail-backdrop .tx-amt.neg{color:var(--ink);}
@@ -850,6 +850,79 @@ setTimeout(function(){
   .render-error{margin:14px 0 0; padding:12px 14px; border-radius:14px; border:1px solid color-mix(in srgb, var(--gold) 50%, transparent); background:color-mix(in srgb, var(--gold) 10%, transparent); cursor:pointer;}
   .render-error .t{font-weight:600; font-size:14px; color:var(--gold);} .render-error .s{font-size:12.5px; color:var(--ink-soft); margin-top:2px;}
   .hh-warn{font-size:12.5px; color:var(--gold); margin-top:4px;}
+  /* ---- v133: month-end report (a story, not a statement) ---- */
+  #mreport-page .fs-body{background:#F4F6FB; color:#1B2433; padding:0 0 40px;} #mreport-page{z-index:70;}
+  .mr{font-family:var(--font); max-width:520px; margin:0 auto; padding:0 14px; color:#1B2433;}
+  .mr *{box-sizing:border-box;}
+  .mr-hero{position:relative; margin:0 -14px 14px; padding:22px 18px 18px; color:#fff; background:linear-gradient(135deg,#4F6BF5 0%,#7B5CF0 55%,#C46BE8 100%); border-radius:0 0 26px 26px; overflow:hidden;}
+  .mr-hero .k{font-size:12px; letter-spacing:.14em; text-transform:uppercase; opacity:.85;}
+  .mr-hero h1{margin:4px 0 2px; font-size:26px; line-height:1.15; font-weight:800;}
+  .mr-hero .s{font-size:13.5px; opacity:.92; max-width:62%;}
+  .mr-hero img{position:absolute; right:-6px; bottom:-8px; height:150px;}
+  .mr-hero .pills{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; max-width:64%;}
+  .mr-hero .mr-pill{color:#fff; background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35); border-radius:999px; padding:5px 11px; font-size:12.5px; font-weight:600;}
+  .mr-card{background:#fff; border-radius:20px; padding:16px; margin:0 0 14px; box-shadow:0 4px 18px rgba(30,45,90,.07);}
+  .mr-h{display:flex; align-items:center; gap:8px; font-size:16.5px; font-weight:800; margin:0 0 2px;}
+  .mr-sub{font-size:12.5px; color:#6B778C; margin:0 0 12px;}
+  .mr-donuts{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px;}
+  .mr-dn{text-align:center;}
+  .mr-dn .t{font-size:13px; font-weight:700; margin-bottom:4px;}
+  .mr-dn svg{width:100%; max-width:200px; height:auto; display:block; margin:0 auto;}
+  .mr-leg{margin-top:8px; text-align:left;}
+  .mr-leg .row{display:flex; align-items:center; gap:7px; font-size:12px; padding:3px 0;}
+  .mr-leg .row.layer{font-weight:700; font-size:12.5px; padding-top:7px;}
+  .mr-leg .dot{width:9px; height:9px; border-radius:3px; flex:none;}
+  .mr-leg .nm{flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .mr-leg .v{font-variant-numeric:tabular-nums; color:#3B4659;}
+  .mr-leg .p{width:34px; text-align:right; color:#8A94A6; font-size:11px;}
+  .mr-cov{margin:6px 0 12px;}
+  .mr-cov .lbl{display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px;}
+  .mr-cov .lbl b{font-size:15px;}
+  .mr-bar{height:14px; border-radius:999px; background:#EDF0F6; overflow:hidden; position:relative;}
+  .mr-bar i{display:block; height:100%; border-radius:999px;}
+  .mr-bar .over{position:absolute; right:0; top:0; bottom:0; background:repeating-linear-gradient(45deg,#F2B544,#F2B544 5px,#F7CF7A 5px,#F7CF7A 10px);}
+  .mr-verdict{display:flex; gap:12px; align-items:center; border-radius:16px; padding:12px 14px; margin-top:4px;}
+  .mr-verdict.ok{background:linear-gradient(135deg,#E6F8EC,#F1FBF4); border:1px solid #BDE8CB;}
+  .mr-verdict.amber{background:linear-gradient(135deg,#FFF4DC,#FFF9EC); border:1px solid #F4D98F;}
+  .mr-verdict .em{font-size:30px;}
+  .mr-verdict .tt{font-weight:800; font-size:15px;}
+  .mr-verdict .tx{font-size:13px; color:#3B4659; margin-top:2px;}
+  .mr-abc{margin-top:4px;}
+  .mr-band{border-radius:16px; padding:12px; margin-bottom:10px;}
+  .mr-band .top{display:flex; align-items:baseline; justify-content:space-between; gap:8px;}
+  .mr-band .tag{display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:9px; font-weight:800; color:#fff; margin-right:8px; font-size:15px;}
+  .mr-band .nm{font-weight:800; font-size:14.5px;}
+  .mr-band .pc{font-weight:800; font-size:20px;}
+  .mr-band .ds{font-size:12px; color:#556178; margin:4px 0 8px;}
+  .mr-chips{display:flex; flex-wrap:wrap; gap:6px;}
+  .mr-chip{background:#fff; border-radius:999px; padding:5px 10px; font-size:12.5px; box-shadow:0 1px 4px rgba(30,45,90,.08); white-space:nowrap;}
+  .mr-chip b{font-variant-numeric:tabular-nums;}
+  .mr-stack{display:flex; height:16px; border-radius:999px; overflow:hidden; margin:2px 0 12px;}
+  .mr-cmp .row{display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid #EEF1F6; font-size:13.5px;}
+  .mr-cmp .row:first-child{border-top:0;}
+  .mr-cmp .nm{flex:1;} .mr-cmp .ch{font-weight:700; font-variant-numeric:tabular-nums;}
+  .mr-cmp .down{color:#1E9E57;} .mr-cmp .up{color:#C98712;}
+  .mr-plan{width:100%; border-collapse:collapse; font-size:13px;}
+  .mr-plan th{text-align:left; font-size:11.5px; color:#8A94A6; font-weight:600; padding:4px 0;}
+  .mr-plan td{padding:7px 0; border-top:1px solid #EEF1F6;}
+  .mr-plan td.n{text-align:right; font-variant-numeric:tabular-nums;}
+  .mr-plan td.s{text-align:right; font-weight:800; color:#4F6BF5;}
+  .mr-ideas{display:grid; gap:10px;}
+  .mr-idea{display:flex; gap:12px; align-items:flex-start; background:linear-gradient(135deg,#F2EEFF,#F8F6FF); border:1px solid #E1D9FF; border-radius:16px; padding:12px;}
+  .mr-idea .em{font-size:24px; line-height:1;}
+  .mr-idea .tt{font-weight:800; font-size:14px;}
+  .mr-idea .tx{font-size:12.8px; color:#4A5568; margin-top:2px;}
+  .mr-munzo{display:flex; align-items:flex-end; gap:8px; margin:6px 0 10px;}
+  .mr-munzo img{height:86px;}
+  .mr-munzo .bub{background:#fff; border-radius:16px 16px 16px 4px; padding:10px 12px; font-size:13.5px; box-shadow:0 3px 12px rgba(30,45,90,.09); font-weight:600;}
+  .mr-foot{text-align:center; font-size:11.5px; color:#8A94A6; margin-top:6px;}
+  /* ---- v133: every entry of the month ---- */
+  .mv-filters{display:flex; gap:7px; overflow-x:auto; padding:2px 0 10px; scrollbar-width:none;}
+  .mv-filters button{flex:none; border:1px solid var(--line); background:var(--card); color:var(--ink-soft); border-radius:999px; padding:7px 13px; font:inherit; font-size:13px; cursor:pointer;}
+  .mv-filters button.on{background:var(--peri); border-color:var(--peri); color:#fff; font-weight:600;}
+  .mv-filters button small{opacity:.75; margin-left:3px;}
+  .mv-day{font-size:12px; font-weight:600; color:var(--ink-soft); letter-spacing:.04em; text-transform:uppercase; margin:14px 2px 6px;}
+  .mv-kind{font-size:10.5px; border-radius:999px; padding:1px 7px; margin-left:6px; border:1px solid var(--line); color:var(--ink-soft); vertical-align:1px;}
 </style>
 </head>
 <body>
@@ -1390,6 +1463,10 @@ setTimeout(function(){
     <button class="btn-primary" id="ringwhy-ok" style="margin-top:14px;">Looks right ✓</button>
   </div>
 </div>
+<div class="fullscreen-page" id="mreport-page">
+  <div class="fs-header"><button class="fs-back" id="mreport-back" aria-label="Back">←</button><h2 id="mreport-title" style="flex:1;">Month report</h2><button class="pill-btn" id="mreport-pdf">⬇ PDF</button></div>
+  <div class="fs-body"><div class="mr" id="mreport-body"></div></div>
+</div>
 <div class="sheet-backdrop" id="adjustbal-backdrop">
   <div class="sheet">
     <h3 id="adjustbal-title">Edit account</h3>
@@ -1433,6 +1510,7 @@ setTimeout(function(){
       <button id="monthview-next" aria-label="Next month">›</button>
     </div>
     <p class="section-sub" id="monthview-sub"></p>
+    <div class="mv-filters" id="monthview-filters"></div>
     <div id="monthview-list"></div>
   </div>
 </div>
@@ -1712,7 +1790,7 @@ setTimeout(function(){
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-30 · v132c-safe-start</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-30 · v133-month-report</p>
   </div>
 </div>
 
@@ -7391,7 +7469,7 @@ function analysisCatKey(t){
   const b = findBudgetRowForCategory(t.category);
   return b ? b.cat : (t.category || OTHER_EXPENSE_CAT);
 }
-const ANALYSIS_PALETTE = ['#6FBAFC','#E5687A','#E3B657','#4FCA63','#9C8CF0','#4FC3C9','#F29E6B','#B7C0CC'];
+const ANALYSIS_PALETTE = ['#6FBAFC','#B5E06B','#E3B657','#4FCA63','#9C8CF0','#4FC3C9','#F29E6B','#B7C0CC'];
 function analysisDonutSVG(entries, total){
   if(!total) return '';
   const r=64, cx=85, cy=85, c=2*Math.PI*r;
@@ -7475,7 +7553,8 @@ function renderAnalysisPage(){
 
   try{ trackUseAndReview(); renderBadges(); renderMonthVsPlan(); renderFestivalMonths(); }catch(e){ console.warn('Insights', e); }
   renderInsightsExtras(p);
-  document.getElementById('analysis-download-btn').onclick = ()=> downloadTransactionsPDF({start:p.start, end:p.end, label:p.main});
+  document.getElementById('analysis-download-btn').textContent = analysisMode === 'month' ? '📊 Report' : '⬇ PDF';
+  document.getElementById('analysis-download-btn').onclick = ()=> analysisMode === 'month' ? openMonthReport(p.start.getFullYear(), p.start.getMonth()) : downloadTransactionsPDF({start:p.start, end:p.end, label:p.main});
   applyMaskUI(); // this redraws on its own (period arrows, tab switch), so hidden balances must be re-hidden here too
 }
 
@@ -8412,36 +8491,45 @@ function renderMonthView(){
   document.getElementById('monthview-title').textContent = now.toLocaleDateString('en-IN',{month:'long', year:'numeric'});
   document.getElementById('monthview-sub').textContent = isCurrentMonth ? `Tap any entry to edit it, including moving it to a different account` : `Looking back — tap any entry to correct it, same as any other month`;
 
-  const spendHtml = spendTx.length ? spendTx.map(tx=>{
-    const i = monthviewTxRefs.indexOf(tx);
-    const meta = catMeta(tx.category);
-    return `<div class="tx-item" data-editmonth="${i}" style="cursor:pointer;"><div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${tx.payee}</span><span class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmt(tx.amount)}</span></div><div class="tx-meta">${new Date(tx.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${targetName(tx.account)} · ${tx.category}</div></div></div>`;
-  }).join('') : '<div class="empty" style="padding:14px 0;">No income or expenses this month yet.</div>';
-
-  const transferHtml = transferTx.length ? transferTx.map(tx=>{
-    const i = monthviewTxRefs.indexOf(tx);
-    return `<div class="tx-item" data-editmonth="${i}" style="cursor:pointer; opacity:0.75;"><div class="chip-icon" style="color:var(--peri);">${ICON.swap}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${targetName(tx.from)} → ${targetName(tx.to)}</span><span class="tx-amt">${fmt(tx.amount)}</span></div><div class="tx-meta">${new Date(tx.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${tx.remarks||'internal transfer'}</div></div></div>`;
-  }).join('') : '';
-
-  const peopleHtml = monthPeople.length ? monthPeople.map(e=>{
-    const person = state.people.find(p=>p.id===e.personId);
-    const gave = e.delta > 0;
-    return `<div class="tx-item" style="opacity:0.75;"><div class="chip-icon">${ICON.handshake}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${gave?'You gave':'You got from'} ${person?person.name:'Unknown'}</span><span class="tx-amt ${gave?'neg':'pos'}">${gave?'-':'+'}${fmt(Math.abs(e.delta))}</span></div><div class="tx-meta">${new Date(e.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${targetName(e.account)} · People Ledger</div></div></div>`;
-  }).join('') : '';
-
-  document.getElementById('monthview-list').innerHTML = `
-    <div class="divider-label" style="margin-top:10px;">Income &amp; Expenses</div>
-    <div class="card">${spendHtml}</div>
-    ${transferTx.length ? `<div class="divider-label" style="margin-top:16px;">Transfers between your own accounts — not counted as spending</div><div class="card">${transferHtml}</div>` : ''}
-    ${monthPeople.length ? `<div class="divider-label" style="margin-top:16px;">People Ledger entries through your accounts — not counted as spending</div><div class="card">${peopleHtml}</div>` : ''}
-  `;
+  // v133: one list of every entry this month (expenses, income, transfers, People, balance fixes),
+  // newest first, grouped by day, with filters.
+  const inMonth = ts=> { const d = new Date(ts); return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear(); };
+  const txIds = new Set(monthTx.map(t=> t.id));
+  const items = [];
+  monthTx.forEach(tx=> items.push({kind: tx.type==='transfer' ? 'transfer' : tx.type, ts: tx.ts, tx}));
+  (state.personLedger||[]).filter(e=> inMonth(e.ts) && !(e.txId && txIds.has(e.txId))).forEach(e=> items.push({kind:'people', ts:e.ts, pe:e}));
+  (state.balanceAdjustments||[]).filter(a=> inMonth(a.ts) && a.diff).forEach(a=> items.push({kind:'adjust', ts:a.ts, adj:a}));
+  items.sort((a,b)=> new Date(b.ts) - new Date(a.ts));
+  const counts = {all: items.length}; items.forEach(i=> counts[i.kind] = (counts[i.kind]||0) + 1);
+  const F = [['all','All'],['expense','Expenses'],['income','Income'],['transfer','Transfers'],['people','People'],['adjust','Balance fixes']].filter(([k])=> k==='all' || counts[k]);
+  if(!F.some(([k])=> k===monthviewFilter)) monthviewFilter = 'all';
+  document.getElementById('monthview-filters').innerHTML = F.map(([k,l])=> `<button data-mvf="${k}" class="${k===monthviewFilter?'on':''}">${l}<small>${counts[k]||0}</small></button>`).join('');
+  document.getElementById('monthview-filters').querySelectorAll('[data-mvf]').forEach(b=> b.addEventListener('click', ()=>{ monthviewFilter = b.dataset.mvf; renderMonthView(); }));
+  const shown = items.filter(i=> monthviewFilter==='all' || i.kind===monthviewFilter);
+  const dateOf = ts=> new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  const row = (i, idx)=>{
+    if(i.tx && i.kind!=='transfer'){ const tx = i.tx, meta = catMeta(tx.category), j = monthviewTxRefs.indexOf(tx);
+      return `<div class="tx-item" data-editmonth="${j}" style="cursor:pointer;"><div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${storyEsc(tx.payee||'')}</span><span class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmt(spendOrIncome(tx))}</span></div><div class="tx-meta">${tx.account ? storyEsc(targetName(tx.account)) : 'paid by someone else'} · ${storyEsc(tx.category||'')}${tx.forWhom==='split' ? '<span class="mv-kind">split</span>' : tx.forWhom==='reimbursed' ? '<span class="mv-kind">claim</span>' : ''}</div></div></div>`; }
+    if(i.kind==='transfer'){ const tx = i.tx, j = monthviewTxRefs.indexOf(tx);
+      return `<div class="tx-item" data-editmonth="${j}" style="cursor:pointer;"><div class="chip-icon" style="color:var(--peri);">${ICON.swap}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${storyEsc(targetName(tx.from))} → ${storyEsc(targetName(tx.to))}</span><span class="tx-amt">${fmt(tx.amount)}</span></div><div class="tx-meta">${storyEsc(tx.remarks||'between your own accounts')}<span class="mv-kind">transfer</span></div></div></div>`; }
+    if(i.kind==='people'){ const e = i.pe, person = state.people.find(p=>p.id===e.personId), gave = e.delta > 0;
+      return `<div class="tx-item" data-mvpe="${idx}" style="cursor:pointer;"><div class="chip-icon">${ICON.handshake}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${gave?'You gave':'You got from'} ${storyEsc(person?person.name:'Unknown')}</span><span class="tx-amt ${gave?'neg':'pos'}">${gave?'-':'+'}${fmt(Math.abs(e.delta))}</span></div><div class="tx-meta">${e.account ? storyEsc(targetName(e.account)) : 'no account moved'} · ${e.category && e.category!=='Borrowed' ? storyEsc(e.category) : gave ? 'lent' : 'borrowed'}<span class="mv-kind">people</span></div></div></div>`; }
+    const a = i.adj;
+    return `<div class="tx-item" style="opacity:.8;"><div class="chip-icon">⚖️</div><div class="tx-body"><div class="tx-top"><span class="tx-title">Balance fixed · ${storyEsc(targetName(a.targetId))}</span><span class="tx-amt">${a.diff>0?'+':'-'}${fmt(Math.abs(a.diff))}</span></div><div class="tx-meta">${storyEsc(a.remarks||'set to what the bank shows')}<span class="mv-kind">balance fix</span></div></div></div>`;
+  };
+  let lastDay = '', html = '';
+  shown.forEach((i, idx)=>{ const d = dateOf(i.ts); if(d !== lastDay){ if(lastDay) html += '</div>'; html += `<div class="mv-day">${d}</div><div class="card">`; lastDay = d; } html += row(i, idx); });
+  if(lastDay) html += '</div>';
+  document.getElementById('monthview-list').innerHTML = shown.length ? html : '<div class="empty" style="padding:14px 0;">Nothing here this month yet.</div>';
   document.getElementById('monthview-list').querySelectorAll('[data-editmonth]').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      // The page stays open underneath; render() redraws it once the edit is saved.
-      openEditTx(monthviewTxRefs[parseInt(el.getAttribute('data-editmonth'))]);
-    });
+    el.addEventListener('click', ()=> openEditTx(monthviewTxRefs[parseInt(el.getAttribute('data-editmonth'))]));
+  });
+  document.getElementById('monthview-list').querySelectorAll('[data-mvpe]').forEach(el=>{
+    el.addEventListener('click', ()=> openEditPersonEntry(shown[parseInt(el.getAttribute('data-mvpe'))].pe));
   });
 }
+let monthviewFilter = 'all';
+function spendOrIncome(tx){ return tx.type==='income' ? tx.amount : tx.amount; }
 document.getElementById('see-all-month-btn').addEventListener('click', ()=>{
   monthviewSelectedDate = new Date(); // always open on the current month, even if last closed on a past one
   renderMonthView();
@@ -12050,6 +12138,210 @@ document.getElementById('render-error').addEventListener('click', async ()=>{
   let ok = false; try{ await navigator.clipboard.writeText(text); ok = true; }catch(e){}
   if(ok) showToast('Copied. Paste it in WhatsApp to Pravesh.'); else prompt('Copy this and send it to Pravesh:', text);
 });
+
+// ---------------------------------------------------------------------------
+// v133 MONTH-END REPORT: a story of the month, not a statement.
+// income vs expense (two-layer donuts) → how far the salary went → expenses in A/B/C →
+// against last month and a plan for next month → Munzo's ideas.
+// ---------------------------------------------------------------------------
+const MR_COL = {salary:'#4F6BF5', otherInc:'#9AB0FF', monthly:'#F2994A', lumpy:'#B47CF0', invest:'#2BB673',
+  A:'#F2994A', B:'#56A8F5', C:'#A7B3C6'};
+const MR_SHADES = {
+  salary:['#4F6BF5','#6D86F7','#8DA1F9','#AEBDFB'], otherInc:['#9AB0FF','#B9C8FF','#D3DDFF','#C7D2FE'],
+  monthly:['#F2994A','#F6B26B','#F9C98E','#E9853A','#FBD8AE','#F0A55E','#F7BC7D'], lumpy:['#B47CF0','#C99BF4','#DCBAF8'], invest:['#2BB673','#55C78F','#80D7AB','#A9E6C7']};
+const LUMPY_RE = /lumpy|annual|yearly|insurance|\blic\b|premium|sinking|school fee|\bfees?\b|maintenance|property tax|car insurance|renewal/i;
+const ASSET_RE = /home\s*loan|house\s*loan|housing\s*loan/i;
+function mrIsInvest(cat){ return isInvestmentCat(cat) || ASSET_RE.test(String(cat||'')) || /zerodha|share|groww|demat|ipo/i.test(String(cat||'')); }
+function mrIsLumpy(cat){ const b = (state.budget||[]).find(x=> x.cat === cat); if(b && b.lumpy !== undefined) return !!b.lumpy; return LUMPY_RE.test(String(cat||'')); }
+function mrIsSalaryCat(cat, list){ return /salary|payroll|\bpao\b/i.test(String(cat||'')) || list.some(t=> t.isSalary); }
+function mrMonthData(y, m){
+  const {start, end} = monthBounds(y, m);
+  const tx = state.transactions.filter(t=> t.type !== 'transfer' && new Date(t.ts) >= start && new Date(t.ts) < end);
+  const inc = {}, exp = {};
+  tx.forEach(t=>{
+    if(t.type === 'income'){ const v = incomeOf(t); if(!v) return; const k = analysisCatKey(t); (inc[k] = inc[k] || {v:0, list:[]}).v += v; inc[k].list.push(t); }
+    else if(t.type === 'expense'){ const v = spendOf(t); if(!v) return; const k = analysisCatKey(t); exp[k] = (exp[k] || 0) + v; }
+  });
+  const salary = {}, otherInc = {};
+  Object.entries(inc).forEach(([k, o])=>{ (mrIsSalaryCat(k, o.list) ? salary : otherInc)[k] = o.v; });
+  const monthly = {}, lumpy = {}, invest = {};
+  Object.entries(exp).forEach(([k, v])=>{ (mrIsInvest(k) ? invest : mrIsLumpy(k) ? lumpy : monthly)[k] = v; });
+  const sum = o=> Object.values(o).reduce((a,b)=> a + b, 0);
+  return {y, m, start, end, count: tx.length, salary, otherInc, monthly, lumpy, invest,
+    tSalary: sum(salary), tOther: sum(otherInc), tMonthly: sum(monthly), tLumpy: sum(lumpy), tInvest: sum(invest),
+    get tIncome(){ return this.tSalary + this.tOther; }, get tSpend(){ return this.tMonthly + this.tLumpy; }, get tOut(){ return this.tSpend + this.tInvest; }};
+}
+const mrK = v=> v >= 1e7 ? '₹' + (v/1e7).toFixed(1).replace(/\.0$/,'') + 'Cr' : v >= 1e5 ? '₹' + (v/1e5).toFixed(1).replace(/\.0$/,'') + 'L' : v >= 1e3 ? '₹' + (v/1e3).toFixed(1).replace(/\.0$/,'') + 'k' : '₹' + Math.round(v);
+const mrPct = (a, b)=> b ? Math.round(a / b * 100) : 0;
+function mrArcs(parts, r, w, total, gap, minLabel, fs){
+  // parts: [{v, col}] drawn clockwise from 12 o'clock; each slice big enough carries its %
+  const c = 2 * Math.PI * r; let off = 0, labels = '';
+  const arcs = parts.filter(p=> p.v > 0).map(p=>{
+    const share = p.v / total, len = Math.max(0, share * c - (gap||0));
+    const el = `<circle cx="110" cy="110" r="${r}" fill="none" stroke="${p.col}" stroke-width="${w}" stroke-dasharray="${len.toFixed(2)} ${(c - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 110 110)"/>`;
+    if(share >= minLabel && !p.noLabel){ const a = (off / c + share / 2) * 2 * Math.PI - Math.PI / 2; const x = 110 + r * Math.cos(a), y = 110 + r * Math.sin(a);
+      labels += `<text x="${x.toFixed(1)}" y="${(y + fs * 0.36).toFixed(1)}" text-anchor="middle" font-size="${fs}" font-weight="800" fill="#fff" style="paint-order:stroke; stroke:rgba(20,30,50,.35); stroke-width:2px;">${Math.round(share * 100)}%</text>`; }
+    off += share * c; return el; }).join('');
+  return arcs + labels;
+}
+function mrDonut(layers, outer, total, centreTop, centreBig){
+  // inner ring: the layers (salary / other; monthly / lumpy / investments); outer ring: categories
+  if(!total) return `<svg viewBox="0 0 220 220"><circle cx="110" cy="110" r="78" fill="none" stroke="#EDF0F6" stroke-width="34"/><text x="110" y="116" text-anchor="middle" font-size="15" fill="#8A94A6">nothing yet</text></svg>`;
+  return `<svg viewBox="0 0 220 220"><circle cx="110" cy="110" r="92" fill="none" stroke="#F1F3F8" stroke-width="20"/><circle cx="110" cy="110" r="66" fill="none" stroke="#F1F3F8" stroke-width="26"/>`
+    + mrArcs(outer, 92, 20, total, 1.2, 0.06, 10.5) + mrArcs(layers, 66, 26, total, 1.6, 0.04, 12)
+    + `<text x="110" y="104" text-anchor="middle" font-size="12" fill="#8A94A6" font-weight="600">${centreTop}</text><text x="110" y="128" text-anchor="middle" font-size="22" fill="#1B2433" font-weight="800">${centreBig}</text></svg>`;
+}
+function mrSide(groups, total){
+  // groups: [{label, key, items:{cat:v}}] -> donut parts + legend
+  const layers = [], outer = [], leg = [];
+  groups.forEach(g=>{
+    const t = Object.values(g.items).reduce((a,b)=> a + b, 0); if(!t) return;
+    layers.push({v: t, col: MR_COL[g.key]});
+    leg.push(`<div class="row layer"><span class="dot" style="background:${MR_COL[g.key]}"></span><span class="nm">${g.label}</span><span class="v">${mrK(t)}</span><span class="p">${mrPct(t, total)}%</span></div>`);
+    const shades = MR_SHADES[g.key];
+    Object.entries(g.items).sort((a,b)=> b[1] - a[1]).forEach(([cat, v], i)=>{
+      const col = shades[i % shades.length]; outer.push({v, col, noLabel: Object.keys(g.items).length === 1});
+      if(i < 4) leg.push(`<div class="row"><span class="dot" style="background:${col}; margin-left:6px;"></span><span class="nm">${storyEsc(catShort(cat))}</span><span class="v">${mrK(v)}</span><span class="p">${mrPct(v, total)}%</span></div>`);
+    });
+    const n = Object.keys(g.items).length; if(n > 4) leg.push(`<div class="row" style="color:#8A94A6; padding-left:22px;">+ ${n - 4} more</div>`);
+  });
+  return {layers, outer, leg: leg.join('')};
+}
+function mrABC(monthly, lumpy){
+  const all = Object.entries({...monthly, ...lumpy}).sort((a,b)=> b[1] - a[1]);
+  const total = all.reduce((s, [,v])=> s + v, 0); if(!total) return null;
+  const A = [], B = [], C = []; let cum = 0;
+  all.forEach(([cat, v])=>{ const before = cum / total; cum += v;
+    if(before < 0.45 || !A.length) A.push([cat, v]); else if(before < 0.75) B.push([cat, v]); else C.push([cat, v]); });
+  // A must be the fewest categories that reach 40–60% of spending
+  const s = l=> l.reduce((x, [,v])=> x + v, 0);
+  return {total, A, B, C, pA: mrPct(s(A), total), pB: mrPct(s(B), total), pC: mrPct(s(C), total), sA: s(A), sB: s(B), sC: s(C)};
+}
+function mrIdeas(d, prev, abc){
+  const ideas = [];
+  const left = d.tSalary - d.tOut;
+  if(d.tSalary && left > 0) ideas.push({em:'🗓️', tt:'Pay yourself first on salary day', tx:`Move ${mrK(Math.round(left * 0.5 / 500) * 500)} to savings the day the salary lands, before spending starts. What stays in the account is what gets spent.`});
+  else if(d.tSalary) ideas.push({em:'🗓️', tt:'Start next month with a ceiling', tx:`Spending went past the salary by ${mrK(-left)}. Set the ceiling at ${mrK(Math.round(d.tSalary * 0.7 / 1000) * 1000)} for everyday spending and let the jars warn you early.`});
+  const watch = abc ? [...abc.A, ...abc.B].find(([c])=> !isFixedCat(c)) : null;
+  if(watch){ const [cat, v] = watch; ideas.push({em:'🔍', tt:`${catShort(cat)} is the one to watch`, tx:`It alone took ${mrPct(v, abc.total)}% of spending. Trimming it by just 10% frees ${mrK(v * 0.1)} — more than all your small categories put together save.`}); }
+  if(prev){ const ups = Object.entries(d.monthly).map(([k, v])=> [k, v - (prev.monthly[k] || 0)]).filter(([, x])=> x > 0).sort((a,b)=> b[1] - a[1]);
+    if(ups[0] && ups[0][1] > 500) ideas.push({em:'📈', tt:`${catShort(ups[0][0])} jumped this month`, tx:`Up ${mrK(ups[0][1])} on last month. A one-off, or the new normal? If it's the new normal, give it its own budget so it stops surprising you.`}); }
+  if(!d.tInvest) ideas.push({em:'🌱', tt:'Plant one SIP', tx:'Even ₹1,000 a month on a fixed date grows quietly. The best SIP is the one that runs on autopilot.'});
+  else if(d.tSalary && mrPct(d.tInvest, d.tSalary) < 20) ideas.push({em:'🌱', tt:'Nudge the SIP up a step', tx:`${mrPct(d.tInvest, d.tSalary)}% of the salary went to investments. The golden rule of thumb is 20%: a small step-up each year gets there without pain.`});
+  else ideas.push({em:'🏆', tt:'Your investments are on point', tx:`${mrPct(d.tInvest, d.tSalary)}% of the salary invested — that's the 20% golden rule, done. Keep it on autopilot.`});
+  return ideas.slice(0, 3);
+}
+function mrPlan(d, prevs){
+  // next month's budget: the average of the last months for everyday categories; A categories trimmed 5%
+  const months = [d, ...prevs];
+  const cats = new Set(); months.forEach(x=> Object.keys(x.monthly).forEach(k=> cats.add(k)));
+  const abc = mrABC(d.monthly, {}); const aSet = new Set(abc ? abc.A.map(([c])=> c) : []);
+  return [...cats].map(cat=>{ const avg = months.reduce((s, x)=> s + (x.monthly[cat] || 0), 0) / months.length; const sug = Math.round(avg * (aSet.has(cat) && !isFixedCat(cat) ? 0.95 : 1) / 500) * 500; return {cat, now: d.monthly[cat] || 0, sug}; })
+    .filter(r=> r.sug > 0).sort((a,b)=> b.now - a.now).slice(0, 6);
+}
+function monthReportHtml(y, m){
+  const d = mrMonthData(y, m);
+  const pm = new Date(y, m - 1, 1), prev = mrMonthData(pm.getFullYear(), pm.getMonth());
+  const hasPrev = prev.count >= 10;
+  const prevs = []; for(let i = 1; i <= 3; i++){ const x = new Date(y, m - i, 1); const md = mrMonthData(x.getFullYear(), x.getMonth()); if(md.count >= 10) prevs.push(md); }
+  const monthName = new Date(y, m, 1).toLocaleDateString('en-IN', {month:'long', year:'numeric'});
+  const name = (typeof whoami === 'string' && whoami) ? whoami.charAt(0).toUpperCase() + whoami.slice(1) : 'there';
+  const left = d.tSalary - d.tOut;
+  const covSpend = mrPct(d.tSpend, d.tSalary), covAll = mrPct(d.tOut, d.tSalary);
+  const inc = mrSide([{label:'Salary', key:'salary', items:d.salary}, {label:'Other income', key:'otherInc', items:d.otherInc}], d.tIncome);
+  const exp = mrSide([{label:'Monthly expenses', key:'monthly', items:d.monthly}, {label:'Lumpy bills', key:'lumpy', items:d.lumpy}, {label:'Investments', key:'invest', items:d.invest}], d.tOut);
+  const ok = d.tSalary && left >= 0;
+  const verdict = !d.tSalary ? `<div class="mr-verdict amber"><div class="em">🔎</div><div><div class="tt">No salary this month</div><div class="tx">Income was ${mrK(d.tIncome)} and ${mrK(d.tOut)} went out. Mark the salary entry as salary and this page will measure against it.</div></div></div>`
+    : ok ? `<div class="mr-verdict ok"><div class="em">🎉</div><div><div class="tt">${mrK(left)} left to save — well done!</div><div class="tx">Your salary paid for everything${d.tInvest ? `, and you still invested <b>${mrK(d.tInvest)}</b>` : ''}. That's money working for you.</div></div></div>`
+    : `<div class="mr-verdict amber"><div class="em">💪</div><div><div class="tt">Your investments are your savings this month</div><div class="tx">Expenses and investments went ${mrK(-left)} past the salary, so no cash could be kept aside. But <b>${mrK(d.tInvest)}</b> went into investments — this month's saving is backed by them.</div></div></div>`;
+  const abc = mrABC(d.monthly, d.lumpy);
+  const band = (key, label, fun, list, pc, tot)=> list.length ? `<div class="mr-band" style="background:${key==='A' ? '#FFF3E6' : key==='B' ? '#EAF4FE' : '#F2F4F8'};"><div class="top"><div><span class="tag" style="background:${MR_COL[key]}">${key}</span><span class="nm">${label}</span></div><div class="pc" style="color:${MR_COL[key]}">${pc}%</div></div><div class="ds">${fun} · ${list.length} categor${list.length === 1 ? 'y' : 'ies'} · ${mrK(tot)}</div><div class="mr-chips">${list.map(([c, v])=> `<span class="mr-chip">${catEmoji(c)} ${storyEsc(catShort(c))} <b>${mrK(v)}</b></span>`).join('')}</div></div>` : '';
+  let cmp = '';
+  if(hasPrev){
+    const rows = [...new Set([...Object.keys(d.monthly), ...Object.keys(prev.monthly)])].map(k=> [k, (d.monthly[k] || 0) - (prev.monthly[k] || 0)]).filter(([, x])=> Math.abs(x) >= 300).sort((a,b)=> a[1] - b[1]);
+    const better = rows.filter(([, x])=> x < 0), worse = rows.filter(([, x])=> x > 0).reverse();
+    const pmName = pm.toLocaleDateString('en-IN', {month:'long'});
+    const head = better.length ? `<div class="mr-munzo"><img src="${MZ_FULL('jar')}" alt=""><div class="bub">${better.length} categor${better.length === 1 ? 'y' : 'ies'} cheaper than ${pmName} — ${mrK(-better.reduce((s, [,x])=> s + x, 0))} saved! 🙌</div></div>` : '';
+    cmp = `<div class="mr-card"><div class="mr-h">📊 Against ${pmName}</div><div class="mr-sub">Everyday spending: ${mrK(d.tSpend)} now, ${mrK(prev.tSpend)} then.</div>${head}
+      <div class="mr-cmp">${[...better.slice(0, 3), ...worse.slice(0, 3)].map(([k, x])=> `<div class="row"><span>${catEmoji(k)}</span><span class="nm">${storyEsc(catShort(k))}</span><span class="ch ${x < 0 ? 'down' : 'up'}">${x < 0 ? '▼ ' + mrK(-x) + ' less' : '▲ ' + mrK(x) + ' more — take a look'}</span></div>`).join('')}</div></div>
+      <div class="mr-card"><div class="mr-h">🧭 A plan for next month</div><div class="mr-sub">Based on your last ${prevs.length + 1} months; the big everyday categories trimmed by 5%, fixed ones kept.</div>
+      <table class="mr-plan"><tr><th>Category</th><th style="text-align:right">This month</th><th style="text-align:right">Suggested</th></tr>${mrPlan(d, prevs).map(r=> `<tr><td>${catEmoji(r.cat)} ${storyEsc(catShort(r.cat))}</td><td class="n">${mrK(r.now)}</td><td class="s">${mrK(r.sug)}</td></tr>`).join('')}</table></div>`;
+  }
+  const ideas = mrIdeas(d, hasPrev ? prev : null, abc);
+  return `
+  <div class="mr-hero"><div class="k">Month report · ${monthName}</div><h1>Hi ${storyEsc(name)}, here's<br>your ${new Date(y, m, 1).toLocaleDateString('en-IN', {month:'long'})} 👋</h1>
+    <div class="s">${d.count} entries · ${ok ? 'a month that closed in the green' : d.tSalary ? 'a month that leaned on investments' : 'your month at a glance'}</div>
+    <div class="pills"><span class="mr-pill">In ${mrK(d.tIncome)}</span><span class="mr-pill">Out ${mrK(d.tOut)}</span>${d.tInvest ? `<span class="mr-pill">Invested ${mrK(d.tInvest)}</span>` : ''}</div>
+    <img src="${MZ_FULL('wave')}" alt=""></div>
+  <div class="mr-card"><div class="mr-h">💰 Money in vs money out</div><div class="mr-sub">Inner ring: the big groups. Outer ring: the categories inside them.</div>
+    <div class="mr-donuts"><div class="mr-dn"><div class="t">Income</div>${mrDonut(inc.layers, inc.outer, d.tIncome, 'IN', mrK(d.tIncome))}<div class="mr-leg">${inc.leg}</div></div>
+    <div class="mr-dn"><div class="t">Expense</div>${mrDonut(exp.layers, exp.outer, d.tOut, 'OUT', mrK(d.tOut))}<div class="mr-leg">${exp.leg}</div></div></div></div>
+  <div class="mr-card"><div class="mr-h">🧮 How far your salary went</div><div class="mr-sub">Salary ${mrK(d.tSalary)}${d.tOther ? ` · other income ${mrK(d.tOther)} not counted here` : ''}</div>
+    <div class="mr-cov"><div class="lbl"><span>Expenses used</span><b>${covSpend}% of salary</b></div><div class="mr-bar"><i style="width:${Math.min(100, covSpend)}%; background:linear-gradient(90deg,#F2994A,#F6B26B);"></i>${covSpend > 100 ? '<span class="over" style="width:6%"></span>' : ''}</div></div>
+    <div class="mr-cov"><div class="lbl"><span>Expenses + investments used</span><b>${covAll}% of salary</b></div><div class="mr-bar"><i style="width:${Math.min(100, covAll)}%; background:linear-gradient(90deg,#F2994A ${covAll ? Math.round(covSpend / covAll * 100) : 0}%,#2BB673 ${covAll ? Math.round(covSpend / covAll * 100) : 0}%);"></i>${covAll > 100 ? '<span class="over" style="width:8%"></span>' : ''}</div></div>
+    ${verdict}</div>
+  ${abc ? `<div class="mr-card"><div class="mr-h">🍰 Where the spending went</div><div class="mr-sub">Investments, SIPs and home-loan EMI left out — they build what you own.</div>
+    <div class="mr-stack">${[['A', abc.sA], ['B', abc.sB], ['C', abc.sC]].filter(([, v])=> v > 0).map(([k, v])=> `<span style="width:${v / abc.total * 100}%; background:${MR_COL[k]}"></span>`).join('')}</div>
+    <div class="mr-abc">${band('A', 'The big few', 'Where most of the money goes', abc.A, abc.pA, abc.sA)}${band('B', 'The steady middle', 'Regular, worth a monthly glance', abc.B, abc.pB, abc.sB)}${band('C', 'The small stuff', "Many little things — don't sweat these", abc.C, abc.pC, abc.sC)}</div></div>` : ''}
+  ${cmp}
+  <div class="mr-card"><div class="mr-munzo"><img src="${MZ_FULL('shield')}" alt=""><div class="bub">Munzo's ideas for ${new Date(y, m + 1, 1).toLocaleDateString('en-IN', {month:'long'})} ✨</div></div>
+    <div class="mr-ideas">${ideas.map(i=> `<div class="mr-idea"><div class="em">${i.em}</div><div><div class="tt">${storyEsc(i.tt)}</div><div class="tx">${i.tx}</div></div></div>`).join('')}</div></div>
+  <div class="mr-foot">The 25th · made from your own entries · ${new Date().toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'})}</div>`;
+}
+function openMonthReport(y, m){
+  const now = new Date(); if(y === undefined){ const p = new Date(now.getFullYear(), now.getMonth(), 1); y = p.getFullYear(); m = p.getMonth(); }
+  document.getElementById('mreport-title').textContent = new Date(y, m, 1).toLocaleDateString('en-IN', {month:'long', year:'numeric'});
+  mreportMonth = {y, m};
+  document.getElementById('mreport-body').innerHTML = monthReportHtml(y, m);
+  openFullscreen('mreport-page');
+}
+document.getElementById('mreport-back').addEventListener('click', ()=> closeFullscreen('mreport-page'));
+let mreportMonth = null;
+function loadScriptOnce(src){ return new Promise((ok, no)=>{ if(document.querySelector(`script[src="${src}"]`)) return ok(); const el = document.createElement('script'); el.src = src; el.onload = ok; el.onerror = no; document.head.appendChild(el); }); }
+async function monthReportPDF(){
+  const btn = document.getElementById('mreport-pdf'); const was = btn.textContent;
+  try{
+    btn.textContent = 'Making…'; btn.disabled = true;
+    if(!window.html2canvas) await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    if(!window.jspdf) await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    const { jsPDF } = window.jspdf; const doc = new jsPDF({unit:'mm', format:'a4'});
+    const W = 210, H = 297, M = 12, colW = 132; // phone-width cards, set like a booklet page
+    doc.setFillColor(244, 246, 251); doc.rect(0, 0, W, H, 'F');
+    const blocks = [...document.querySelectorAll('#mreport-body > *')];
+    let y = M;
+    for(const el of blocks){
+      const canvas = await html2canvas(el, {scale: 2, backgroundColor: '#F4F6FB', useCORS: true, logging: false});
+      let h = canvas.height / canvas.width * colW, w = colW;
+      if(h > H - 2 * M){ w = w * (H - 2 * M) / h; h = H - 2 * M; }
+      if(y + h > H - M){ doc.addPage(); doc.setFillColor(244, 246, 251); doc.rect(0, 0, W, H, 'F'); y = M; }
+      doc.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', (W - w) / 2, y, w, h);
+      y += h + 4;
+    }
+    const nm = new Date(mreportMonth.y, mreportMonth.m, 1).toLocaleDateString('en-IN', {month:'long', year:'numeric'});
+    doc.save(`The 25th - ${nm} report.pdf`);
+  }catch(e){ console.error('report pdf', e); alert('The PDF could not be made — check your connection and try again.'); }
+  finally{ btn.textContent = was; btn.disabled = false; }
+}
+document.getElementById('mreport-pdf').addEventListener('click', monthReportPDF);
+
+// v133: an installed app can sit in memory for days and come back showing an older build. When
+// it comes to the front (at most every 10 minutes), the live page is checked; a newer build reloads
+// at once unless a sheet or page is open, then it waits for the next time.
+const MY_BUILD = (document.body.innerHTML.match(/Build: [^<]+/) || [''])[0];
+let lastBuildCheck = 0;
+async function checkNewBuild(){
+  if(Date.now() - lastBuildCheck < 10*60*1000 || !navigator.onLine) return; lastBuildCheck = Date.now();
+  try{
+    const t = await fetch(location.pathname + '?b=' + Date.now(), {cache:'no-store'}).then(r=> r.ok ? r.text() : '');
+    const live = (t.match(/Build: [^<]+/) || [''])[0];
+    if(!live || !MY_BUILD || live === MY_BUILD) return;
+    const busy = document.querySelector('.sheet-backdrop.open, .fullscreen-page.open');
+    if(!busy) location.reload(); else showToast('A new version is ready. It opens next time.', 4000);
+  }catch(e){}
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') checkNewBuild(); });
+window.addEventListener('pageshow', e=>{ if(e.persisted){ lastBuildCheck = 0; checkNewBuild(); } });
+setTimeout(checkNewBuild, 4000);
 (async function init(){
   try{
     const q = new URLSearchParams(location.search);
