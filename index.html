@@ -923,6 +923,18 @@ setTimeout(function(){
   .mv-filters button small{opacity:.75; margin-left:3px;}
   .mv-day{font-size:12px; font-weight:600; color:var(--ink-soft); letter-spacing:.04em; text-transform:uppercase; margin:14px 2px 6px;}
   .mv-kind{font-size:10.5px; border-radius:999px; padding:1px 7px; margin-left:6px; border:1px solid var(--line); color:var(--ink-soft); vertical-align:1px;}
+  /* ---- v131: review rows: swipe left = Add, swipe right = Not a transaction (Home and See all) ---- */
+  .hr-row .hr-under{display:none;}
+  .hr-row .hr-add, .hr-row .hr-not{position:absolute; inset:0; display:flex; align-items:center; font-size:13.5px; font-weight:600; color:#fff; opacity:0; transition:opacity .1s;}
+  .hr-row .hr-add{justify-content:flex-end; padding-right:16px; background:linear-gradient(90deg, transparent, var(--sage));}
+  .hr-row .hr-add.check{background:linear-gradient(90deg, transparent, var(--peri));}
+  .hr-row .hr-not{justify-content:flex-start; padding-left:16px; background:linear-gradient(270deg, transparent, var(--gold));}
+  .hr-row.sw-l .hr-add, .hr-row.sw-r .hr-not{opacity:1;}
+  .hr-ok{animation:hrNudge 2.6s ease-in-out 0.8s 2;}
+  @keyframes hrNudge{0%,30%,100%{transform:translateX(0);} 10%{transform:translateX(-10px);} 20%{transform:translateX(-4px);}}
+  .hr-swipe-tip{font-size:11.5px; color:var(--ink-soft); padding:6px 0 4px; text-align:center;}
+  #pending-review-wrap .hr-card{margin-bottom:16px;}
+  .hr-why{font-size:12px; color:var(--ink-soft); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 </style>
 </head>
 <body>
@@ -1790,7 +1802,7 @@ setTimeout(function(){
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-30 · v133-month-report</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-31 · v134-swipe-reader</p>
   </div>
 </div>
 
@@ -4757,9 +4769,88 @@ function renderHomeMood(isCurrent){
 // B3: review card, top 3 with ✓ and swipe; the full list is on its own page
 function quickOk(it){
   if(it.possible) return false;
-  if(it.status === 'duplicate') return true;
+  if(it.status === 'duplicate') return false; // v131: a possible duplicate is always opened and checked
   const acct = validatedAccountId(it.accountId, it.sourceEmail);
-  return !!(it.category && acct && !paybackHint(it) && !claimHint(it) && !it.claimHint);
+  return !!(readerGuess(it).category && acct && !paybackHint(it) && !claimHint(it) && !it.claimHint);
+}
+function swipeTipHtml(){ return '<div class="hr-swipe-tip">← Swipe left to add · swipe right if it’s not a transaction →</div>'; }
+// v131: what the reader suggests for a fetched entry, from the household's own past entries.
+// (1) A category must fit the amount: if this category has never seen anything near it
+//     (4× its biggest in 6 months, and ₹2,000+), no category is picked and the row says why.
+// (2) No payee name (IndusInd alerts, Axis credits…): the same account, an amount within
+//     about 25% and the same time of day (±2 hours) in the last 4 months. 3 or more such
+//     entries, mostly (60%+) one category → that category is suggested, with the pattern shown.
+// Only ever a suggestion: nothing is added until the household taps or swipes.
+const GUESS_DAY = 86400000;
+function noPayeeName(p){ const n = String(p||'').trim().toLowerCase(); return !n || n === 'unknown' || n === 'expense' || n === 'income'; }
+function catHistory(cat, type, days){
+  const since = Date.now() - days*GUESS_DAY;
+  return (state.transactions||[]).filter(t=> t.category === cat && t.type === type && new Date(t.ts).getTime() >= since && t.amount > 0);
+}
+function amountFits(cat, amount, type){
+  const h = catHistory(cat, type, 180);
+  if(h.length < 4) return true;
+  const max = Math.max(...h.map(t=> t.amount));
+  return !(amount >= 2000 && amount > 4*max);
+}
+function dayPart(h){ return h < 5 ? 'late nights' : h < 12 ? 'mornings' : h < 17 ? 'afternoons' : h < 22 ? 'evenings' : 'late nights'; }
+function patternFor(it, acct){
+  if(!acct || !(it.amount > 0)) return null;
+  const since = Date.now() - 120*GUESS_DAY, at = new Date(it.ts), hr = at.getHours() + at.getMinutes()/60;
+  const near = (state.transactions||[]).filter(t=>{
+    if(t.type !== it.type || !t.category || (t.account || t.from) !== acct || t.id === it.savedId) return false;
+    const d = new Date(t.ts); if(d.getTime() < since || d.getTime() > at.getTime() + GUESS_DAY) return false;
+    if(Math.abs(t.amount - it.amount) > Math.max(50, 0.25*it.amount)) return false;
+    const h = d.getHours() + d.getMinutes()/60; const gap = Math.min(Math.abs(h - hr), 24 - Math.abs(h - hr));
+    return gap <= 2;
+  });
+  if(near.length < 3) return null;
+  const by = {}; near.forEach(t=> by[t.category] = (by[t.category]||0) + 1);
+  const [cat, n] = Object.entries(by).sort((a,b)=> b[1]-a[1])[0];
+  if(n / near.length < 0.6) return null;
+  const amts = near.filter(t=> t.category === cat).map(t=> t.amount);
+  return {category: cat, n, lo: Math.min(...amts), hi: Math.max(...amts), part: dayPart(at.getHours())};
+}
+function readerGuess(it){
+  const out = {category: it.category || null, from: it.category ? 'reader' : null, pattern: null, unfit: null};
+  if(it.fromSpoken || it.status === 'duplicate' || !(it.type === 'expense' || it.type === 'income')) return out;
+  if(out.category && !amountFits(out.category, it.amount, it.type)){ out.unfit = out.category; out.category = null; out.from = null; }
+  const learned = !noPayeeName(it.payee) && suggestForPayee(it.payee);
+  if(!out.category || (noPayeeName(it.payee) && !learned)){
+    const p = patternFor(it, validatedAccountId(it.accountId, it.sourceEmail));
+    if(p && amountFits(p.category, it.amount, it.type)){ out.category = p.category; out.from = 'pattern'; out.pattern = p; out.unfit = null; }
+  }
+  return out;
+}
+function patternWords(p){ return `Like ${p.n} before · ${fmtRange(p.lo, p.hi)} · ${p.part}`; }
+function fmtRange(lo, hi){ const r = v=> '₹' + Math.round(v).toLocaleString('en-IN'); return lo === hi ? r(lo) : r(lo) + '–' + Math.round(hi).toLocaleString('en-IN'); }
+function reviewRowHtml(it){
+  const isDup = it.status === 'duplicate';
+  const acctObj = it.accountId ? [...state.accounts, ...state.cards].find(a=> a.id === validatedAccountId(it.accountId, it.sourceEmail)) : null;
+  const day = new Date(it.ts).toLocaleDateString('en-IN', {day:'numeric', month:'short'});
+  const where = acctObj ? acctObj.name : (it.fromSpoken ? 'spoken · choose the bank' : 'choose the account');
+  const extra = paybackHint(it) || claimHint(it);
+  const g = readerGuess(it);
+  // a payback or claim explains a look-alike better than "already added"
+  const hint = isDup && !extra ? 'Looks already added — open to check'
+    : g.unfit ? 'Pick a category'
+    : [g.category && !it.fromSpoken ? catShort(g.category) : '', extra].filter(Boolean).join(' · ');
+  const why = isDup ? '' : g.unfit ? `${fmt(it.amount)} is unusual for ${catShort(g.unfit)}` : g.pattern ? patternWords(g.pattern) : '';
+  const ok = quickOk(it);
+  return `<div class="hr-row" data-noswipe data-hrid="${it.id}"><div class="hr-under"></div><div class="hr-add ${ok ? '' : 'check'}">${ok ? 'Add ✓' : 'Check & add ›'}</div><div class="hr-not">Not a transaction</div><div class="hr-slide">
+    <div class="emo-ic" style="${isDup?'opacity:.55;':''}">${g.category ? catEmoji(g.category) : (paybackHint(it) ? '🤝' : '…')}</div>
+    <div class="hr-body"><div class="name">${storyEsc(noPayeeName(it.payee) ? (g.pattern ? 'No name in the alert' : 'Unknown') : it.payee)}</div><div class="sub" style="${acctObj?'':'color:var(--gold);'}">${day}${it.ts ? ', ' + new Date(it.ts).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'}) : ''} · ${storyEsc(where)}</div>${hint ? `<div class="hr-hint" style="${isDup?'color:var(--sage);':g.unfit?'color:var(--gold);':''}">${storyEsc(hint)}</div>` : ''}${why ? `<div class="hr-why">${storyEsc(why)}</div>` : ''}</div>
+    <div class="amt ${it.type==='income'?'pos':'neg'} maskable">${fmt(it.amount)}</div>
+    ${ok ? `<button class="hr-ok" data-hrok="${it.id}" aria-label="Add as suggested">✓</button>` : ''}
+  </div></div>`;
+}
+function wireReviewRows(box){
+  box.querySelectorAll('[data-hrok]').forEach(b=> b.addEventListener('click', e=>{ e.stopPropagation(); const r = b.closest('.hr-row'); if(r && r._swiped) return; quickAcceptImport(b.getAttribute('data-hrok')); }));
+  box.querySelectorAll('.hr-row').forEach(row=>{
+    const id = row.getAttribute('data-hrid');
+    row.querySelector('.hr-slide').addEventListener('click', ()=>{ if(row._swiped) return; openReviewImport(id); });
+    wireSwipe2(row, ()=>{ const it = (state.pendingImports||[]).find(p=> p.id === id); if(it && quickOk(it)) quickAcceptImport(id); else { const sl = row.querySelector('.hr-slide'); sl.style.transform = ''; row.classList.remove('sw-l'); openReviewImport(id); } }, ()=> swipeDismissImport(id));
+  });
 }
 function renderHomeReview(items, otherCount, possibleCount){
   const wrap = document.getElementById('home-review-wrap'); if(!wrap) return;
@@ -4771,35 +4862,17 @@ function renderHomeReview(items, otherCount, possibleCount){
     if(document.getElementById('review-page').classList.contains('open')) closeFullscreen('review-page');
     return;
   }
-  const rows = items.slice(0, 3).map(it=>{
-    const meta = catMeta(it.category);
-    const isDup = it.status === 'duplicate';
-    const acctObj = it.accountId ? [...state.accounts, ...state.cards].find(a=> a.id === validatedAccountId(it.accountId, it.sourceEmail)) : null;
-    const day = new Date(it.ts).toLocaleDateString('en-IN', {day:'numeric', month:'short'});
-    const where = acctObj ? acctObj.name : (it.fromSpoken ? 'spoken · choose the bank' : 'choose the account');
-    const extra = paybackHint(it) || claimHint(it);
-    const hint = isDup ? 'Looks already added' : [it.category && !it.fromSpoken ? catShort(it.category) : '', extra].filter(Boolean).join(' · ');
-    return `<div class="hr-row" data-noswipe data-hrid="${it.id}"><div class="hr-under">Not a transaction</div><div class="hr-slide">
-      <div class="emo-ic" style="${isDup?'opacity:.55;':''}">${it.category ? catEmoji(it.category) : (paybackHint(it) ? '🤝' : '…')}</div>
-      <div class="hr-body"><div class="name">${storyEsc(it.payee||'')}</div><div class="sub" style="${acctObj?'':'color:var(--debt);'}">${day} · ${storyEsc(where)}</div>${hint ? `<div class="hr-hint" style="${isDup?'color:var(--sage);':''}">${storyEsc(hint)}</div>` : ''}</div>
-      <div class="amt ${it.type==='income'?'pos':'neg'} maskable">${fmt(it.amount)}</div>
-      ${quickOk(it) ? `<button class="hr-ok" data-hrok="${it.id}" aria-label="${isDup ? 'Already added' : 'Add as suggested'}">✓</button>` : ''}
-    </div></div>`;
-  }).join('');
+  const rows = items.slice(0, 3).map(reviewRowHtml).join('');
   const rest = n - Math.min(3, items.length);
   wrap.innerHTML = `<div class="home-card hr-card">
     <div class="hr-head"><span class="t">${n} to review · 30 sec ⏱</span><button class="link-btn" id="review-see-all">See all</button></div>
     ${rows}
+    ${(lsGet('fa-swipes', 0) < 3 && items.length) ? swipeTipHtml() : ''}
     ${rest > 0 ? `<div class="hr-more" id="review-more">+ ${rest} more${otherCount ? ' (transfers or matches to confirm)' : possibleCount ? ' (possible ones from other senders)' : ''}</div>` : ''}
   </div>`;
   document.getElementById('review-see-all').addEventListener('click', ()=> openFullscreen('review-page'));
   const more = document.getElementById('review-more'); if(more) more.addEventListener('click', ()=> openFullscreen('review-page'));
-  wrap.querySelectorAll('[data-hrok]').forEach(b=> b.addEventListener('click', e=>{ e.stopPropagation(); const r = b.closest('.hr-row'); if(r && r._swiped) return; quickAcceptImport(b.getAttribute('data-hrok')); }));
-  wrap.querySelectorAll('.hr-row').forEach(row=>{
-    const id = row.getAttribute('data-hrid');
-    row.querySelector('.hr-slide').addEventListener('click', ()=>{ if(row._swiped) return; openReviewImport(id); });
-    wireSwipeLeft(row, ()=> swipeDismissImport(id));
-  });
+  wireReviewRows(wrap);
 }
 async function quickAcceptImport(id){
   const imp = (state.pendingImports||[]).find(p=> p.id === id); if(!imp) return;
@@ -4808,9 +4881,47 @@ async function quickAcceptImport(id){
     if(imp.status === 'duplicate'){
       dismissImportItem(imp, 'already_logged'); await saveState(); render(); showToast('Marked as already added'); return;
     }
+    const n0 = state.transactions.length, pl0 = (state.personLedger||[]).length, oc0 = (state.importOutcomes||[]).length;
     openReviewImport(id, true);
     await riApprove();
+    const added = state.transactions.slice(n0), addedPl = (state.personLedger||[]).slice(pl0), addedOc = (state.importOutcomes||[]).slice(oc0);
+    if(added.length || addedPl.length) showUndoToast(`Added ${imp.payee || ''} ${fmt(imp.amount)}`.replace(/\s+/g,' '), async ()=>{
+      added.forEach(t=>{ if(t.forWhom === 'split') removeSplitShares(t); });
+      state.transactions = state.transactions.filter(t=> !added.includes(t));
+      state.personLedger = (state.personLedger||[]).filter(e=> !addedPl.includes(e));
+      state.importOutcomes = (state.importOutcomes||[]).filter(o=> !addedOc.includes(o));
+      if(!state.pendingImports.some(p=> p.id === imp.id)) state.pendingImports.push(imp);
+      recomputeBudgetActuals(); await saveState(); render();
+    });
   } finally { setTimeout(()=>{ quickAcceptImport._busy = false; }, 300); }
+}
+// v131: both ways. Left = add (or open to check), right = not a transaction.
+function wireSwipe2(row, onLeft, onRight){
+  const slide = row.querySelector('.hr-slide');
+  let x0 = null, y0 = 0, dx = 0, dragging = false;
+  row.addEventListener('pointerdown', e=>{ x0 = e.clientX; y0 = e.clientY; dx = 0; dragging = false; slide.style.transition = ''; });
+  row.addEventListener('pointermove', e=>{
+    if(x0 === null) return;
+    const mx = e.clientX - x0, my = e.clientY - y0;
+    if(!dragging){
+      if(Math.abs(mx) > 10 && Math.abs(mx) > Math.abs(my) * 1.5){ dragging = true; try{ row.setPointerCapture(e.pointerId); }catch(_){} }
+      else if(Math.abs(my) > 10){ x0 = null; return; }
+      else return;
+    }
+    dx = mx; slide.style.transform = `translateX(${dx}px)`;
+    row.classList.toggle('sw-l', dx < 0); row.classList.toggle('sw-r', dx > 0);
+  });
+  const end = ()=>{
+    if(dragging){
+      row._swiped = true; setTimeout(()=>{ row._swiped = false; }, 400);
+      slide.style.transition = 'transform .2s ease';
+      const far = Math.min(110, row.offsetWidth * 0.33);
+      if(Math.abs(dx) > far){ lsSet('fa-swipes', lsGet('fa-swipes', 0) + 1); slide.style.transform = `translateX(${dx < 0 ? '-110%' : '110%'})`; setTimeout(dx < 0 ? onLeft : onRight, 180); }
+      else { slide.style.transform = ''; row.classList.remove('sw-l', 'sw-r'); }
+    }
+    x0 = null; dragging = false;
+  };
+  row.addEventListener('pointerup', end); row.addEventListener('pointercancel', end);
 }
 function wireSwipeLeft(row, onSwipe){
   const slide = row.querySelector('.hr-slide');
@@ -10150,30 +10261,11 @@ function renderPendingReview(){
   const dupCount = items.filter(i=>i.status==='duplicate').length;
   const spokenNeedBank = all.filter(i=> i.fromSpoken && !i.accountId).length;
   const anySpoken = items.some(i=> i.fromSpoken);
-  wrap.innerHTML = `<div class="card queue-card" style="margin-bottom:16px;">
-    <div class="row"><div><div class="name"><span class="q-dot"></span>${items.length} transaction${items.length>1?'s':''} ${anySpoken ? 'waiting for you' : 'from your email'}</div><div class="sub">${newCount} to review${dupCount?`, ${dupCount} look like duplicates`:''}</div>${spokenNeedBank ? `<div class="sub" id="spoken-nudge" style="color:#9A6BFF;">${spokenNeedBank} spoken entr${spokenNeedBank===1?'y needs':'ies need'} a bank</div>` : ''}</div>
-      <button class="link-btn" id="clear-all-pending-btn" style="color:var(--debt);">Clear all</button>
-    </div>
-    ${items.map(it=>{
-      if(it.fromSpoken) return spokenRowHtml(it);
-      const meta = catMeta(it.category);
-      const isDup = it.status==='duplicate';
-      const acctObj = it.accountId ? [...state.accounts, ...state.cards].find(a=>a.id===validatedAccountId(it.accountId, it.sourceEmail)) : null;
-      const acctLabel = acctObj ? acctObj.name : 'account not detected';
-      const matchedObj = it.matchedAccount ? [...state.accounts, ...state.cards].find(a=>a.id===it.matchedAccount) : null;
-      const mismatchNote = (isDup && matchedObj && matchedObj.id !== it.accountId)
-        ? `<div class="sub" style="color:var(--peri);">Matches your transaction in ${matchedObj.name}</div>` : '';
-      return `<div class="row" data-reviewimport="${it.id}" style="cursor:pointer;">
-        <div style="display:flex; align-items:center; gap:11px; ${isDup?'opacity:0.55;':''}">
-          <div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
-          <div><div class="name">${it.payee}</div><div class="sub">${new Date(it.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div><div class="sub" style="color:${acctObj?'inherit':'var(--debt)'};">Email says: ${acctLabel}</div>${mismatchNote}${(()=>{ const h = paybackHint(it) || claimHint(it); return h ? `<div class="sub" style="color:var(--peri);">${storyEsc(h)}</div>` : ''; })()}</div>
-        </div>
-        <div style="text-align:right;">
-          <div class="amt ${it.type==='income'?'pos':'neg'}">${fmt(it.amount)}</div>
-          ${isDup ? '<div class="sub" style="font-size:10.5px; color:var(--sage);">already added — tap to check</div>' : ''}
-        </div>
-      </div>`;
-    }).join('')}
+  wrap.innerHTML = `<div class="home-card hr-card">
+    <div class="hr-head"><span class="t">${items.length} to review${dupCount ? ` · ${dupCount} look already added` : ''}</span><button class="link-btn" id="clear-all-pending-btn" style="color:var(--gold);">Clear all</button></div>
+    ${spokenNeedBank ? `<div class="sub" id="spoken-nudge" style="color:#9A6BFF;">${spokenNeedBank} spoken entr${spokenNeedBank===1?'y needs':'ies need'} a bank</div>` : ''}
+    ${items.map(it=> it.fromSpoken && !it.accountId ? spokenRowHtml(it) : reviewRowHtml(it)).join('')}
+    ${lsGet('fa-swipes', 0) < 3 ? swipeTipHtml() : ''}
   </div>` + possibleHtml;
   wrap.innerHTML = matchHtml + pairsHtml + wrap.innerHTML;
   wireTransferPairs(wrap, pairs);
@@ -10191,6 +10283,7 @@ function renderPendingReview(){
   wrap.querySelectorAll('[data-reviewimport]').forEach(el=>{
     el.addEventListener('click', ()=> openReviewImport(el.getAttribute('data-reviewimport')));
   });
+  wireReviewRows(wrap);
 }
 
 const reviewImportBackdrop = document.getElementById('reviewimport-backdrop');
@@ -10266,7 +10359,8 @@ function renderReviewChips(imp){
 
   const catOptions = riSelectedType==='income' ? state.budget.filter(b=>b.income).map(b=>b.cat) : state.budget.filter(b=>!b.income).map(b=>b.cat);
   const cats = [...new Set([...catOptions, OTHER_EXPENSE_CAT])];
-  if(!cats.includes(riSelectedCat)) riSelectedCat = cats.includes(imp.category) ? imp.category : cats[0];
+  if(riSelectedCat && !cats.includes(riSelectedCat)) riSelectedCat = null;
+  if(!riSelectedCat && !(imp._guess && imp._guess.unfit)) riSelectedCat = cats.includes(imp.category) ? imp.category : cats[0];
   const baseLabels = cats.map(c => c.split(' (')[0].split(',')[0]);
   document.getElementById('ri-cat-grid').innerHTML = cats.map((c,i)=>{
     const meta = catMeta(c);
@@ -10282,8 +10376,9 @@ function renderReviewChips(imp){
     el.addEventListener('click', ()=>{ riSelectedCat = el.dataset.ricat; riCatPickerOpen = false; renderReviewChips(imp); });
   });
   const riCatMeta = catMeta(riSelectedCat);
-  document.getElementById('ri-cat-summary').innerHTML =
-    `<div class="ps-icon" style="background:${riCatMeta.bg}; color:${riCatMeta.tint};">${riCatMeta.em}</div><div class="ps-name">${riSelectedCat}</div><div class="ps-change">${riCatPickerOpen?'Cancel':'Change'}</div>`;
+  document.getElementById('ri-cat-summary').innerHTML = riSelectedCat
+    ? `<div class="ps-icon" style="background:${riCatMeta.bg}; color:${riCatMeta.tint};">${riCatMeta.em}</div><div class="ps-name">${riSelectedCat}</div><div class="ps-change">${riCatPickerOpen?'Cancel':'Change'}</div>`
+    : `<div class="ps-icon" style="background:var(--paper-dim); color:var(--gold);">?</div><div class="ps-name" style="color:var(--gold);">Choose a category</div><div class="ps-change">${riCatPickerOpen?'Cancel':'Choose'}</div>`;
   document.getElementById('ri-cat-summary').onclick = ()=>{ riCatPickerOpen = !riCatPickerOpen; renderReviewChips(imp); };
   document.getElementById('ri-cat-grid').classList.toggle('hide', !riCatPickerOpen);
 
@@ -10379,10 +10474,11 @@ function openReviewImport(id, silent){
   if(!imp) return;
   activeImportId = id;
   riSelectedType = imp.type==='income' ? 'income' : 'expense';
-  riSelectedCat = imp.category;
+  const guess = readerGuess(imp); imp._guess = guess;
+  riSelectedCat = guess.category;
   riSelectedAccount = validatedAccountId(imp.accountId, imp.sourceEmail);
   riSelectedPerson = null;
-  riCatPickerOpen = false; riAcctPickerOpen = false;
+  riCatPickerOpen = !!guess.unfit; riAcctPickerOpen = false;
   riPersonSelectedCat = null; riPersonCatPickerOpen = false;
   riTransferTarget = null; riTransferPickerOpen = false;
   { const pr = findTransferPairs().find(x=> x.kind==='both' && (x.out.id===imp.id || x.inn.id===imp.id));
@@ -10394,6 +10490,8 @@ function openReviewImport(id, silent){
     + (imp.possible ? 'From an address that does not look like a bank, card or payment app. Add it only if it is a real transaction. ' : imp.unknownSender ? (imp.bankLike ? 'New address that looks like a bank. Check the account. ' : 'New address, not tied to any account. Check the account. ') : '') + sourceLine;
   { const warn = (imp.status==='duplicate' && !findPayback(imp) ? 'Possible duplicate. Check before adding. ' : '') + (imp.fromSpoken && imp.checkAmount ? 'Check the amount. ' : '') + (imp.fromSpoken && imp.checkDirection ? 'Check Spent or Received. ' : '')
       + (imp.dirLearned ? 'Direction set as you corrected it before for this sender. ' : '')
+      + (guess.unfit ? fmt(imp.amount) + ' is far above anything in ' + guess.unfit + ', so no category is picked. ' : '')
+      + (guess.pattern ? 'Category from a pattern: ' + guess.pattern.n + ' earlier entries on this account of ' + fmtRange(guess.pattern.lo, guess.pattern.hi) + ', ' + guess.pattern.part + '. ' : '')
       + (imp.possible ? 'From an address that does not look like a bank, card or payment app. Add it only if it is real. ' : imp.unknownSender ? (imp.bankLike ? 'New address that looks like a bank. Check the account. ' : 'New address, not tied to any account. Check the account. ') : '')
       + (imp.fromSpoken ? 'You said: “' + (imp.heard||imp.subject||'') + '”' : '');
     const al = document.getElementById('ri-alert'); al.textContent = warn.trim(); al.classList.toggle('hide', !warn.trim()); }
@@ -10423,6 +10521,7 @@ async function riApprove(){
   const amount = parseFloat(document.getElementById('ri-amount').value);
   if(!amount || amount<=0){ alert('Enter a valid amount.'); return; }
   if(!riSelectedAccount){ alert('Please choose an account or card first.'); return; }
+  if(!riSelectedCat && segValue('ri-mode') === 'regular' && (riSelectedType === 'expense' || riSelectedType === 'income')){ riCatPickerOpen = true; renderReviewChips(imp); showToast('Choose a category first'); return; }
   const payee = document.getElementById('ri-payee').value.trim() || imp.payee;
   const note = riNote();
   const mode = segValue('ri-mode');
@@ -10544,7 +10643,8 @@ document.getElementById('ri-flip-dir').addEventListener('click', ()=>{
 // instead of an impression. Nothing here changes how emails are read.
 function recordImportOutcome(imp, outcome, final, mode, why, savedId){
   if(!Array.isArray(state.importOutcomes)) state.importOutcomes = [];
-  const parsed = {type: imp.typeRead || imp.type || null, amount: imp.amount||0, payee: imp.payee||'', accountId: validatedAccountId(imp.accountId, imp.sourceEmail), category: imp.category||null};
+  const g = imp._guess || readerGuess(imp);
+  const parsed = {type: imp.typeRead || imp.type || null, amount: imp.amount||0, payee: imp.payee||'', accountId: validatedAccountId(imp.accountId, imp.sourceEmail), category: g.category||null, serverCategory: imp.category||null};
   const changed = [];
   if(final){
     if(final.type !== parsed.type) changed.push('direction');
@@ -10556,7 +10656,7 @@ function recordImportOutcome(imp, outcome, final, mode, why, savedId){
   state.importOutcomes.push({
     id: genId('io'), at: new Date().toISOString(), emailTs: imp.ts||null, sourceEmail: imp.sourceEmail||null,
     gmailMessageId: imp.gmailMessageId||null, sender: imp.sender||null, subject: imp.subject||null, outcome, mode: mode||null, why: why||null,
-    flaggedDuplicate: imp.status==='duplicate', learnedDir: !!imp.dirLearned, unknownSender: !!imp.unknownSender, bankLike: !!imp.bankLike, parsed, final: final||null, changed, savedId: savedId||null
+    guess: g.from || null, guessUnfit: g.unfit || null, flaggedDuplicate: imp.status==='duplicate', learnedDir: !!imp.dirLearned, unknownSender: !!imp.unknownSender, bankLike: !!imp.bankLike, parsed, final: final||null, changed, savedId: savedId||null
   });
   if(state.importOutcomes.length > 600) state.importOutcomes = state.importOutcomes.slice(-600);
 }
