@@ -3,6 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <script>
+/* v135: SAMPLE HOUSEHOLD (?sample=1). Dudu & Nuts, made-up data, nothing saved to the cloud.
+   Its clock is set to 12 Nov 2026 so September (savings), October (salary used end to end,
+   Karwa Chauth) and November (Diwali, running) always read the same. */
+(function(){
+  try{
+    if(!/[?&]sample=1\b/.test(location.search)) return;
+    window.SAMPLE = true;
+    var RealDate = Date, target = new RealDate(2026, 10, 12, 19, 30, 0).getTime(), off = target - RealDate.now();
+    function SD(){ var a = arguments; if(!(this instanceof SD)) return new RealDate(RealDate.now() + off).toString();
+      return a.length === 0 ? new RealDate(RealDate.now() + off) : new (Function.prototype.bind.apply(RealDate, [null].concat([].slice.call(a))))(); }
+    SD.prototype = RealDate.prototype; SD.now = function(){ return RealDate.now() + off; }; SD.UTC = RealDate.UTC; SD.parse = RealDate.parse;
+    window.Date = SD;
+  }catch(e){}
+})();
+</script>
+<script>
 /* v132: if the app has not started 10 seconds after opening, say so instead of a half-drawn
    screen, with the errors the phone saw, so the cause can be sent and fixed. */
 window.__bootErrs = [];
@@ -935,6 +951,9 @@ setTimeout(function(){
   .hr-swipe-tip{font-size:11.5px; color:var(--ink-soft); padding:6px 0 4px; text-align:center;}
   #pending-review-wrap .hr-card{margin-bottom:16px;}
   .hr-why{font-size:12px; color:var(--ink-soft); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  /* ---- v135: sample household band ---- */
+  #sample-band{position:fixed; left:0; right:0; bottom:calc(env(safe-area-inset-bottom,0px) + 74px); margin:0 auto; width:max-content; max-width:94%; z-index:60; background:rgba(227,182,87,.95); color:#2a2006; font-size:12px; border-radius:999px; padding:5px 6px 5px 12px; box-shadow:0 4px 16px rgba(0,0,0,.25); display:flex; align-items:center; gap:6px;}
+  #sample-band button{border:0; background:#2a2006; color:#fff; border-radius:999px; padding:4px 10px; font:inherit; font-size:12px; cursor:pointer;}
 </style>
 </head>
 <body>
@@ -1802,7 +1821,7 @@ setTimeout(function(){
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-31 · v134b-report-button</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-31 · v135-sample</p>
   </div>
 </div>
 
@@ -2824,6 +2843,7 @@ function listenToReaderStatus(){
 // A request to the server, carrying the sign-in. -> {status, data}
 async function readerCall(name, opts){
   opts = opts || {};
+  if(window.SAMPLE){ showToast('This is the sample household — sign in to use it with your own bank mails.', 3500); return {status:200, data:{ok:false, sample:true}}; }
   if(!authUser || !authUser.getIdToken) return {status:401, data:{ok:false}};
   const token = await authUser.getIdToken();
   const headers = {Authorization: 'Bearer ' + token};
@@ -12443,6 +12463,96 @@ async function checkNewBuild(){
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') checkNewBuild(); });
 window.addEventListener('pageshow', e=>{ if(e.persisted){ lastBuildCheck = 0; checkNewBuild(); } });
 setTimeout(checkNewBuild, 4000);
+// ---------------------------------------------------------------------------
+// v135 SAMPLE HOUSEHOLD: Dudu (salary ₹1 lakh, on the 30th) and Nuts (₹1.5 lakh, on the 1st).
+// Same kind of spending as a real household, no parties or house help. Sep: a saving month.
+// Oct: the salary used end to end, Karwa Chauth gift. Nov (running, to the 12th): Diwali shopping.
+// Built fresh every time the sample opens; saved only on this phone under its own name.
+// ---------------------------------------------------------------------------
+const SAMPLE_HID = 'sample';
+function sampleRand(seed){ let x = seed >>> 0; return ()=>{ x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; }
+function buildSampleState(){
+  const st = JSON.parse(JSON.stringify(STARTER));
+  const r = sampleRand(2511);
+  const jit = (v, p)=> Math.round(v * (1 + (r() * 2 - 1) * (p || 0.15)) / 10) * 10;
+  st.accounts = [
+    {id:'s_dhdfc', name:'Dudu HDFC Salary', tag:'...4421', opening:86500, em:'🏦'},
+    {id:'s_nicici', name:'Nuts ICICI', tag:'...7713', opening:142300, em:'🏦'},
+    {id:'s_cash', name:'Cash', tag:'', opening:4200, em:'👛'}];
+  st.cards = [
+    {id:'s_dcard', name:'Dudu SBI Card', tag:'...0918', openingDue:0, em:'💳'},
+    {id:'s_ncard', name:'Nuts Axis Card', tag:'...3307', openingDue:0, em:'💳'}];
+  const B = (cat, budget, extra)=> Object.assign({cat, budget, actual:0}, extra || {});
+  st.budget = [
+    B('Dudu Salary', 0, {income:true}), B('Nuts Salary', 0, {income:true}), B('Other Income', 0, {income:true}),
+    B("Parents' Monthly Support", 25000, {fixed:true}), B('Groceries', 18000), B('Food & Dining', 9000), B('Daily Commute', 7000), B('Vehicle Fuel', 5000),
+    B('Core Utilities (Power, Gas, Wi-Fi, Water)', 7500, {fixed:true}), B('Essential Shopping (Home & Apparel)', 10000), B('Subscriptions & Entertainment', 1600),
+    B('Medical', 3000), B('Personal (Dudu)', 6000), B('Personal (Nuts)', 6000), B('Car EMI', 11000, {fixed:true}),
+    B('Gifts & Festivals', 5000), B('Lumpy Annual Bills', 0), B('Wealth SIPs', 20000, {invest:true}), B('Other Investments', 10000, {invest:true}), B(OTHER_EXPENSE_CAT, 0)];
+  const T = []; let n = 0;
+  const add = (y, m, d, h, type, cat, amt, payee, acct, extra)=> T.push(Object.assign({id:'s' + (n++), ts:new Date(y, m, d, h, Math.floor(r() * 59)).toISOString(), type, category:cat, amount:amt, payee, account:acct, household:true,
+    remarks: (extra && extra.remarks) || (r() < 0.8 ? 'Imported from email' : 'Logged by Dudu')}, extra || {}));
+  const month = (y, m, upto, k)=>{
+    const D = d=> d <= upto;
+    if(D(1)) add(y,m,1,10,'income','Nuts Salary',150000,'ACME TECH PAYROLL','s_nicici',{isSalary:true});
+    if(D(2)) add(y,m,2,11,'expense',"Parents' Monthly Support",25000,'Papa','s_dhdfc');
+    if(D(5)) add(y,m,5,9,'expense','Wealth SIPs',20000,'Groww SIP','s_nicici');
+    if(D(7)) add(y,m,7,10,'expense','Car EMI',11000,'Hyundai Capital','s_dhdfc');
+    if(D(8)) add(y,m,8,18,'expense','Core Utilities (Power, Gas, Wi-Fi, Water)',jit(3900),'BSES Power','s_dhdfc');
+    if(D(9)) add(y,m,9,12,'expense','Core Utilities (Power, Gas, Wi-Fi, Water)',999,'Airtel Fiber','s_dcard');
+    if(D(10)) add(y,m,10,20,'expense','Subscriptions & Entertainment',649,'Netflix','s_ncard');
+    if(D(12)) add(y,m,12,9,'expense','Core Utilities (Power, Gas, Wi-Fi, Water)',jit(1400),'IGL Gas','s_dhdfc');
+    if(D(15)) add(y,m,15,9,'expense','Other Investments',10000,'Zerodha','s_dhdfc');
+    for(let d = 2; d <= Math.min(28, upto); d += 3) add(y,m,d,19,'expense','Groceries',jit(1700 * k.groc, 0.35),['Blinkit','Zepto','BigBasket','Swiggy Instamart'][d % 4],d % 2 ? 's_ncard' : 's_nicici');
+    for(let d = 3; d <= Math.min(29, upto); d += 4) add(y,m,d,21,'expense','Food & Dining',jit(780 * k.food, 0.4),['Swiggy','Zomato','Haldiram','Chai Point'][d % 4],'s_dcard');
+    for(let d = 1; d <= Math.min(30, upto); d += 2) if(new Date(y,m,d).getDay() % 6) add(y,m,d,9,'expense','Daily Commute',jit(310, 0.3),['Uber','Ola','Rapido','Delhi Metro'][d % 4],d % 3 ? 's_dhdfc' : 's_nicici');
+    for(let d = 6; d <= Math.min(27, upto); d += 10) add(y,m,d,17,'expense','Vehicle Fuel',jit(1550, 0.2),'HP Petrol','s_dcard');
+    for(let d = 4; d <= Math.min(26, upto); d += 11) add(y,m,d,16,'expense','Personal (Dudu)',jit(1500 * k.pers, 0.4),['Decathlon','Barber','Kindle'][d % 3],'s_dcard');
+    for(let d = 5; d <= Math.min(27, upto); d += 11) add(y,m,d,15,'expense','Personal (Nuts)',jit(1700 * k.pers, 0.4),['Nykaa','Salon','Myntra'][d % 3],'s_ncard');
+    if(D(14)) add(y,m,14,13,'expense','Medical',jit(1200),'Apollo Pharmacy','s_nicici');
+    if(D(18)) add(y,m,18,14,'expense','Essential Shopping (Home & Apparel)',jit(3200 * k.shop),'Amazon','s_ncard');
+    if(D(23)) add(y,m,23,14,'expense','Essential Shopping (Home & Apparel)',jit(2600 * k.shop),'IKEA','s_dcard');
+    if(D(20)) add(y,m,20,12,'income','Other Income',jit(1800),'Dividend','s_dhdfc');
+    if(D(30) && m !== 10) add(y,m,30,16,'income','Dudu Salary',100000,'PAO SALARY','s_dhdfc',{isSalary:true});
+  };
+  month(2026, 8, 30, {groc:1, food:1, pers:1, shop:0.9});            // September: a calm month, money kept
+  month(2026, 9, 31, {groc:1.15, food:1.2, pers:1.2, shop:1.4});     // October: everything spent
+  add(2026,9,29,18,'expense','Gifts & Festivals',42000,'Tanishq (Karwa Chauth gift)','s_dcard',{remarks:'Karwa Chauth gift for Nuts · Logged by Dudu'});
+  add(2026,9,28,19,'expense','Gifts & Festivals',3800,'Ferns N Petals','s_ncard');
+  add(2026,9,21,11,'expense','Lumpy Annual Bills',32500,'LIC Premium','s_dhdfc');
+  add(2026,9,24,10,'expense','Lumpy Annual Bills',8900,'Car Insurance','s_dhdfc');
+  add(2026,9,16,13,'expense','Medical',4600,'Max Lab Tests','s_nicici');
+  add(2026,9,27,16,'expense','Personal (Nuts)',9200,'Karwa Chauth outfit','s_ncard');
+  add(2026,9,29,21,'expense','Food & Dining',3600,'Karwa Chauth dinner','s_dcard');
+  add(2026,9,26,10,'expense','Lumpy Annual Bills',11200,'Car service','s_dhdfc');
+  add(2026,9,12,17,'expense','Essential Shopping (Home & Apparel)',6400,'Navratri shopping','s_ncard');
+  add(2026,9,30,19,'expense','Gifts & Festivals',2600,'Sweets for family','s_cash');
+  month(2026, 10, 12, {groc:1.3, food:1.4, pers:1.1, shop:1});       // November to the 12th: Diwali week
+  [[3,'Essential Shopping (Home & Apparel)',18400,'Pepperfry (Diwali)','s_ncard'],[5,'Essential Shopping (Home & Apparel)',14600,'Myntra Diwali Sale','s_ncard'],[6,'Essential Shopping (Home & Apparel)',9800,'Home decor lights','s_dcard'],
+   [7,'Gifts & Festivals',8600,'Haldiram Diwali boxes','s_dcard'],[7,'Gifts & Festivals',6200,'Gifts for family','s_ncard'],[8,'Gifts & Festivals',3500,'Crackers & diyas','s_cash'],[8,'Food & Dining',4200,'Diwali dinner','s_dcard']]
+    .forEach(([d, cat, amt, payee, acct])=> add(2026,10,d,18,'expense',cat,amt,payee,acct));
+  st.transactions = T;
+  // People: a dinner split with Bunty (he owes), Chintu lent us cash (we owe)
+  st.people = [{id:'sp_bunty', name:'Bunty', note:'friend'}, {id:'sp_chintu', name:'Chintu', note:'cousin'}, {id:'sp_rinki', name:'Rinki', note:'Nuts’ sister'}];
+  st.personLedger = [
+    {id:'spl1', personId:'sp_bunty', ts:new Date(2026,10,9,22).toISOString(), type:'gave', delta:1650, account:null, remarks:'Dinner split'},
+    {id:'spl2', personId:'sp_bunty', ts:new Date(2026,9,18,20).toISOString(), type:'gave', delta:1200, account:null, remarks:'Movie tickets'},
+    {id:'spl3', personId:'sp_chintu', ts:new Date(2026,10,4,12).toISOString(), type:'received', delta:-5000, account:'s_dhdfc', remarks:'Borrowed for Diwali', category:null},
+    {id:'spl4', personId:'sp_rinki', ts:new Date(2026,9,10,12).toISOString(), type:'gave', delta:3000, account:'s_nicici', remarks:'Lent for books'}];
+  // bank alerts waiting on Home
+  const P = (id, d, h, amt, type, payee, cat, acct, extra)=> Object.assign({id, gmailMessageId:'g' + id, sourceEmail: acct === 's_nicici' || acct === 's_ncard' ? 'nuts@example.com' : 'dudu@example.com', ts:new Date(2026,10,d,h,12).toISOString(), amount:amt, type, payee, category:cat, accountId:acct, sender: acct === 's_nicici' ? 'customernotification@icici.bank.in' : 'alerts@hdfcbank.bank.in', subject:'Transaction alert', status:'pending'}, extra || {});
+  st.pendingImports = [P('si1', 12, 18, 642, 'expense', 'Blinkit', 'Groceries', 's_nicici'), P('si2', 12, 9, 286, 'expense', 'Uber', 'Daily Commute', 's_dhdfc'),
+    P('si3', 11, 21, 1650, 'income', 'BUNTY SHARMA', null, 's_dhdfc'), P('si4', 11, 13, 1240, 'expense', 'Apollo Pharmacy', 'Medical', 's_nicici')];
+  st.payeeMemory = {}; st.processedGmailIds = []; st.importOutcomes = []; st.dismissedImports = [];
+  st.lastBudgetReviewMonth = '2026-11';
+  return st;
+}
+function sampleBand(){
+  const b = document.createElement('div'); b.id = 'sample-band';
+  b.innerHTML = '👀 <b>Sample household</b> · Dudu &amp; Nuts · nothing is saved <button id="sample-exit">Exit</button>';
+  document.body.appendChild(b);
+  document.getElementById('sample-exit').addEventListener('click', ()=>{ location.href = location.pathname; });
+}
 (async function init(){
   try{
     const q = new URLSearchParams(location.search);
@@ -12452,7 +12562,12 @@ setTimeout(checkNewBuild, 4000);
   const step = (name, f)=>{ try{ const r = f(); if(r && r.catch) return r.catch(e=>{ console.error(name, e); (window.__bootErrs||[]).push(name + ': ' + e.message); }); }catch(e){ console.error(name, e); (window.__bootErrs||[]).push(name + ': ' + e.message); } };
   await step('theme', loadTheme);
   step('mask', loadMaskPref);
-  await step('state', loadState);
+  if(window.SAMPLE){
+    currentHid = SAMPLE_HID; state = buildSampleState(); stateFromStorage = false; normalizeState();
+    readerStatus = {inboxes:[{email:'dudu@example.com', state:'ok'}, {email:'nuts@example.com', state:'ok'}], lastRun:{at:new Date(2026,10,12,20,0).toISOString(), listed:6, opened:5, notOpened:1}};
+    try{ localStorage.setItem(whoamiKey(), 'Dudu'); }catch(e){}
+    sampleBand();
+  } else await step('state', loadState);
   if(!state || typeof state !== 'object'){ state = JSON.parse(JSON.stringify(STARTER)); step('normalize', normalizeState); }
   await step('whoami', loadWhoami);
   if(!currentHid) step('gate', ()=> showGate('checking')); // a device with no household yet: nothing to show until sign-in is settled
@@ -12462,7 +12577,7 @@ setTimeout(checkNewBuild, 4000);
   { const b = document.getElementById('boot-stuck'); if(b) b.remove(); }
   try{ if(new URLSearchParams(location.search).get('voice')==='1'){ history.replaceState(null, '', location.pathname); openVoice(); } }catch(e){}
   setTimeout(()=>{ try{ if(currentHid) munzoOnOpen(); }catch(e){} }, 1500);
-  initCloudSync(()=>{ render(); });
+  if(!window.SAMPLE) initCloudSync(()=>{ render(); });
   if(gmailJustConnected) showToast(gmailJustConnected + ' connected. Its bank alerts are read from now on.', 5000);
 
   // Google Identity Services loads async — retry init briefly if not ready yet
@@ -12473,7 +12588,8 @@ setTimeout(checkNewBuild, 4000);
     else if(gmailInitAttempts < 20){ setTimeout(tryInitGmail, 300); }
     else{ document.getElementById('gmail-status-text').textContent = 'Gmail sign-in unavailable — check your connection and reload'; }
   };
-  tryInitGmail();
+  if(!window.SAMPLE) tryInitGmail();
+  if(window.SAMPLE){ const ss = document.getElementById('sync-status'); if(ss){ ss.textContent = 'Sample'; ss.style.color = 'var(--gold)'; } }
 })();
 </script>
 </body>
