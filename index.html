@@ -1284,6 +1284,7 @@ setTimeout(function(){
       <p class="section-sub hide" id="person-cat-sub"></p>
     </div>
     <div class="field"><label>Amount (₹)</label><input id="person-amount" type="number" inputmode="decimal" placeholder="0"></div>
+    <div class="field"><label>Date</label><input id="person-date" type="date"></div>
     <div class="field"><label>Notes (optional)</label><input id="person-remarks" placeholder=""></div>
     <button class="btn-primary" id="person-save">Save</button>
     <button class="btn-ghost" id="person-cancel">Cancel</button>
@@ -1344,6 +1345,7 @@ setTimeout(function(){
       <div class="acct-row" id="editpe-acct-row"></div>
     </div>
     <div class="field"><label>Amount (₹)</label><input id="editpe-amount" type="number" inputmode="decimal"></div>
+    <div class="field"><label>Date</label><input id="editpe-date" type="date"></div>
     <div class="field">
       <label>What was it for?</label>
       <div class="pick-summary" id="editpe-cat-summary"></div>
@@ -1821,7 +1823,7 @@ setTimeout(function(){
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-10-31 · v135-sample</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-01 · v136-people-dates</p>
   </div>
 </div>
 
@@ -6219,7 +6221,8 @@ async function letGoShare(entryId){
 
 // ---- chip row (v110): Category · Account · Date · Household, each guessed from past entries
 let txDatePickerOpen = false, txGuessUsed = false;
-function txDateIso(d){ return d.toISOString().slice(0,10); }
+function txDateIso(d){ return localDateIso(d); }
+function localDateIso(d){ d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 function txDateLabel(){
   const v = document.getElementById('tx-date').value;
   const today = new Date(); const yest = new Date(Date.now() - 864e5);
@@ -6745,7 +6748,7 @@ function openAddTxSheet(presetAccountId){
   document.getElementById('tx-more').classList.add('hide');
   txDatePickerOpen = false; splitReset('tx');
   document.getElementById('tx-transfer-note').value='';
-  document.getElementById('tx-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('tx-date').value = localDateIso();
   userTouchedCategory = false; userTouchedAccount = false;
   catPickerOpen = false; acctPickerOpen = false;
   txSelectedPerson = null; txSelectedPersonAcct = null;
@@ -7106,6 +7109,7 @@ function openPersonSheet(id){
   personCatPickerOpen = false;
   renderPersonAcctChips();
   renderPersonCatPicker();
+  document.getElementById('person-date').value = localDateIso();
   personBackdrop.classList.add('open');
 }
 document.getElementById('person-cancel').addEventListener('click', ()=> personBackdrop.classList.remove('open'));
@@ -7120,7 +7124,7 @@ document.getElementById('person-save').addEventListener('click', async ()=>{
   if(pf.needAcct && !pf.account){ alert('Choose an account.'); return; }
   const delta = dir==='gave' ? amount : -amount;
   const remarks = document.getElementById('person-remarks').value.trim() || (dir==='gave' ? 'You gave' : pf.category ? 'Paid for you' : 'You got');
-  state.personLedger.push({id:genId('pl'), personId:activePerson, ts:new Date().toISOString(), type:dir, delta, account:pf.account, remarks, category:pf.category});
+  state.personLedger.push({id:genId('pl'), personId:activePerson, ts:buildTsFromDateInput('person-date'), type:dir, delta, account:pf.account, remarks, category:pf.category});
   recomputeBudgetActuals();
   await saveState();
   render();
@@ -7183,6 +7187,7 @@ function openEditPersonEntry(entry){
     b.classList.toggle('on', b.dataset.v === (entry.delta>=0 ? 'gave' : 'received'));
   });
   document.getElementById('editpe-amount').value = Math.abs(entry.delta);
+  document.getElementById('editpe-date').value = entry.ts ? localDateIso(new Date(entry.ts)) : localDateIso();
   document.getElementById('editpe-remarks').value = entry.remarks || '';
   editPeSelectedAccount = entry.account || null;
   editPeSelectedCat = entry.category || null;
@@ -7256,6 +7261,8 @@ document.getElementById('editpe-save').addEventListener('click', async ()=>{
   editingPersonEntry.account = pf.account || null; // never undefined: the cloud refuses it
   editingPersonEntry.category = pf.category || null;
   editingPersonEntry.remarks = document.getElementById('editpe-remarks').value.trim();
+  { const dv = document.getElementById('editpe-date').value; const old = editingPersonEntry.ts ? new Date(editingPersonEntry.ts) : new Date();
+    if(dv && dv !== localDateIso(old)){ const [y, m, d] = dv.split('-').map(Number); editingPersonEntry.ts = new Date(y, m-1, d, old.getHours(), old.getMinutes(), old.getSeconds()).toISOString(); } }
   recomputeBudgetActuals();
   await saveState();
   render();
