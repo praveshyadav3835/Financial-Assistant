@@ -1717,6 +1717,7 @@ setTimeout(function(){
   </div>
   <div class="fs-body">
     <div id="pending-review-wrap"></div>
+    <div id="setaside-wrap"></div>
     <div class="bell-empty hide" id="review-empty">All caught up ✓</div>
   </div>
 </div>
@@ -1823,7 +1824,7 @@ setTimeout(function(){
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-01 · v136-people-dates</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-01 · v139-sure-tick</p>
   </div>
 </div>
 
@@ -4789,11 +4790,25 @@ function renderHomeMood(isCurrent){
   owed.querySelectorAll('[data-owedgo]').forEach(b=> b.addEventListener('click', e=>{ e.stopPropagation(); goTab('people'); }));
 }
 // B3: review card, top 3 with ✓ and swipe; the full list is on its own page
+// v139 (Pravesh, 1 Nov): ✓ only when the reader is at least 95% sure of BOTH the account and the
+// category. Account: the bank's own address said which one (not a guess, not a new address).
+// Category: this payee, on this same account, went to this category at least 95% of the time
+// (3 or more earlier entries in the last year). Patterns, look-alikes, paybacks and claims: never ✓.
+function quickSure(it){
+  if(it.possible || it.fromSpoken || it.unknownSender || it.status === 'duplicate' || it.broughtBack) return 0;
+  if(it.accountSure === false) return 0;
+  const acct = validatedAccountId(it.accountId, it.sourceEmail); if(!acct) return 0;
+  const g = readerGuess(it); if(!g.category || g.from === 'pattern' || g.unfit) return 0;
+  const norm = normalizePayee(it.payee || ''); if(!norm || norm === 'unknown') return 0;
+  const since = Date.now() - 365*86400000;
+  const hist = (state.transactions||[]).filter(t=> t.type === it.type && (t.account || t.from) === acct && t.category && new Date(t.ts).getTime() >= since && normalizePayee(t.payee || '') === norm);
+  if(hist.length < 3) return 0;
+  return hist.filter(t=> t.category === g.category).length / hist.length;
+}
 function quickOk(it){
-  if(it.possible) return false;
-  if(it.status === 'duplicate') return false; // v131: a possible duplicate is always opened and checked
-  const acct = validatedAccountId(it.accountId, it.sourceEmail);
-  return !!(readerGuess(it).category && acct && !paybackHint(it) && !claimHint(it) && !it.claimHint);
+  if(it.status === 'duplicate') return false; // a look-alike is always opened and checked
+  if(paybackHint(it) || claimHint(it) || it.claimHint) return false;
+  return quickSure(it) >= 0.95;
 }
 function swipeTipHtml(){ return '<div class="hr-swipe-tip">← Swipe left to add · swipe right if it’s not a transaction →</div>'; }
 // v131: what the reader suggests for a fetched entry, from the household's own past entries.
@@ -4842,7 +4857,26 @@ function readerGuess(it){
     const p = patternFor(it, validatedAccountId(it.accountId, it.sourceEmail));
     if(p && amountFits(p.category, it.amount, it.type)){ out.category = p.category; out.from = 'pattern'; out.pattern = p; out.unfit = null; }
   }
+  // v138: the account says whose it is. A category this account (almost) never pays, with a twin
+  // this account does pay ("Divya Daily Commute" on Pravesh's Axis → "Pravesh Daily commute"),
+  // becomes the twin.
+  const acct = validatedAccountId(it.accountId, it.sourceEmail);
+  if(out.category && acct){ const tw = accountTwin(out.category, acct, it.type); if(tw){ out.swapped = out.category; out.category = tw; } }
   return out;
+}
+const catWords = c=> String(c||'').toLowerCase().replace(/\(.*?\)/g, m=> ' ' + m.slice(1, -1) + ' ').split(/[^a-z]+/).filter(w=> w.length > 1);
+function isTwinCat(a, b){
+  if(a === b) return false;
+  const A = new Set(catWords(a)), Bw = new Set(catWords(b));
+  const onlyA = [...A].filter(w=> !Bw.has(w)), onlyB = [...Bw].filter(w=> !A.has(w));
+  return onlyA.length === 1 && onlyB.length === 1 && [...A].some(w=> Bw.has(w));
+}
+function accountTwin(cat, acct, type){
+  const since = Date.now() - 180*86400000, uses = {};
+  (state.transactions||[]).forEach(t=>{ if(t.type !== type || (t.account || t.from) !== acct || !t.category || new Date(t.ts).getTime() < since) return; uses[t.category] = (uses[t.category] || 0) + 1; });
+  if((uses[cat] || 0) >= 2) return null;
+  const twins = Object.entries(uses).filter(([c, n])=> n >= 2 && isTwinCat(cat, c)).sort((a, b)=> b[1] - a[1]);
+  return twins.length ? twins[0][0] : null;
 }
 function patternWords(p){ return `Like ${p.n} before · ${fmtRange(p.lo, p.hi)} · ${p.part}`; }
 function fmtRange(lo, hi){ const r = v=> '₹' + Math.round(v).toLocaleString('en-IN'); return lo === hi ? r(lo) : r(lo) + '–' + Math.round(hi).toLocaleString('en-IN'); }
@@ -4854,10 +4888,10 @@ function reviewRowHtml(it){
   const extra = paybackHint(it) || claimHint(it);
   const g = readerGuess(it);
   // a payback or claim explains a look-alike better than "already added"
-  const hint = isDup && !extra ? 'Looks already added — open to check'
+  const hint = isDup && !extra ? (it.matchedTs ? `Looks like the ${fmt(it.amount)} of ${new Date(it.matchedTs).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})} — open to check` : 'Looks already added — open to check')
     : g.unfit ? 'Pick a category'
     : [g.category && !it.fromSpoken ? catShort(g.category) : '', extra].filter(Boolean).join(' · ');
-  const why = isDup ? '' : g.unfit ? `${fmt(it.amount)} is unusual for ${catShort(g.unfit)}` : g.pattern ? patternWords(g.pattern) : '';
+  const why = isDup ? '' : g.swapped ? `${acctObj ? acctObj.name : 'This account'} pays ${g.category}, not ${g.swapped}` : g.unfit ? `${fmt(it.amount)} is unusual for ${catShort(g.unfit)}` : g.pattern ? patternWords(g.pattern) : '';
   const ok = quickOk(it);
   return `<div class="hr-row" data-noswipe data-hrid="${it.id}"><div class="hr-under"></div><div class="hr-add ${ok ? '' : 'check'}">${ok ? 'Add ✓' : 'Check & add ›'}</div><div class="hr-not">Not a transaction</div><div class="hr-slide">
     <div class="emo-ic" style="${isDup?'opacity:.55;':''}">${g.category ? catEmoji(g.category) : (paybackHint(it) ? '🤝' : '…')}</div>
@@ -9543,6 +9577,10 @@ function extractEmailBody(payload){
 function isDuplicateOf(candidate, existing, toleranceMinutes, requireAccountMatch){
   const sameAmount = Math.abs(candidate.amount - existing.amount) < 1;
   if(!sameAmount) return false;
+  // v137: two different UPI ids are two different payments (Manjit, 1 Nov: ₹400 to …2424@ibl
+  // and ₹400 to …4615@ibl the same day were taken for one)
+  const upiOf = x=> String(x.vpa || ((x.payee||'').includes('@') ? x.payee : '') || '').toLowerCase().replace(/^[^0-9a-z]*(upi\s*…)?\**/, '');
+  if(upiOf(candidate) && upiOf(existing) && upiOf(candidate) !== upiOf(existing)) return false;
   if(candidate.upiRef && existing.upiRef){
     return candidate.upiRef === existing.upiRef;
   }
@@ -10235,13 +10273,31 @@ function applyReaderLessons(fromChoice){
     if(it.status === 'duplicate' && !it.dupLocal){ seen.push(it); return; } // marked when it was read
     const ledger = pool.find(e=> isDuplicateOf(it, e, DUP_TOLERANCE_LEDGER_MIN, false));
     const twin = seen.find(p=> p.gmailMessageId !== it.gmailMessageId && (p.type === it.type) && isDuplicateOf(it, p, 24*60, true));
-    if(ledger || twin){ it.status = 'duplicate'; it.dupLocal = true; it.matchedAccount = ledger ? ledger.account : (twin.accountId || null); }
+    if(ledger || twin){ it.status = 'duplicate'; it.dupLocal = true; it.matchedAccount = ledger ? ledger.account : (twin.accountId || null); it.matchedTs = (ledger || twin).ts || null; }
     else if(it.dupLocal){ it.status = 'pending'; it.dupLocal = false; it.matchedAccount = null; }
     seen.push(it);
   });
 }
+// v137: mails set aside in the last 14 days (Not a transaction / Already added), with Bring back,
+// so nothing swiped away by mistake is lost.
+function renderSetAside(){
+  const wrap = document.getElementById('setaside-wrap'); if(!wrap) return;
+  const since = Date.now() - 14*86400000;
+  const list = (state.dismissedImports||[]).filter(d=> !d.autoLearned && d.amount && (d.reason==='not_real' || d.reason==='already_logged') && new Date(d.setAsideAt || d.ts || 0).getTime() >= since)
+    .sort((a,b)=> new Date(b.setAsideAt || b.ts) - new Date(a.setAsideAt || a.ts)).slice(0, 15);
+  if(!list.length){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `<div class="divider-label" style="margin-top:18px;">Set aside in the last 14 days</div><div class="card">${list.map(d=> `<div class="tx-item"><div class="chip-icon">${d.reason==='already_logged' ? '✓' : '✕'}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${storyEsc(d.payee || 'Unknown')}</span><span class="tx-amt">${fmt(d.amount)}</span></div><div class="tx-meta">${d.ts ? new Date(d.ts).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}) : ''} · ${d.reason==='already_logged' ? 'marked already added' : 'marked not a transaction'} <button class="link-btn" data-bringback="${d.id}" style="margin-left:6px;">Bring back</button></div></div></div>`).join('')}</div>`;
+  wrap.querySelectorAll('[data-bringback]').forEach(b=> b.addEventListener('click', async ()=>{
+    const d = state.dismissedImports.find(x=> x.id === b.dataset.bringback); if(!d) return;
+    state.dismissedImports = state.dismissedImports.filter(x=> x !== d);
+    const id = d.gmailMessageId ? 'imp_' + d.gmailMessageId : genId('imp');
+    if(!state.pendingImports.some(p=> p.id === id)) state.pendingImports.push({id, gmailMessageId: d.gmailMessageId || null, sourceEmail: d.sourceEmail || null, ts: d.ts, amount: d.amount, type: d.type || 'expense', payee: d.payee || '', category: d.category || null, accountId: d.accountId || null, sender: d.sender || null, subject: d.subject || null, status: 'pending', vpa: d.vpa || null, upiRef: d.upiRef || null, broughtBack: true});
+    await saveState(); render(); showToast('Back in the list to check');
+  }));
+}
 function renderPendingReview(){
   applyReaderLessons();
+  try{ renderSetAside(); }catch(e){ console.warn('set aside', e); }
   const kindWrap = document.getElementById('hide-kind-wrap');
   if(kindWrap){
     kindWrap.innerHTML = hideKindHtml();
@@ -10609,6 +10665,7 @@ async function riApprove(){
   const tx = {
     id: genId('tx'), ts: imp.ts, type: riSelectedType,
     account: riSelectedAccount, payee, category: riSelectedCat, amount,
+    ...(imp.vpa ? {vpa: imp.vpa} : {}), ...(imp.upiRef ? {upiRef: imp.upiRef} : {}),
     household: riSelectedType==='expense', remarks: [note, imp.fromSpoken ? 'Added by voice' : imp.fromStatement ? 'Added from statement' : imp.fromSms ? 'Added from SMS' : 'Imported from email'].filter(Boolean).join(' · ')
   };
   { const err = forWhomCheck('ri'); if(err){ alert(err); return; } applyForWhom('ri', tx); }
@@ -10634,7 +10691,7 @@ function dismissImportItem(imp, reason, why){
   if(imp){
     if(!state.dismissedImports) state.dismissedImports = [];
     // No undefined values in anything that syncs — the cloud rejects the whole write.
-    state.dismissedImports.push({id:genId('di'), ts:imp.ts||null, amount:imp.amount||0, type:imp.type||null, accountId:imp.accountId||null, payee:imp.payee||'', sourceEmail:imp.sourceEmail||null, gmailMessageId:imp.gmailMessageId||null, sender:imp.sender||null, subject:imp.subject||null, reason, why:why||null, scored:true});
+    state.dismissedImports.push({id:genId('di'), ts:imp.ts||null, amount:imp.amount||0, type:imp.type||null, accountId:imp.accountId||null, payee:imp.payee||'', sourceEmail:imp.sourceEmail||null, gmailMessageId:imp.gmailMessageId||null, sender:imp.sender||null, subject:imp.subject||null, reason, why:why||null, scored:true, category:imp.category||null, vpa:imp.vpa||null, upiRef:imp.upiRef||null, setAsideAt:new Date().toISOString()});
     recordImportOutcome(imp, reason, null, null, why||null, null);
     if(state.dismissedImports.length > 200) state.dismissedImports = state.dismissedImports.slice(-200);
     state.pendingImports = state.pendingImports.filter(p=>p.id!==imp.id);
