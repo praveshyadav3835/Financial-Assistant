@@ -344,6 +344,32 @@ setTimeout(function(){
   .sheet{position:relative; background:var(--panel); width:100%; max-width:480px; border-radius:30px 30px 0 0; border-top:1px solid var(--line); padding:26px 20px calc(env(safe-area-inset-bottom,0px) + 18px); max-height:92vh; overflow-y:auto; box-shadow:0 -12px 40px rgba(0,0,0,0.35);}
   .sheet::before{content:''; position:absolute; top:9px; left:50%; width:38px; height:4px; margin-left:-19px; border-radius:3px; background:var(--line);}
   .sheet h3{margin:0 0 14px; font-size:19px; font-weight:600; color:var(--ink);}
+  .rws-body{display:flex; flex-direction:column; padding-bottom:110px;}
+  .rws-dots{display:flex; gap:6px; justify-content:center; margin:2px 0 14px;}
+  .rws-dots i{width:8px; height:8px; border-radius:99px; background:var(--line); transition:all .25s ease;}
+  .rws-dots i.on{width:22px; background:#6FB1FF;} .rws-dots i.done{background:rgba(111,177,255,.5);}
+  .rws-step{font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft); text-align:center;}
+  .rws-card{margin-top:8px; padding:22px 18px 18px; border-radius:24px; background:var(--paper-dim); border:1px solid var(--line); text-align:center; animation:rwsIn .3s ease-out;}
+  @keyframes rwsIn{from{opacity:0; transform:translateX(24px);} to{opacity:1; transform:none;}}
+  .rws-card.still{animation:none;} .rws-card.back{animation-name:rwsBack;} @keyframes rwsBack{from{opacity:0; transform:translateX(-24px);} to{opacity:1; transform:none;}}
+  .rws-face{width:92px; height:92px; object-fit:contain; display:block; margin:0 auto 6px;}
+  .rws-emo{font-size:30px; line-height:1;}
+  .rws-t{font-size:20px; font-weight:700; margin-top:6px;}
+  .rws-big{font-size:38px; font-weight:800; letter-spacing:-.5px; margin:8px 0 2px;}
+  .rws-big.minus{color:#F2B25C;} .rws-big.plus{color:#5FD08A;} .rws-big.blue{color:#6FB1FF;}
+  .rws-say{font-size:15px; line-height:1.45; color:var(--ink-soft); margin-top:6px;}
+  .rws-chips{display:flex; flex-direction:column; gap:8px; margin-top:14px; text-align:left;}
+  .rws-chip{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:14px; background:var(--card, rgba(255,255,255,.04)); border:1px solid var(--line); font-size:14.5px;}
+  .rws-chip .a{margin-left:auto; font-weight:700;} .rws-chip .s{font-size:12px; color:var(--ink-soft);}
+  .rws-chip .tag{font-size:11px; padding:2px 7px; border-radius:99px; background:rgba(111,177,255,.15); color:#6FB1FF; margin-left:6px;}
+  .rws-change{margin-top:12px; background:none; border:none; color:#6FB1FF; font:inherit; font-size:14px; cursor:pointer;}
+  .rws-edit{margin-top:8px; text-align:left;}
+  .rws-step-btns{display:flex; align-items:center; justify-content:center; gap:18px; margin-top:12px;}
+  .rws-step-btns button{width:46px; height:46px; border-radius:50%; border:1px solid var(--line); background:var(--card, rgba(255,255,255,.06)); color:var(--ink); font-size:24px; cursor:pointer;}
+  .rws-step-btns b{font-size:22px; min-width:64px;}
+  .rws-sum{margin-top:14px; font-size:13.5px; color:var(--ink-soft); line-height:1.7;}
+  .rws-foot{position:absolute; left:0; right:0; bottom:0; display:flex; gap:10px; padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 14px); background:linear-gradient(transparent, var(--bg, #0d1320) 30%);}
+  .rws-foot button{flex:1; margin:0;} .rws-foot .btn-ghost{flex:.6;}
   .fullscreen-page{position:fixed; inset:0; background:var(--bg-grad); color:var(--ink); z-index:65; display:none; flex-direction:column; transition:background .25s ease; max-width:480px; margin:0 auto;}
   .fullscreen-page.open{display:flex;}
   .fs-header{display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top,0px) + 16px) 18px 14px; flex-shrink:0;}
@@ -1513,12 +1539,10 @@ setTimeout(function(){
 </div>
 
 <!-- ADJUST BALANCE SHEET -->
-<div class="sheet-backdrop" id="ringwhy-backdrop">
-  <div class="sheet">
-    <h3 style="margin-bottom:4px;">How your ring is worked out</h3>
-    <div id="ringwhy-body"></div>
-    <button class="btn-primary" id="ringwhy-ok" style="margin-top:14px;">Looks right ✓</button>
-  </div>
+<div class="fullscreen-page" id="ringwhy-backdrop">
+  <div class="fs-header"><button class="fs-back" id="ringwhy-back" aria-label="Back">←</button><h2 style="flex:1;">How your ring works</h2></div>
+  <div class="fs-body rws-body" id="ringwhy-body"></div>
+  <div class="rws-foot"><button class="btn-ghost" id="ringwhy-prev">Back</button><button class="btn-primary" id="ringwhy-ok">Next →</button></div>
 </div>
 <div class="fullscreen-page" id="mreport-page">
   <div class="fs-header"><button class="fs-back" id="mreport-back" aria-label="Back">←</button><h2 id="mreport-title" style="flex:1;">Month report</h2><button class="pill-btn" id="mreport-pdf">⬇ PDF</button></div>
@@ -1851,7 +1875,7 @@ setTimeout(function(){
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-05 · v143-statement-last-month</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-05 · v144-salary-month-ring-steps</p>
   </div>
 </div>
 
@@ -4247,7 +4271,7 @@ function budgetEntriesForMonth(year, month){
   const push = (b, entry)=>{ if(b) (out[b.cat] = out[b.cat] || []).push(entry); };
   state.transactions.forEach(t=>{
     if(t.type==='transfer') return;
-    const d = new Date(t.ts);
+    const d = moneyDate(t);
     if(d<start || d>=end) return;
     const v = t.type==='income' ? incomeOf(t) : spendOf(t);
     if(v) push(findBudgetRowForCategory(t.category), {amount:v, payee:t.payee||'', ts:t.ts});
@@ -4409,7 +4433,7 @@ function rebuildPayeeMemoryFromHistory(){
 
 function monthTotals(){
   const now = new Date();
-  const inMonth = t=>{ const d = new Date(t.ts); return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear(); };
+  const inMonth = t=>{ const d = moneyDate(t); return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear(); };
   const income = state.transactions.filter(t=>t.type==='income' && inMonth(t)).reduce((s,t)=>s+incomeOf(t),0);
   const expense = state.transactions.filter(t=>t.type==='expense' && inMonth(t)).reduce((s,t)=>s+spendOf(t),0);
   return {income, expense, net: income-expense};
@@ -4548,24 +4572,16 @@ function isFixedCat(cat){
   return /\brent\b|\bemi\b|loan|\bsips?\b|insurance|school|\bfees?\b|monthly transfer|mutual fund|wealth|invest/i.test(String(cat||''));
 }
 function firstTxDate(){ let m = null; state.transactions.forEach(t=>{ const d = new Date(t.ts); if(!m || d < m) m = d; }); return m; }
-// Money month: from the day the salary actually arrived; salaries within ~10 days share one.
+// v144: the ring runs on the calendar month (1st to last day), like every report. Its income is
+// what counts for this month: a salary from the 21st of last month on is this month's (moneyDate).
+// (Before v144 the ring had its own "money month" starting the day the salary arrived.)
 function moneyMonth(now){
   now = now || new Date();
-  const rp = ringPrefs();
-  if(rp.mode === 'calendar' || rp.mode === 'day'){
-    const day = rp.mode === 'calendar' ? 1 : Math.max(1, Math.min(28, parseInt(rp.day,10) || 1));
-    let start = new Date(now.getFullYear(), now.getMonth(), day); if(start > dayStart(now)) start = new Date(now.getFullYear(), now.getMonth() - 1, day);
-    let end = new Date(start); end.setMonth(end.getMonth() + 1); end.setDate(end.getDate() - 1);
-    const sal = state.transactions.filter(t=> (t.isSalary || mzIsSalary(t)) && new Date(t.ts) >= start && new Date(t.ts) <= now);
-    return {start, end, salaries: sal, how: rp.mode};
-  }
-  const sal = state.transactions.filter(t=> (t.isSalary || mzIsSalary(t)) && new Date(t.ts) <= now && now - new Date(t.ts) < 40 * DAY_MS).sort((a,b)=> new Date(b.ts) - new Date(a.ts));
+  const start = new Date(now.getFullYear(), now.getMonth(), 1), end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const sal = state.transactions.filter(t=> isSalaryTx(t) && new Date(t.ts) <= now && inPeriod(t, start, next));
   if(!sal.length) return null;
-  let start = dayStart(sal[0].ts);
-  sal.forEach(t=>{ const d = dayStart(t.ts); if(start - d <= 10 * DAY_MS && d < start) start = d; });
-  let end = new Date(start); end.setMonth(end.getMonth() + 1); end.setDate(end.getDate() - 1);
-  if(dayStart(now) > end) end = new Date(dayStart(now).getTime() + 2 * DAY_MS); // a late salary stretches what is left
-  return {start, end, salaries: sal.filter(t=> dayStart(t.ts) >= start), how: 'salary'};
+  return {start, end, salaries: sal, how: 'calendar'};
 }
 function ringData(now){
   now = now || new Date();
@@ -4577,7 +4593,7 @@ function ringData(now){
     const spent = state.transactions.filter(t=> t.type === 'expense' && new Date(t.ts) >= ms && new Date(t.ts) <= now).reduce((a,t)=> a + spendOf(t), 0);
     return {state:'learning', day: Math.max(1, Math.min(14, daysIn || 1)), spent};
   }
-  const inMM = t=> new Date(t.ts) >= mm.start && new Date(t.ts) <= now;
+  const inMM = t=> new Date(t.ts) <= now && moneyDate(t) >= mm.start && moneyDate(t) <= now;
   const income = state.transactions.filter(t=> t.type === 'income' && inMM(t) && ringCountsIncome(t.category)).reduce((a,t)=> a + incomeOf(t), 0);
   const fixedCats = {};
   (state.budget||[]).filter(b=> !b.income && isFixedCat(b.cat)).forEach(b=> fixedCats[b.cat] = {cat:b.cat, budget:b.budget||0, paid:0});
@@ -4623,7 +4639,7 @@ function renderRing(){
     fx.innerHTML = ''; return;
   }
   const fmtD = x=> x.toLocaleDateString('en-IN', {day:'numeric', month:'short'});
-  const head = `<div class="ring-mm">Money month · <b>${fmtD(d.mm.start)} – ${fmtD(d.mm.end)}</b> · day ${d.dayNo} of ${d.totalDays}</div>`;
+  const head = `<div class="ring-mm">${d.mm.start.toLocaleDateString('en-IN', {month:'long'})} · <b>${fmtD(d.mm.start)} – ${fmtD(d.mm.end)}</b> · day ${d.dayNo} of ${d.totalDays}</div>`;
   const approx = d.estimate ? '≈' : '';
   let inner, color, frac, note = '', moodHtml = pill(mood);
   if(d.state === 'usedup'){
@@ -4650,38 +4666,68 @@ function renderRing(){
 
 function ringCountsIncome(cat){ const b = (state.budget||[]).find(x=> x.cat === cat); return !(b && b.ringIncome === false); }
 // v130: the ring explained, and corrected by the household
-function openRingWhy(){ renderRingWhy(); document.getElementById('ringwhy-backdrop').classList.add('open'); }
+function openRingWhy(){ rwsStep = 0; rwsDir = 1; rwsOpen = {}; renderRingWhy(); openFullscreen('ringwhy-backdrop'); }
 async function setRingPref(k, v){ state.ringPrefs = {...ringPrefs(), [k]: v}; await saveState(); render(); renderRingWhy(); }
+let rwsStep = 0, rwsDir = 1, rwsOpen = {};
 function renderRingWhy(){
   const el = document.getElementById('ringwhy-body'); if(!el) return;
   const d = ringData(), rp = ringPrefs();
   const fmtD = x=> x.toLocaleDateString('en-IN', {day:'numeric', month:'short'});
+  const face = f=> `<img class="rws-face" src="munzo/munzo-${f}.png" alt="" onerror="this.outerHTML='<div class=&quot;rws-emo&quot;>🙂</div>'">`;
+  const prev = document.getElementById('ringwhy-prev'), next = document.getElementById('ringwhy-ok');
   if(d.state === 'learning'){
-    el.innerHTML = `<p class="rw-sub" style="font-size:14px;">The ring is still learning your month: it needs 14 days of entries and one salary. Day ${d.day} of 14. Until then it shows no daily amount, so it can never be wrong.</p>` + ringMonthChoice(rp);
-    wireRingWhy(el); return;
+    el.innerHTML = `<div class="rws-card">${face('thinking')}<div class="rws-t">I'm still learning your month 🌱</div><div class="rws-big blue">Day ${d.day} of 14</div>
+      <div class="rws-say">I need 14 days of entries and one salary. Until then I show no daily amount, so I can never be wrong.</div></div>`;
+    prev.classList.add('hide'); next.textContent = 'Got it ✓'; next.onclick = closeRingWhy; return;
   }
-  const sal = d.mm.salaries[0];
-  const startWhy = d.mm.how === 'calendar' ? 'Calendar month, as you chose.' : d.mm.how === 'day' ? `Starts on the ${rp.day}${['th','st','nd','rd'][(rp.day%10<4 && Math.floor(rp.day/10)!==1) ? rp.day%10 : 0]} of every month, as you chose.` : (sal ? `Started on ${fmtD(d.mm.start)}, when ${storyEsc(sal.payee || 'your salary')} ${fmt(sal.amount)} arrived.` : `Started on ${fmtD(d.mm.start)}.`);
-  const cats = (state.budget||[]).filter(b=> !b.income && !b.special && (b.budget > 0 || (b.actual||0) > 0));
-  const got = {}; state.transactions.filter(t=> t.type === 'income' && !t.claimRole && new Date(t.ts) >= d.mm.start && new Date(t.ts) <= new Date()).forEach(t=> got[t.category] = (got[t.category]||0) + (t.amount||0));
+  const month = d.mm.start.toLocaleDateString('en-IN', {month:'long'});
+  const got = {}, dates = {};
+  state.transactions.filter(t=> t.type === 'income' && !t.claimRole && new Date(t.ts) <= new Date() && moneyDate(t) >= d.mm.start && moneyDate(t) <= new Date())
+    .forEach(t=>{ got[t.category] = (got[t.category]||0) + (t.amount||0); (dates[t.category] = dates[t.category] || []).push(t); });
   const incCats = [...new Set([...(state.budget||[]).filter(b=> b.income).map(b=> b.cat), ...Object.keys(got)])].filter(Boolean).map(cat=> ({cat, got: got[cat]||0})).sort((a,b)=> b.got - a.got);
-  el.innerHTML = `<div class="rw-sub" style="font-size:14px; margin-bottom:8px;">Money month <b style="color:var(--ink);">${fmtD(d.mm.start)} – ${fmtD(d.mm.end)}</b>. ${startWhy}</div>
-    <div class="rw-line"><span>Money in this money month</span><b class="maskable">${fmt(d.income)}</b></div>
-    <div class="rw-line"><span>− Fixed costs (rent, EMI, SIP…)<div class="rw-sub">Kept aside on salary day. Paying them never moves the ring.</div></span><b class="maskable">${fmt(d.reserved)}</b></div>
-    <div class="rw-line"><span>− Save first <span class="rw-step"><button data-sp="-5" aria-label="Less">−</button><b>${d.savePct}%</b><button data-sp="5" aria-label="More">+</button></span></span><b class="maskable">${fmt(d.savings)}</b></div>
-    <div class="rw-line total"><span>= To spend this month${d.usedBudget ? `<div class="rw-sub" style="font-weight:400;">Your everyday budget (${fmt(d.flexBudget)}) fits, so it is used instead of ${fmt(d.fromIncome)}.</div>` : ''}</span><b class="maskable">${fmt(d.flexible)}</b></div>
-    <div class="rw-line"><span>− Spent so far on everyday things</span><b class="maskable">${fmt(d.flexSpent)}</b></div>
-    <div class="rw-line total"><span>= Left · ${d.daysLeft} day${d.daysLeft===1?'':'s'} to go</span><b class="maskable">${fmt(Math.max(0, d.left))}</b></div>
-    <div class="rw-line"><span>A day (left ÷ days)</span><b class="maskable">${fmt(Math.max(0, d.perDay))}</b></div>
-    <div style="margin-top:14px; font-weight:600;">Not right? Correct it</div>
-    <div class="rw-sub">Money in: tick the income that counts for the month.</div>
-    ${incCats.map(c=> `<label class="rw-fx"><input type="checkbox" data-inccat="${storyEsc(c.cat)}" ${ringCountsIncome(c.cat)?'checked':''}> ${catEmoji(c.cat)} ${storyEsc(catShort(c.cat))}${c.got ? ` <span class="rw-sub" style="margin-left:auto;">${fmt(c.got)}</span>` : ''}</label>`).join('') || '<div class="rw-sub">No income logged yet this money month.</div>'}
-    <div class="rw-sub" style="margin-top:10px;">Fixed costs: tick the expenses that are fixed every month.</div>
-    ${cats.map(b=> `<label class="rw-fx"><input type="checkbox" data-fxcat="${storyEsc(b.cat)}" ${isFixedCat(b.cat)?'checked':''}> ${catEmoji(b.cat)} ${storyEsc(catShort(b.cat))}</label>`).join('')}
-    <label class="rw-opt" style="margin-top:6px;"><input type="checkbox" id="rw-usebudget" ${rp.useBudget !== false ? 'checked' : ''}> Use my everyday budget when it fits</label>
-    ${ringMonthChoice(rp)}`;
-  wireRingWhy(el);
+  const cats = (state.budget||[]).filter(b=> !b.income && !b.special && (b.budget > 0 || (b.actual||0) > 0));
+  const steps = [];
+  // 1. money in
+  steps.push(()=>{
+    const rows = incCats.filter(c=> c.got && ringCountsIncome(c.cat)).map(c=>{ const ts = (dates[c.cat]||[]); const early = ts.some(t=> countsNextMonth(t));
+      return `<div class="rws-chip">${catEmoji(c.cat)} <div><div>${storyEsc(catShort(c.cat))}${early ? `<span class="tag">came ${fmtD(new Date(ts.find(t=> countsNextMonth(t)).ts))}</span>` : ''}</div>${early ? `<div class="s">Paid on the ${SALARY_NEXT_FROM_DAY}st or later, so it counts for ${month}</div>` : ''}</div><span class="a maskable">${fmt(c.got)}</span></div>`; }).join('');
+    return `${face('happy')}<div class="rws-t">💰 Money in for ${month}</div><div class="rws-big plus maskable">${fmt(d.income)}</div>
+      <div class="rws-say">Your salary, and any other income you count.</div><div class="rws-chips">${rows || '<div class="rws-say">No income yet this month.</div>'}</div>
+      ${editBox('inc', 'Change what counts', incCats.map(c=> `<label class="rw-fx"><input type="checkbox" data-inccat="${storyEsc(c.cat)}" ${ringCountsIncome(c.cat)?'checked':''}> ${catEmoji(c.cat)} ${storyEsc(catShort(c.cat))}${c.got ? ` <span class="rw-sub" style="margin-left:auto;">${fmt(c.got)}</span>` : ''}</label>`).join(''))}`;
+  });
+  // 2. bills first
+  steps.push(()=>{
+    const rows = d.fixed.slice().sort((a,b)=> Math.max(b.budget,b.paid) - Math.max(a.budget,a.paid)).slice(0, 5).map(f=>{ const paid = f.paid > 0 && f.paid >= f.budget * 0.9;
+      return `<div class="rws-chip">${catEmoji(f.cat)} <div>${storyEsc(catShort(f.cat))}<div class="s">${paid ? 'paid ✓' : 'waiting'}</div></div><span class="a maskable">${fmt(Math.max(f.budget, f.paid))}</span></div>`; }).join('');
+    return `${face('thinking')}<div class="rws-t">🧾 Bills first</div><div class="rws-big minus maskable">− ${fmt(d.reserved)}</div>
+      <div class="rws-say">Rent, EMI, SIP and other fixed bills are kept aside. Paying them never moves your ring.</div><div class="rws-chips">${rows}</div>
+      ${editBox('fx', 'Change the fixed bills', cats.map(b=> `<label class="rw-fx"><input type="checkbox" data-fxcat="${storyEsc(b.cat)}" ${isFixedCat(b.cat)?'checked':''}> ${catEmoji(b.cat)} ${storyEsc(catShort(b.cat))}</label>`).join(''))}`;
+  });
+  // 3. save first
+  steps.push(()=> `${face('proud')}<div class="rws-t">🐷 Save first</div><div class="rws-big minus maskable">− ${fmt(d.savings)}</div>
+      <div class="rws-say">A slice for you, before any spending. Tap to change it.</div>
+      <div class="rws-step-btns"><button data-sp="-5" aria-label="Less">−</button><b>${d.savePct}%</b><button data-sp="5" aria-label="More">+</button></div>`);
+  // 4. everyday money
+  steps.push(()=> `${face('wink')}<div class="rws-t">🛍️ Your everyday money</div><div class="rws-big blue maskable">${fmt(d.flexible)}</div>
+      <div class="rws-say">${d.usedBudget ? `Your everyday budget fits inside what is left (${fmt(d.fromIncome)}), so I use your budget.` : `That's what is left for groceries, food, travel and fun in ${month}.`}</div>
+      <div class="rws-sum maskable">${fmt(d.income)} − ${fmt(d.reserved)} bills − ${fmt(d.savings)} saved = ${fmt(d.fromIncome)}</div>
+      <label class="rw-opt" style="justify-content:center; margin-top:10px;"><input type="checkbox" id="rw-usebudget" ${rp.useBudget !== false ? 'checked' : ''}> Use my everyday budget when it fits</label>`);
+  // 5. the daily amount
+  steps.push(()=> `${face('excited')}<div class="rws-t">⭕ So, each day</div><div class="rws-big blue maskable">${fmt(Math.max(0, d.perDay))}</div>
+      <div class="rws-say">Spent so far <b class="maskable">${fmt(d.flexSpent)}</b> · left <b class="maskable">${fmt(Math.max(0, d.left))}</b> · ${d.daysLeft} day${d.daysLeft===1?'':'s'} to go.</div>
+      <div class="rws-sum">${fmtD(d.mm.start)} – ${fmtD(d.mm.end)} · the calendar month, like every report. A salary from the ${SALARY_NEXT_FROM_DAY}st on counts for the next month.</div>`);
+  rwsStep = Math.max(0, Math.min(steps.length - 1, rwsStep));
+  el.innerHTML = `<div class="rws-dots">${steps.map((_, i)=> `<i class="${i === rwsStep ? 'on' : i < rwsStep ? 'done' : ''}"></i>`).join('')}</div>
+    <div class="rws-step">Step ${rwsStep + 1} of ${steps.length}</div><div class="rws-card ${rwsDir < 0 ? 'back' : rwsDir === 0 ? 'still' : ''}">${steps[rwsStep]()}</div>`;
+  prev.classList.toggle('hide', rwsStep === 0);
+  next.textContent = rwsStep === steps.length - 1 ? 'Got it ✓' : 'Next →';
+  next.onclick = ()=>{ if(rwsStep === steps.length - 1) return closeRingWhy(); rwsDir = 1; rwsStep++; renderRingWhy(); };
+  prev.onclick = ()=>{ rwsDir = -1; rwsStep = Math.max(0, rwsStep - 1); renderRingWhy(); };
+  el.querySelectorAll('[data-rwsopen]').forEach(b=> b.addEventListener('click', ()=>{ rwsOpen[b.dataset.rwsopen] = !rwsOpen[b.dataset.rwsopen]; rwsDir = 0; renderRingWhy(); }));
+  wireRingWhy(el); applyMaskUI && applyMaskUI(); rwsDir = 0;
+  function editBox(k, label, html){ return `<button class="rws-change" data-rwsopen="${k}">${rwsOpen[k] ? 'Done' : label + ' ›'}</button>${rwsOpen[k] ? `<div class="rws-edit">${html}</div>` : ''}`; }
 }
+function closeRingWhy(){ closeFullscreen('ringwhy-backdrop'); rwsStep = 0; rwsOpen = {}; }
 function ringMonthChoice(rp){
   const m = rp.mode || 'salary';
   return `<div style="margin-top:12px; font-weight:600;">When does your money month start?</div>
@@ -4704,8 +4750,9 @@ function openMoodCategory(){
   if(close){ const p = periodBounds('month', new Date()); setTimeout(()=> openCatTx(close.cat, 'expense', p), 250); }
 }
 document.addEventListener('click', e=>{ const m = e.target.closest('#home-mood, #ring-wrap .mood-line:not(.learn)'); if(m) openMoodCategory(); });
-document.getElementById('ringwhy-ok').addEventListener('click', ()=> document.getElementById('ringwhy-backdrop').classList.remove('open'));
-document.getElementById('ringwhy-backdrop').addEventListener('click', e=>{ if(e.target.id === 'ringwhy-backdrop') e.target.classList.remove('open'); });
+document.getElementById('ringwhy-back').addEventListener('click', closeRingWhy);
+// swipe between the steps
+(function(){ const b = document.getElementById('ringwhy-body'); let x0 = null; b.addEventListener('touchstart', e=>{ x0 = e.touches[0].clientX; }, {passive:true}); b.addEventListener('touchend', e=>{ if(x0 === null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if(Math.abs(dx) < 50) return; (dx < 0 ? document.getElementById('ringwhy-ok') : document.getElementById('ringwhy-prev')).click(); }, {passive:true}); })();
 
 // Munzo asks once (ring households): a big early payment, and a likely salary
 function munzoRingAsk(tx){
@@ -5860,6 +5907,18 @@ function spendOf(t){
 }
 // A claim's payment or advance lands in the account but is never income.
 function incomeOf(t){ return (t && t.type==='income' && (t.claimRole==='receipt' || t.claimRole==='advance')) ? 0 : (t ? t.amount : 0); }
+// v144 (Pravesh, 6 Nov): which month money belongs to. Expenses: always their own calendar month.
+// A salary that arrives from the 21st onward counts for the NEXT month (salary of 30 Oct, or of
+// 1–11 Nov, is November's income); everything else counts on its own date.
+function isSalaryTx(t){ return !!t && t.type === 'income' && !t.claimRole && (t.isSalary || mzIsSalary(t) || /salary|payroll|\bpao\b/i.test(String(t.category||''))); }
+const SALARY_NEXT_FROM_DAY = 21;
+function moneyDate(t){
+  const d = new Date(t.ts);
+  if(isSalaryTx(t) && d.getDate() >= SALARY_NEXT_FROM_DAY) return new Date(d.getFullYear(), d.getMonth() + 1, 1, 0, 0, 1);
+  return d;
+}
+function inPeriod(t, start, end){ const d = moneyDate(t); return d >= start && d < end; }
+function countsNextMonth(t){ return isSalaryTx(t) && new Date(t.ts).getDate() >= SALARY_NEXT_FROM_DAY; }
 const splitSt = {tx:{mode:'me'}, ri:{mode:'me'}, edit:{mode:'me'}};
 function splitReset(ctx){ splitSt[ctx] = {mode:'me', me:true, people:[], method:'equal', amounts:{}, open:false}; }
 ['tx','ri','edit'].forEach(splitReset);
@@ -7677,7 +7736,7 @@ function periodBounds(mode, anchor){
   return {start, end, main:start.toLocaleDateString('en-IN',{month:'long',year:'numeric'}), sub:''};
 }
 function analysisData(start, end){
-  const tx = state.transactions.filter(t=> t.type!=='transfer' && new Date(t.ts)>=start && new Date(t.ts)<end);
+  const tx = state.transactions.filter(t=> t.type!=='transfer' && inPeriod(t, start, end));
   const inc = tx.filter(t=>t.type==='income');
   const exp = tx.filter(t=>t.type==='expense');
   const income = inc.reduce((s,t)=>s+incomeOf(t),0);
@@ -7919,7 +7978,7 @@ function fmtShort(v){ return v >= 1e5 ? '₹' + (v/1e5).toFixed(v >= 1e6 ? 0 : 1
 let cattxCtx = null;
 function catTxList(ctx){
   return state.transactions
-    .filter(t=> t.type===ctx.mode && new Date(t.ts)>=ctx.start && new Date(t.ts)<ctx.end && analysisCatKey(t)===ctx.cat)
+    .filter(t=> t.type===ctx.mode && inPeriod(t, ctx.start, ctx.end) && analysisCatKey(t)===ctx.cat)
     .sort((a,b)=> new Date(b.ts)-new Date(a.ts));
 }
 function openCatTx(cat, mode, period){
@@ -7939,7 +7998,7 @@ function renderCatTxPage(){
     <div class="tx-item" data-cattx="${t.id}" style="cursor:pointer;">
       <div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
       <div class="tx-body"><div class="tx-top"><span class="tx-title">${storyEsc(t.payee||t.category||'')}</span><span class="tx-amt ${t.type==='income'?'pos':'neg'} maskable">${t.type==='income'?'+':''}${fmt(t.type==='income' ? t.amount : spendOf(t))}</span></div>
-      <div class="tx-meta">${new Date(t.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})} · ${storyEsc(targetName(t.account))}${t.category!==cattxCtx.cat?' · '+storyEsc(t.category||''):''}</div>${noteHtml(t.remarks)}</div>
+      <div class="tx-meta">${new Date(t.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})} · ${storyEsc(targetName(t.account))}${t.category!==cattxCtx.cat?' · '+storyEsc(t.category||''):''}${countsNextMonth(t) ? ' · counted in ' + moneyDate(t).toLocaleDateString('en-IN',{month:'short'}) : ''}</div>${noteHtml(t.remarks)}</div>
     </div>`).join('') : '<div class="empty" style="padding:18px 0;">No transactions left in this category for this period.</div>';
   document.querySelectorAll('#cattx-list [data-cattx]').forEach(el=>{
     el.addEventListener('click', ()=>{
@@ -8396,7 +8455,7 @@ function downloadTransactionsPDF({start, end, label, cat, mode}){
   if(!window.jspdf){ alert('The PDF tool has not loaded yet — check your connection and reload the app.'); return; }
   const fmtPdf = n => { const v = Math.abs(Math.round(n)); return (n<0 ? '-Rs ' : 'Rs ') + v.toLocaleString('en-IN'); };
   const dateStr = ts => new Date(ts).toLocaleDateString('en-IN',{day:'2-digit', month:'short', year:'numeric'});
-  const inRange = t => { const d = new Date(t.ts); return d>=start && d<end; };
+  const inRange = t => inPeriod(t, start, end);
   let all = state.transactions.filter(inRange).sort((a,b)=> new Date(a.ts)-new Date(b.ts));
   if(cat) all = all.filter(t=> t.type===mode && analysisCatKey(t)===cat);
   if(!all.length){ alert('No transactions found in that period.'); return; }
@@ -8732,7 +8791,7 @@ function renderMonthView(){
   const dateOf = ts=> new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
   const row = (i, idx)=>{
     if(i.tx && i.kind!=='transfer'){ const tx = i.tx, meta = catMeta(tx.category), j = monthviewTxRefs.indexOf(tx);
-      return `<div class="tx-item" data-editmonth="${j}" style="cursor:pointer;"><div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${storyEsc(tx.payee||'')}</span><span class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmt(spendOrIncome(tx))}</span></div><div class="tx-meta">${tx.account ? storyEsc(targetName(tx.account)) : 'paid by someone else'} · ${storyEsc(tx.category||'')}${tx.forWhom==='split' ? '<span class="mv-kind">split</span>' : tx.forWhom==='reimbursed' ? '<span class="mv-kind">claim</span>' : ''}</div>${noteHtml(tx.remarks)}</div></div>`; }
+      return `<div class="tx-item" data-editmonth="${j}" style="cursor:pointer;"><div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${storyEsc(tx.payee||'')}</span><span class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmt(spendOrIncome(tx))}</span></div><div class="tx-meta">${tx.account ? storyEsc(targetName(tx.account)) : 'paid by someone else'} · ${storyEsc(tx.category||'')}${tx.forWhom==='split' ? '<span class="mv-kind">split</span>' : tx.forWhom==='reimbursed' ? '<span class="mv-kind">claim</span>' : ''}${countsNextMonth(tx) ? `<span class="mv-kind">counts in ${moneyDate(tx).toLocaleDateString('en-IN',{month:'short'})}</span>` : ''}</div>${noteHtml(tx.remarks)}</div></div>`; }
     if(i.kind==='transfer'){ const tx = i.tx, j = monthviewTxRefs.indexOf(tx);
       return `<div class="tx-item" data-editmonth="${j}" style="cursor:pointer;"><div class="chip-icon" style="color:var(--peri);">${ICON.swap}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${storyEsc(targetName(tx.from))} → ${storyEsc(targetName(tx.to))}</span><span class="tx-amt">${fmt(tx.amount)}</span></div><div class="tx-meta">${storyEsc(tx.remarks||'between your own accounts')}<span class="mv-kind">transfer</span></div></div></div>`; }
     if(i.kind==='people'){ const e = i.pe, person = state.people.find(p=>p.id===e.personId), gave = e.delta > 0;
@@ -12666,7 +12725,7 @@ function mrIsLumpy(cat){ const b = (state.budget||[]).find(x=> x.cat === cat); i
 function mrIsSalaryCat(cat, list){ return /salary|payroll|\bpao\b/i.test(String(cat||'')) || list.some(t=> t.isSalary); }
 function mrMonthData(y, m){
   const {start, end} = monthBounds(y, m);
-  const tx = state.transactions.filter(t=> t.type !== 'transfer' && new Date(t.ts) >= start && new Date(t.ts) < end);
+  const tx = state.transactions.filter(t=> t.type !== 'transfer' && inPeriod(t, start, end));
   const inc = {}, exp = {};
   tx.forEach(t=>{
     if(t.type === 'income'){ const v = incomeOf(t); if(!v) return; const k = analysisCatKey(t); (inc[k] = inc[k] || {v:0, list:[]}).v += v; inc[k].list.push(t); }
@@ -12865,7 +12924,7 @@ function buildSampleState(){
   const r = sampleRand(2511);
   const jit = (v, p)=> Math.round(v * (1 + (r() * 2 - 1) * (p || 0.15)) / 10) * 10;
   st.accounts = [
-    {id:'s_dhdfc', name:'Dudu HDFC Salary', tag:'...4421', opening:86500, em:'🏦'},
+    {id:'s_dhdfc', name:'Dudu HDFC Salary', tag:'...4421', opening:86500, em:'🏦', openedAt: new Date(2026, 8, 1).toISOString()},
     {id:'s_nicici', name:'Nuts ICICI', tag:'...7713', opening:142300, em:'🏦'},
     {id:'s_cash', name:'Cash', tag:'', opening:4200, em:'👛'}];
   st.cards = [
@@ -12904,6 +12963,8 @@ function buildSampleState(){
     if(D(20)) add(y,m,20,12,'income','Other Income',jit(1800),'Dividend','s_dhdfc');
     if(D(30) && m !== 10) add(y,m,30,16,'income','Dudu Salary',100000,'PAO SALARY','s_dhdfc',{isSalary:true});
   };
+  // v144: Dudu's August salary (30 Aug) counts for September; it is before the account's opening balance
+  add(2026,7,30,16,'income','Dudu Salary',100000,'PAO SALARY','s_dhdfc',{isSalary:true});
   month(2026, 8, 30, {groc:1, food:1, pers:1, shop:0.9});            // September: a calm month, money kept
   month(2026, 9, 31, {groc:1.15, food:1.2, pers:1.2, shop:1.4});     // October: everything spent
   add(2026,9,29,18,'expense','Gifts & Festivals',42000,'Tanishq (Karwa Chauth gift)','s_dcard',{remarks:'Karwa Chauth gift for Nuts · Logged by Dudu'});
