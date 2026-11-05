@@ -1851,7 +1851,7 @@ setTimeout(function(){
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-05 · v142b-reminders-key</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-05 · v142c-reminders-fast</p>
   </div>
 </div>
 
@@ -4535,7 +4535,7 @@ function ringKey(){ return 'fa-ring-' + (currentHid || 'x'); }
 function ringOn(){ return lsGet(ringKey(), false) === true; }
 async function loadRingSwitch(){
   if(!authUser || !currentHid) return;
-  try{ remBaseline(); remRefreshToken(); }catch(e){}
+  try{ remBaseline(); remWarmUp(); remRefreshToken(); }catch(e){}
   try{ const r = await readerCall('features', {method:'GET'}); if(r.status === 200 && r.data && r.data.ok){ const was = ringOn(); lsSet(ringKey(), !!r.data.ring); if(was !== !!r.data.ring) render(); } }catch(e){}
 }
 let ringView = 'week';
@@ -12460,12 +12460,36 @@ function remLoadMessaging(){
   if(!remMessagingLoaded) remMessagingLoaded = new Promise((ok, bad)=>{ const s = document.createElement('script'); s.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js'; s.onload = ok; s.onerror = bad; document.head.appendChild(s); });
   return remMessagingLoaded;
 }
+// v142c: the service worker is put in place early (when the app opens), so turning reminders on
+// does not wait for it; getToken gets an active worker straight away.
+let remRegPromise = null;
+function remRegisterSW(){
+  if(!remRegPromise) remRegPromise = navigator.serviceWorker.register(REM_SW, {scope: './'}).then(reg=> remActive(reg)).catch(e=>{ remRegPromise = null; throw e; });
+  return remRegPromise;
+}
+function remActive(reg){
+  if(reg.active) return Promise.resolve(reg);
+  const w = reg.installing || reg.waiting;
+  return new Promise(ok=>{
+    const done = ()=> ok(reg);
+    if(!w){ navigator.serviceWorker.ready.then(done); return; }
+    w.addEventListener('statechange', ()=>{ if(w.state === 'activated') done(); });
+    setTimeout(done, 8000);
+  });
+}
+function remWarmUp(){
+  try{
+    if(window.SAMPLE || remSupport() !== 'ok') return;
+    remRegisterSW().catch(()=>{});
+    if(remPrefs().on || Notification.permission === 'granted') remLoadMessaging().catch(()=>{});
+  }catch(e){}
+}
 async function remGetToken(){
   if(!REM_VAPID) throw new Error('no-key');
-  const reg = await navigator.serviceWorker.register(REM_SW, {scope: './'});
-  await remLoadMessaging();
+  const [reg] = await Promise.all([remRegisterSW(), remLoadMessaging()]);
   return firebase.messaging().getToken({vapidKey: REM_VAPID, serviceWorkerRegistration: reg});
 }
+let remBusy = '';
 async function remEnable(fromCard){
   const s = remSupport();
   if(s === 'nokey'){ showToast('Reminders are coming soon.', 3000); return false; }
@@ -12481,13 +12505,20 @@ async function remEnable(fromCard){
     showToast('No problem. You can turn reminders on later in Settings.', 3500); renderReminderSettings(); return false;
   }
   remAnalytics('reminder_permission', {result: 'granted'});
-  let token = null;
-  try{ token = await remGetToken(); }catch(e){ console.warn('reminders token', e); }
-  if(!token){ showToast('Could not turn on reminders right now. Try again from Settings.', 4000); return false; }
+  // v142c: show it on at once; the setting-up runs behind and is undone only if it fails
+  const before = remPrefs();
   const prefs = Object.assign(remPrefs(), {on: true});
-  const r = await readerCall('reminders', {body:{action:'register', token, platform: remPlatform(), appVersion: remAppVersion(), prefs, lang: mzPrefs().lang}}).catch(()=> null);
-  if(!(r && r.status === 200 && r.data && r.data.ok)){ showToast('Could not reach the server. Try again from Settings.', 4000); return false; }
-  remLs('token', token); remLs('prefs', prefs); a.yes = Date.now(); remLs('ask', a);
+  remLs('prefs', prefs); remBusy = 'Setting up this phone…'; renderReminderSettings();
+  let token = null;
+  try{ token = await remGetToken(); }catch(e){ console.warn('reminders token', e); remLs('diag', 'token: ' + String(e && (e.code || e.message) || e).slice(0, 120)); }
+  let r = null;
+  if(token) r = await readerCall('reminders', {body:{action:'register', token, platform: remPlatform(), appVersion: remAppVersion(), prefs, lang: mzPrefs().lang}}).catch(()=> null);
+  remBusy = '';
+  if(!token || !(r && r.status === 200 && r.data && r.data.ok)){
+    remLs('prefs', before); renderReminderSettings();
+    showToast(!token ? 'Could not set up reminders on this phone. Try again in a minute.' : 'Could not reach the server. Try again from Settings.', 4000); return false;
+  }
+  remLs('token', token); remLs('diag', null); a.yes = Date.now(); remLs('ask', a);
   showToast(`Done ✓ I'll nudge you at ${remNice(prefs.morningTime)} and ${remNice(prefs.eveningTime)}.`, 3500);
   if(typeof mzReact === 'function') mzReact('happy', 1800);
   renderReminderSettings();
@@ -12515,6 +12546,7 @@ function remAnalytics(name, props){ try{ if(window.posthog && posthog.capture) p
 // ---- Settings → Reminders
 function renderReminderSettings(){
   const box = document.getElementById('reminder-settings-box'); if(!box) return;
+  remWarmUp();
   const p = remPrefs(), s = remSupport(), st = remLs('status') || {};
   const seg = `<div class="seg" id="rem-onoff" style="margin-bottom:8px;"><button data-v="on" class="${p.on ? 'on' : ''}">On</button><button data-v="off" class="${p.on ? '' : 'on'}">Off</button></div>`;
   let note = '';
@@ -12531,14 +12563,36 @@ function renderReminderSettings(){
       + `<label class="mz-tog"><span>Only when something is waiting<br><small style="color:var(--ink-soft);">Just when bank alerts need a look</small></span><input type="checkbox" data-remtog="onlyWaiting" ${p.onlyWaiting ? 'checked' : ''}></label>`
       + (st.eveningOnly ? `<p class="rem-status">🌙 Evening only for now: the last 5 went unopened. Open one and the morning one comes back.</p>` : '')
       + (st.paused ? `<p class="rem-status">Paused: nothing added for 30 days. Add an entry and they start again.</p>` : '')
-      + `<button class="link-btn" id="rem-test" type="button" style="margin-top:8px;">Send me a test now</button>` : '');
+      + (remBusy ? `<p class="rem-status">⏳ ${remBusy}</p>` : `<button class="link-btn" id="rem-test" type="button" style="margin-top:8px;">Send me a test now</button>`)
+      + (remTestNote ? `<p class="rem-status">${remTestNote}</p>` : '') : '');
   box.querySelectorAll('#rem-onoff button').forEach(b=> b.addEventListener('click', async ()=>{
     if(b.dataset.v === 'on'){ if(!remPrefs().on) await remEnable(false); }
     else remSavePrefs(Object.assign(remPrefs(), {on: false}));
   }));
   box.querySelectorAll('[data-remtog]').forEach(c=> c.addEventListener('change', ()=>{ const q = remPrefs(); q[c.dataset.remtog] = c.checked; if(!q.morning && !q.evening) q[c.dataset.remtog === 'morning' ? 'evening' : 'morning'] = true; remSavePrefs(q); }));
   box.querySelectorAll('[data-remtime]').forEach(i=> i.addEventListener('change', ()=>{ const v = i.value; if(!/^\d\d:\d\d$/.test(v)) return; const [h] = v.split(':').map(Number); if(h < 6 || h >= 23){ showToast('Pick a time between 6 am and 11 pm.'); renderReminderSettings(); return; } const q = remPrefs(); q[i.dataset.remtime] = v; remSavePrefs(q); }));
-  const t = document.getElementById('rem-test'); if(t) t.addEventListener('click', async ()=>{ const r = await readerCall('reminders', {body:{action:'test'}}).catch(()=> null); showToast(r && r.data && r.data.ok ? 'Sent. It should arrive in a few seconds.' : 'Could not send. Turn reminders off and on again.', 3500); });
+  const t = document.getElementById('rem-test'); if(t) t.addEventListener('click', remSendTest);
+}
+
+// ---- v142c: the test checks that it really reached this phone
+let remTestNote = '', remTestTimer = null, remTestWaiting = false;
+async function remSendTest(){
+  remTestNote = 'Sending…'; renderReminderSettings();
+  // make sure the server has this phone's current address first
+  try{ const tok = await remGetToken(); if(tok && tok !== remLs('token')){ await readerCall('reminders', {body:{action:'register', token: tok, platform: remPlatform(), appVersion: remAppVersion(), prefs: remPrefs(), lang: mzPrefs().lang}}); remLs('token', tok); } }catch(e){ remLs('diag', 'token: ' + String(e && (e.code || e.message) || e).slice(0, 120)); }
+  const r = await readerCall('reminders', {body:{action:'test'}}).catch(()=> null);
+  if(!(r && r.data && r.data.ok)){ remTestNote = 'Could not send. Turn reminders Off and On again.'; renderReminderSettings(); return; }
+  remTestWaiting = true; remTestNote = `Sent to ${r.data.sent || 1} device${(r.data.sent || 1) === 1 ? '' : 's'}. Waiting for it on this phone…`; renderReminderSettings();
+  clearTimeout(remTestTimer);
+  remTestTimer = setTimeout(()=>{
+    if(!remTestWaiting) return; remTestWaiting = false;
+    const perm = ('Notification' in window) ? Notification.permission : 'none';
+    remTestNote = `Not received on this phone yet. Check: phone Settings → Apps → The 25th (or Chrome) → Notifications on, and battery saver off. (notifications: ${perm}${remLs('diag') ? '; ' + remLs('diag') : ''})`;
+    renderReminderSettings();
+  }, 25000);
+}
+function remPushArrived(d){
+  if(remTestWaiting){ remTestWaiting = false; clearTimeout(remTestTimer); remTestNote = '✓ It reached this phone.'; renderReminderSettings(); showToast('✓ Test reminder reached this phone', 3000); }
 }
 
 // ---- a tap on a reminder: open Add (morning: yesterday) or the review list
@@ -12567,7 +12621,7 @@ function remHandleOpen(q){
     remHandleOpen(q);
   }catch(e){}
 })();
-if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', ev=>{ const d = ev.data || {}; if(d.type === 'rem-open') remHandleOpen(d); });
+if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', ev=>{ const d = ev.data || {}; if(d.type === 'rem-open') remHandleOpen(d); if(d.type === 'rem-push') remPushArrived(d); });
 
 // ---- Settings → Munzo
 function renderMunzoSettings(){
