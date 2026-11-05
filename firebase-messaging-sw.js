@@ -1,4 +1,4 @@
-// The 25th · reminders (D-05Nov-1, app v142).
+// The 25th · reminders (D-05Nov-1, app v142c).
 // Shows the daily reminder the server sends through Firebase Cloud Messaging, and opens the app
 // on Add (morning: yesterday) or on the review list when the reminder is tapped.
 // The server sends data only ({title, body, slot, kind, rid, url}); no amounts or names ever.
@@ -13,14 +13,17 @@ self.addEventListener('push', event => {
   const title = d.title || 'The 25th';
   const body = d.body || "Today's spends, sorted in 15 sec.";
   const url = d.url || (self.registration.scope + '?rem=' + (d.slot || 'evening') + '&kind=' + (d.kind || 'log'));
-  event.waitUntil(self.registration.showNotification(title, {
+  // tell an open app that it arrived (the Settings test checks this)
+  const tellApp = self.clients.matchAll({type: 'window', includeUncontrolled: true})
+    .then(list => list.forEach(c => c.postMessage({type: 'rem-push', rid: d.rid || ''}))).catch(() => {});
+  event.waitUntil(Promise.all([tellApp, self.registration.showNotification(title, {
     body,
     icon: 'icon-192.png',
     badge: 'badge-rupee.png',
     tag: 'the25th-reminder',          // a newer reminder replaces an older one
     renotify: true,
     data: {url, slot: d.slot || '', kind: d.kind || 'log', rid: d.rid || ''}
-  }));
+  })]));
 });
 
 self.addEventListener('notificationclick', event => {
