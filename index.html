@@ -217,6 +217,7 @@ setTimeout(function(){
   .tx-body{flex:1; min-width:0;}
   .tx-top{display:flex; justify-content:space-between; gap:10px; align-items:baseline;}
   .tx-title{font-size:15.5px; color:var(--ink); font-weight:400; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .tx-note{font-size:11.5px; color:var(--ink-soft); font-style:italic; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .tx-meta{font-size:11.5px; color:var(--ink-soft); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .tx-amt{font-weight:400; font-size:15.5px; white-space:nowrap; color:var(--ink);}
   .tx-amt.pos{color:var(--sage);} .tx-amt.neg{color:var(--ink);}
@@ -678,6 +679,23 @@ setTimeout(function(){
   .mz-chips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;}
   .mz-chat-row{display:flex; gap:8px; align-items:center;}
   .mz-chat-row input{flex:1; min-width:0;}
+  .rem-dim{position:fixed; inset:0; background:rgba(5,8,11,.5); z-index:60; opacity:0; pointer-events:none; transition:opacity .3s ease;}
+  .rem-dim.on{opacity:1; pointer-events:auto;}
+  .rem-card{position:fixed; left:12px; right:12px; bottom:calc(env(safe-area-inset-bottom,0px) + 96px); z-index:61; display:none; gap:12px; align-items:flex-start; padding:16px 16px 14px; border-radius:22px; color:var(--ink);
+    background:rgba(124,82,230,.30); -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.28); box-shadow:0 14px 40px rgba(0,0,0,.35); max-width:440px; margin:0 auto;}
+  .rem-card.on{display:flex; animation:mzIn .25s ease-out;}
+  .rem-face{width:64px; height:64px; flex:none; object-fit:contain;}
+  .rem-body{flex:1; min-width:0;}
+  .rem-text{font-size:15.5px; line-height:1.38; font-weight:500;}
+  .rem-ios{font-size:13px; line-height:1.4; margin-top:8px; padding:8px 10px; border-radius:12px; background:rgba(255,255,255,.10);}
+  .rem-share{display:inline-block; border:1px solid currentColor; border-radius:5px; padding:0 4px; font-size:11px;}
+  .rem-btns{display:flex; gap:8px; margin-top:12px;}
+  .rem-btns button{flex:1; margin:0; padding:11px 10px; font-size:14px;}
+  .rem-row{display:flex; align-items:center; gap:10px; border-top:1px solid var(--line);}
+  .rem-time{width:108px; flex:none; font:inherit; font-size:14px; color:var(--ink); background:var(--paper-dim); border:1px solid var(--line); border-radius:10px; padding:6px 8px;}
+  .rem-time:disabled{opacity:.4;}
+  .rem-note{margin:0 0 8px; padding:8px 10px; border-radius:10px; background:var(--paper-dim);}
+  .rem-status{font-size:12.5px; color:var(--ink-soft); margin:8px 0 0; padding:8px 10px; border-radius:10px; background:rgba(232,162,48,.12);}
   .mz-tog{display:flex; justify-content:space-between; align-items:center; padding:8px 2px; border-top:1px solid var(--line); font-size:14px;}
   /* ---- Home for everyone (v122, D-28Oct-6 Phase B) ---- */
   .bell-count{position:absolute; top:3px; right:3px; min-width:17px; height:17px; padding:0 4px; border-radius:9px; background:var(--debt); color:#fff; font-size:10.5px; font-weight:700; line-height:17px; text-align:center;}
@@ -954,6 +972,9 @@ setTimeout(function(){
   /* ---- v135: sample household band ---- */
   #sample-band{position:fixed; left:0; right:0; bottom:calc(env(safe-area-inset-bottom,0px) + 74px); margin:0 auto; width:max-content; max-width:94%; z-index:60; background:rgba(227,182,87,.95); color:#2a2006; font-size:12px; border-radius:999px; padding:5px 6px 5px 12px; box-shadow:0 4px 16px rgba(0,0,0,.25); display:flex; align-items:center; gap:6px;}
   #sample-band button{border:0; background:#2a2006; color:#fff; border-radius:999px; padding:4px 10px; font:inherit; font-size:12px; cursor:pointer;}
+  /* ---- v140: returning user, first check in the background ---- */
+  .intro-returning{display:block; margin:8px auto 0; font-size:13.5px; color:var(--ink-soft);}
+  .intro-returning b{color:var(--peri); font-weight:600;}
 </style>
 </head>
 <body>
@@ -1157,6 +1178,8 @@ setTimeout(function(){
 <div class="munzo hide" id="munzo" role="button" aria-label="Munzo: tap to ask"><div class="mz-glow"></div><div class="mz-body"><img class="mz-face on" id="mz-face-a" alt=""><img class="mz-face" id="mz-face-b" alt=""></div></div>
 <div class="mz-dim" id="mz-dim"></div>
 <div class="mz-bubble" id="mz-bubble"></div>
+<div class="rem-dim" id="rem-dim"></div>
+<div class="rem-card" id="rem-card" role="dialog" aria-label="Reminders"></div>
 <div id="mz-celebrate"></div>
 <div class="sheet-backdrop" id="mz-chat-backdrop">
   <div class="sheet">
@@ -1455,6 +1478,7 @@ setTimeout(function(){
       <div class="pick-summary" id="edit-acct-summary"></div>
       <div class="pick-list hide" id="edit-acct-row"></div>
       <div class="field"><label id="edit-payee-label">Paid to</label><input id="edit-payee" placeholder=""></div>
+      <div class="field"><label>Note <span style="font-weight:400;">(optional)</span></label><input id="edit-note" placeholder="e.g. dinner with Raja"></div>
       <button class="link-btn" id="edit-make-transfer" type="button" style="margin:-4px 0 12px; text-align:left;">Moved between your own accounts? Make it a transfer</button>
     </div>
     <div id="edit-transfer-fields" class="hide">
@@ -1791,6 +1815,9 @@ setTimeout(function(){
     <div class="divider-label">Munzo</div>
     <div class="card" id="munzo-settings-box" style="margin-bottom:6px;"></div>
 
+    <div class="divider-label">Reminders</div>
+    <div class="card" id="reminder-settings-box" style="margin-bottom:6px;"></div>
+
     <div class="divider-label">My reimbursements</div>
     <div class="card" id="claim-payers-box" style="margin-bottom:6px;"></div>
 
@@ -1824,7 +1851,7 @@ setTimeout(function(){
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-01 · v139-sure-tick</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-05 · v142b-reminders-key</p>
   </div>
 </div>
 
@@ -2283,6 +2310,7 @@ function introHtml(){
     <div class="intro-foot">
       <button class="btn-primary" id="intro-next">Next</button>
       <p class="gate-note intro-note" id="intro-note">Kept on your phone and backed up to your private, encrypted space.</p>
+      <button class="link-btn intro-returning" id="intro-returning">Already using The 25th? <b>Sign in</b></button>
     </div>
   </div>`;
 }
@@ -2317,6 +2345,7 @@ function wireIntro(){
     askBankGmail();
   });
   document.getElementById('intro-skip').addEventListener('click', ()=> introGo(INTRO.length - 1));
+  { const rb = document.getElementById('intro-returning'); if(rb) rb.addEventListener('click', ()=>{ rb.disabled = true; rb.textContent = 'Opening Google…'; signInOneStep(); }); }
   document.querySelectorAll('[data-introdot]').forEach(d=> d.addEventListener('click', ()=> introGo(+d.getAttribute('data-introdot'))));
   const vp = document.querySelector('.intro-viewport'); let x0 = null, y0 = null;
   vp.addEventListener('touchstart', e=>{ x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, {passive: true});
@@ -2464,11 +2493,20 @@ function claimIfPending(){
   try{ sessionStorage.removeItem('fa-first-month'); }catch(e){}
   readerCall('claimInbox', {body: {}}).catch(e=> console.warn('claimInbox failed', e));
 }
+// v140: tie the Gmail given at sign-in to the household, trying up to 4 times (0, 1.5, 4, 8 s):
+// a household made a moment ago may not be known to the server on the first try.
+async function claimInboxRetry(){
+  for(const wait of [0, 1500, 4000, 8000]){
+    if(wait) await new Promise(r=> setTimeout(r, wait));
+    try{ const r = await readerCall('claimInbox', {body: {}}); if(r.status === 200 && r.data && r.data.ok) return r.data; }catch(e){ console.warn('claimInbox failed', e); }
+  }
+  return null;
+}
 // After set-up: tie the inbox to the household, then offer this month's statement.
 async function afterSetupSteps(preview){
   let info = {noAlertAccounts: [], claimed: false};
   if(!preview){
-    try{ const r = await readerCall('claimInbox', {body: {}}); if(r.status === 200 && r.data.ok) info = r.data; }catch(e){ console.warn('claimInbox failed', e); }
+    info = await claimInboxRetry() || info;
     try{ sessionStorage.removeItem('fa-first-month'); }catch(e){}
     if(!readerStatus) readerStatus = {inboxes: []};
     readerStatus.noAlertAccounts = info.noAlertAccounts || [];
@@ -2481,18 +2519,19 @@ async function afterSetupSteps(preview){
   const all = [...state.accounts, ...state.cards].filter(a=> a.id !== 'cash_wallet' && a.id !== 'sinking_fund');
   const needStmt = all.filter(a=> (info.noAlertAccounts || []).includes(a.id) || knownNoEmail(a, !!state.cards.find(c=> c.id===a.id)));
   const connected = preview || info.claimed || readerInboxes().length > 0;
-  let found = null;
-  if(connected){
-    showFirstMonth('reading');
-    if(preview){ await new Promise(r=> setTimeout(r, 1600)); found = (state.pendingImports||[]).length; }
-    else {
-      try{
-        const r = await readerCall('manualFetch', {method:'GET', query:'after=' + encodeURIComponent(statementFirstDayIso())});
-        if(r.status === 200 && r.data && r.data.ok) found = r.data.totalFound || 0;
-      }catch(e){ console.warn('First check failed', e); }
-    }
-  }
-  showFirstMonth(needStmt.length ? 'import' : 'done', {found, connected, needStmt, preview});
+  // v140: no waiting screen (it took ~30 s). Home (or the statement offer) opens at once and this
+  // month's bank mails are read in the background; entries appear on Home as they are found.
+  if(connected && !preview) firstCheckInBackground();
+  if(needStmt.length || !connected) showFirstMonth(needStmt.length ? 'import' : 'done', {found: null, connected, needStmt, preview});
+  else { hideGate(); render(); }
+}
+async function firstCheckInBackground(){
+  showToast(`📬 Reading this month's bank mails… entries will appear on Home.`, 5000);
+  try{
+    const r = await readerCall('manualFetch', {method:'GET', query:'after=' + encodeURIComponent(statementFirstDayIso())});
+    const n = r.status === 200 && r.data && r.data.ok ? (r.data.totalFound || 0) : null;
+    if(n !== null) showToast(n ? `${n} entr${n===1?'y':'ies'} from this month found — waiting on Home for you to check.` : 'No bank alerts found this month yet. New ones will appear on Home.', 5000);
+  }catch(e){ console.warn('First check failed', e); }
 }
 function statementFirstDayIso(){ const f = statementFirstDay(); return `${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,'0')}-01`; }
 const FM_ART_MAIL = '<rect x="18" y="30" width="76" height="52" rx="10" fill="none" stroke="currentColor" stroke-width="5"/><path d="M20 36l36 26 36-26" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/>';
@@ -2835,6 +2874,7 @@ function listenToReaderStatus(){
   hh('readerStatus').onSnapshot(snap=>{
     if(forHid !== currentHid) return;
     readerStatus = snap.exists ? snap.data() : null;
+    if(!isLegacy() && !readerInboxes().length && authUser && !listenToReaderStatus._claimTried){ listenToReaderStatus._claimTried = true; claimInboxRetry().then(d=>{ if(d && Array.isArray(d.inboxes) && d.inboxes.length){ readerStatus = Object.assign(readerStatus || {}, {inboxes: d.inboxes}); applyHouseholdUI(); } }); }
     try{
       if(readerStatus) localStorage.setItem(readerCacheKey(), JSON.stringify(readerStatus));
       else localStorage.removeItem(readerCacheKey());
@@ -3178,6 +3218,7 @@ function openSettingsPage(){
   loadReaderSenders();
   openSettingsPageClaims();
   try{ renderMunzoSettings(); }catch(e){}
+  try{ renderReminderSettings(); }catch(e){}
   openFullscreen('tools-page');
 }
 // Parts of the screen that show only once a household has an inbox connected, and the
@@ -3466,6 +3507,7 @@ async function syncCollectionDiff(field, type, currentOverride){
 
 async function saveState(){
   if(!currentHid) return; // no household chosen yet
+  try{ remNoteSave(); }catch(e){}
   await saveLocalOnly();
   // Record what changed to the outbox unconditionally — cloud-ready or not. The previous
   // version only did this inside the cloud-sync path below, which returns immediately when
@@ -3573,7 +3615,7 @@ function toggleMask(){
 }
 document.getElementById('mask-toggle-btn').addEventListener('click', toggleMask);
 // The owner sees whether the server has been deployed with what this app needs.
-const APP_NEEDS_SERVER = 'v130';
+const APP_NEEDS_SERVER = 'v138';
 function serverIsNewEnough(v){ const n = x=> parseInt(String(x||'').replace(/\D/g,''), 10) || 0; return n(v) >= n(APP_NEEDS_SERVER); }
 async function checkServerVersion(){
   const el = document.getElementById('server-version-line'); if(!el || !ownerView) return;
@@ -3742,7 +3784,7 @@ function openBudgetDetail(cat){
     <div class="tx-item" data-editbudgettx="${t.id}" style="cursor:pointer;">
       <div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
       <div class="tx-body"><div class="tx-top"><span class="tx-title">${t.payee}</span><span class="tx-amt ${t.type==='income'?'pos':'neg'} maskable">${t.type==='income'?'+':''}${fmt(t.type==='income' ? t.amount : spendOf(t))}</span></div>
-      <div class="tx-meta">${new Date(t.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${targetName(t.account)}${t.forWhom==='split' ? ' · your share of ' + fmt(t.amount) : ''}</div></div>
+      <div class="tx-meta">${new Date(t.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${targetName(t.account)}${t.forWhom==='split' ? ' · your share of ' + fmt(t.amount) : ''}</div>${noteHtml(t.remarks)}</div>
     </div>`).join('') +
     catPeople.map(e=>{
       const person = state.people.find(p=>p.id===e.personId);
@@ -4493,6 +4535,7 @@ function ringKey(){ return 'fa-ring-' + (currentHid || 'x'); }
 function ringOn(){ return lsGet(ringKey(), false) === true; }
 async function loadRingSwitch(){
   if(!authUser || !currentHid) return;
+  try{ remBaseline(); remRefreshToken(); }catch(e){}
   try{ const r = await readerCall('features', {method:'GET'}); if(r.status === 200 && r.data && r.data.ok){ const was = ringOn(); lsSet(ringKey(), !!r.data.ring); if(was !== !!r.data.ring) render(); } }catch(e){}
 }
 let ringView = 'week';
@@ -5174,6 +5217,11 @@ wireSlide('ri-slide', 'ri-slide-coin', 'ri-approve-btn', 'reviewimport-backdrop'
 document.getElementById('ri-amount').addEventListener('input', ()=> updateSlideReview());
 // C2: the jar fills a little after adding
 let jarPctBefore = {};
+// v141: the person's own note, without the app's own tags ("Imported from email", "Added by …")
+const SYS_NOTE = /^(Imported from email|Added by .+|Added from (SMS|statement.*)|Logged by .+|You gave|You got|Paid for you|Opening balance|Moved from People Ledger|Saved first from salary)$/i;
+function userNote(r){ return String(r||'').split(' · ').map(x=> x.trim()).filter(x=> x && !SYS_NOTE.test(x)).join(' · '); }
+function sysNoteParts(r){ return String(r||'').split(' · ').map(x=> x.trim()).filter(x=> x && SYS_NOTE.test(x)); }
+function noteHtml(r, cls){ const n = userNote(r); return n ? `<div class="${cls||'tx-note'}">✎ ${storyEsc(n)}</div>` : ''; }
 // C3: a short line of context per person, and the WhatsApp reminder
 function personContext(id){
   const es = state.personLedger.filter(e=> e.personId === id).sort((a,b)=> new Date(b.ts) - new Date(a.ts));
@@ -5541,7 +5589,7 @@ function renderAll(){
       return `<div class="rc-row" data-editrecent="${i}"><div class="emo-ic">🔁</div><div class="rc-body"><div class="name">${storyEsc(targetName(tx.from))} → ${storyEsc(targetName(tx.to))}</div><div class="sub">${storyEsc(tx.remarks||'Transfer')}</div></div><div class="amt maskable">${fmt(tx.amount)}</div></div>`;
     }
     const extra = tx.forWhom==='split' ? ' · your share ' + fmt(spendOf(tx)) : tx.forWhom==='reimbursed' ? ' · claim ' + storyEsc(claimName(tx.claimId)) : tx.claimRole==='receipt' ? ' · claim payment' : tx.claimRole==='advance' ? ' · claim advance' : '';
-    return `<div class="rc-row" data-editrecent="${i}"><div class="emo-ic">${catEmoji(tx.category)}</div><div class="rc-body"><div class="name">${storyEsc(tx.payee||'')}</div><div class="sub">${storyEsc(targetName(tx.account))} · ${storyEsc(catShort(tx.category))}${extra}</div></div><div class="amt maskable ${tx.type==='income'?'in':''}">${tx.type==='income'?'+':'-'}${fmt(tx.amount)}</div></div>`;
+    return `<div class="rc-row" data-editrecent="${i}"><div class="emo-ic">${catEmoji(tx.category)}</div><div class="rc-body"><div class="name">${storyEsc(tx.payee||'')}</div><div class="sub">${storyEsc(targetName(tx.account))} · ${storyEsc(catShort(tx.category))}${extra}</div>${noteHtml(tx.remarks)}</div><div class="amt maskable ${tx.type==='income'?'in':''}">${tx.type==='income'?'+':'-'}${fmt(tx.amount)}</div></div>`;
   }).join('') : '<div class="empty">No transactions yet. Tap + to add one.</div>';
   document.querySelectorAll('[data-editrecent]').forEach(el=>{
     el.addEventListener('click', ()=> openEditTx(recentTxRefs[parseInt(el.getAttribute('data-editrecent'))]));
@@ -6977,6 +7025,7 @@ function renderEditChips(){
 function openEditTx(tx){
   if(tx && tx.fromPeople){ const pe = state.personLedger.find(e=> e.id === tx.fromPeople); if(pe){ openEditPersonEntry(pe); return; } }
   editingTx = tx;
+  { const en = document.getElementById('edit-note'); if(en) en.value = userNote(tx.remarks); }
   editSelectedCat = tx.category;
   editSelectedAccount = tx.account;
   editCatPickerOpen = false; editAcctPickerOpen = false;
@@ -7060,6 +7109,7 @@ document.getElementById('edittx-save').addEventListener('click', async ()=>{
   editingTx.account = editSelectedAccount;
   editingTx.amount = amount;
   editingTx.payee = document.getElementById('edit-payee').value.trim() || editingTx.payee;
+  { const en = document.getElementById('edit-note'); if(en && editingTx.type !== 'transfer'){ const keep = sysNoteParts(editingTx.remarks); editingTx.remarks = [en.value.trim(), ...keep].filter(Boolean).join(' · '); } }
   if(newTs) editingTx.ts = newTs;
   applyForWhom('edit', editingTx);
   recomputeBudgetActuals();
@@ -7889,7 +7939,7 @@ function renderCatTxPage(){
     <div class="tx-item" data-cattx="${t.id}" style="cursor:pointer;">
       <div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div>
       <div class="tx-body"><div class="tx-top"><span class="tx-title">${storyEsc(t.payee||t.category||'')}</span><span class="tx-amt ${t.type==='income'?'pos':'neg'} maskable">${t.type==='income'?'+':''}${fmt(t.type==='income' ? t.amount : spendOf(t))}</span></div>
-      <div class="tx-meta">${new Date(t.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})} · ${storyEsc(targetName(t.account))}${t.category!==cattxCtx.cat?' · '+storyEsc(t.category||''):''}</div></div>
+      <div class="tx-meta">${new Date(t.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})} · ${storyEsc(targetName(t.account))}${t.category!==cattxCtx.cat?' · '+storyEsc(t.category||''):''}</div>${noteHtml(t.remarks)}</div>
     </div>`).join('') : '<div class="empty" style="padding:18px 0;">No transactions left in this category for this period.</div>';
   document.querySelectorAll('#cattx-list [data-cattx]').forEach(el=>{
     el.addEventListener('click', ()=>{
@@ -8682,11 +8732,11 @@ function renderMonthView(){
   const dateOf = ts=> new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
   const row = (i, idx)=>{
     if(i.tx && i.kind!=='transfer'){ const tx = i.tx, meta = catMeta(tx.category), j = monthviewTxRefs.indexOf(tx);
-      return `<div class="tx-item" data-editmonth="${j}" style="cursor:pointer;"><div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${storyEsc(tx.payee||'')}</span><span class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmt(spendOrIncome(tx))}</span></div><div class="tx-meta">${tx.account ? storyEsc(targetName(tx.account)) : 'paid by someone else'} · ${storyEsc(tx.category||'')}${tx.forWhom==='split' ? '<span class="mv-kind">split</span>' : tx.forWhom==='reimbursed' ? '<span class="mv-kind">claim</span>' : ''}</div></div></div>`; }
+      return `<div class="tx-item" data-editmonth="${j}" style="cursor:pointer;"><div class="chip-icon" style="background:${meta.bg}; color:${meta.tint};">${meta.em}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${storyEsc(tx.payee||'')}</span><span class="tx-amt ${tx.type==='income'?'pos':'neg'}">${tx.type==='income'?'+':'-'}${fmt(spendOrIncome(tx))}</span></div><div class="tx-meta">${tx.account ? storyEsc(targetName(tx.account)) : 'paid by someone else'} · ${storyEsc(tx.category||'')}${tx.forWhom==='split' ? '<span class="mv-kind">split</span>' : tx.forWhom==='reimbursed' ? '<span class="mv-kind">claim</span>' : ''}</div>${noteHtml(tx.remarks)}</div></div>`; }
     if(i.kind==='transfer'){ const tx = i.tx, j = monthviewTxRefs.indexOf(tx);
       return `<div class="tx-item" data-editmonth="${j}" style="cursor:pointer;"><div class="chip-icon" style="color:var(--peri);">${ICON.swap}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${storyEsc(targetName(tx.from))} → ${storyEsc(targetName(tx.to))}</span><span class="tx-amt">${fmt(tx.amount)}</span></div><div class="tx-meta">${storyEsc(tx.remarks||'between your own accounts')}<span class="mv-kind">transfer</span></div></div></div>`; }
     if(i.kind==='people'){ const e = i.pe, person = state.people.find(p=>p.id===e.personId), gave = e.delta > 0;
-      return `<div class="tx-item" data-mvpe="${idx}" style="cursor:pointer;"><div class="chip-icon">${ICON.handshake}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${gave?'You gave':'You got from'} ${storyEsc(person?person.name:'Unknown')}</span><span class="tx-amt ${gave?'neg':'pos'}">${gave?'-':'+'}${fmt(Math.abs(e.delta))}</span></div><div class="tx-meta">${e.account ? storyEsc(targetName(e.account)) : 'no account moved'} · ${e.category && e.category!=='Borrowed' ? storyEsc(e.category) : gave ? 'lent' : 'borrowed'}<span class="mv-kind">people</span></div></div></div>`; }
+      return `<div class="tx-item" data-mvpe="${idx}" style="cursor:pointer;"><div class="chip-icon">${ICON.handshake}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${gave?'You gave':'You got from'} ${storyEsc(person?person.name:'Unknown')}</span><span class="tx-amt ${gave?'neg':'pos'}">${gave?'-':'+'}${fmt(Math.abs(e.delta))}</span></div><div class="tx-meta">${e.account ? storyEsc(targetName(e.account)) : 'no account moved'} · ${e.category && e.category!=='Borrowed' ? storyEsc(e.category) : gave ? 'lent' : 'borrowed'}<span class="mv-kind">people</span></div>${noteHtml(e.remarks)}</div></div>`; }
     const a = i.adj;
     return `<div class="tx-item" style="opacity:.8;"><div class="chip-icon">⚖️</div><div class="tx-body"><div class="tx-top"><span class="tx-title">Balance fixed · ${storyEsc(targetName(a.targetId))}</span><span class="tx-amt">${a.diff>0?'+':'-'}${fmt(Math.abs(a.diff))}</span></div><div class="tx-meta">${storyEsc(a.remarks||'set to what the bank shows')}<span class="mv-kind">balance fix</span></div></div></div>`;
   };
@@ -8733,7 +8783,7 @@ function statementEntries(target, isCard){
   const out = [];
   state.transactions.forEach(t=>{
     if(isCard){
-      if(t.type==='expense' && t.account===id) out.push({kind:'tx', id:t.id, ts:t.ts, label:t.payee||t.category||'Expense', sub:t.category||'', delta:t.amount});
+      if(t.type==='expense' && t.account===id) out.push({kind:'tx', id:t.id, ts:t.ts, label:t.payee||t.category||'Expense', sub:[t.category||'', userNote(t.remarks) ? '✎ '+userNote(t.remarks) : ''].filter(Boolean).join(' · '), delta:t.amount});
       else if(t.type==='transfer' && t.to===id) out.push({kind:'tx', id:t.id, ts:t.ts, label:'Payment from '+targetName(t.from), sub:t.remarks||'Card payment', delta:-t.amount});
       return;
     }
@@ -8741,7 +8791,7 @@ function statementEntries(target, isCard){
       if(t.from===id) out.push({kind:'tx', id:t.id, ts:t.ts, label:'Transfer to '+targetName(t.to), sub:t.remarks||'Transfer', delta:-t.amount});
       if(t.to===id) out.push({kind:'tx', id:t.id, ts:t.ts, label:'Transfer from '+targetName(t.from), sub:t.remarks||'Transfer', delta:t.amount});
     } else if(t.account===id){
-      out.push({kind:'tx', id:t.id, ts:t.ts, label:t.payee||t.category||(t.type==='income'?'Income':'Expense'), sub:t.category||'', delta: t.type==='income'?t.amount:-t.amount});
+      out.push({kind:'tx', id:t.id, ts:t.ts, label:t.payee||t.category||(t.type==='income'?'Income':'Expense'), sub:[t.category||'', userNote(t.remarks) ? '✎ '+userNote(t.remarks) : ''].filter(Boolean).join(' · '), delta: t.type==='income'?t.amount:-t.amount});
     }
   });
   state.personLedger.forEach(e=>{
@@ -12301,6 +12351,223 @@ document.getElementById('mz-chat-mic').addEventListener('click', ()=>{
   rec.onresult = e=>{ const t = e.results[0][0].transcript; document.getElementById('mz-chat-input').value = t; mzAsk(t); };
   try{ rec.start(); showToast('Listening…', 1500); }catch(e){}
 });
+
+// ---------------------------------------------------------------------------
+// v142 · D-05Nov-1 DAILY REMINDERS (Firebase Cloud Messaging web push)
+// Asked only after the 3rd saved entry, with our own card first; Not now → once more after 7 days.
+// Prefs live on the server per user (it decides who gets what); a copy is kept on the phone.
+// ---------------------------------------------------------------------------
+// Public Web Push key: Firebase console → Project settings → Cloud Messaging → Web Push certificates.
+const REM_VAPID = 'BN9J4KOjXiOrYT47aHLV7gpQcHrChJIsqC0ic3e4cQaD69Q6k5vOmzPquZwINEr_Td_6TC77b-F1X4_dWS6ub9I';
+const REM_SW = 'firebase-messaging-sw.js';
+const REM_DEFAULTS = {on:false, morning:true, morningTime:'08:30', evening:true, eveningTime:'20:30', onlyWaiting:false};
+function remLs(k, v){ try{ if(v === undefined) return JSON.parse(localStorage.getItem('fa-rem-' + k) || 'null'); localStorage.setItem('fa-rem-' + k, JSON.stringify(v)); }catch(e){ return null; } }
+function remPrefs(){ return Object.assign({}, REM_DEFAULTS, remLs('prefs') || {}); }
+function remIsIos(){ return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+function remStandalone(){ return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
+function remPlatform(){ return remIsIos() ? (remStandalone() ? 'ios-home' : 'ios-safari') : /android/i.test(navigator.userAgent) ? (remStandalone() ? 'android-app' : 'android-chrome') : (remStandalone() ? 'desktop-app' : 'desktop'); }
+// 'ok' | 'ios-home' (Safari: add to Home Screen first) | 'blocked' | 'no' | 'sample'
+function remSupport(){
+  if(window.SAMPLE) return 'sample';
+  if(!REM_VAPID) return 'nokey';                 // the Web Push key is not in the app yet
+  if(remIsIos() && !remStandalone()) return 'ios-home';
+  if(!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) return 'no';
+  if(Notification.permission === 'denied') return 'blocked';
+  return 'ok';
+}
+function remAppVersion(){ const m = (document.body.innerHTML.match(/Build: [^<·]*· ([^<]+)</) || [])[1]; return (m || '').trim(); }
+
+// ---- counting saved entries (on this phone) and when to ask
+function remEntryCount(){ return (state.transactions || []).length + (state.personLedger || []).length; }
+// Called from saveState. One save that adds entries counts once (a split adds several at a time;
+// entries that arrive from the partner's phone are not saves here). Fewer bank alerts waiting
+// counts as reviewing. Either one tells the server this person logged (for the skip rules).
+function remNoteSave(){
+  if(window.SAMPLE) return;
+  const key = 'count-' + (typeof currentHid !== 'undefined' ? currentHid : '');
+  const n = remEntryCount(), last = remLs(key);
+  const pend = (state.pendingImports || []).length, lastPend = remLs('pend-' + key);
+  remLs(key, n); remLs('pend-' + key, pend);
+  const reviewed = lastPend !== null && pend < lastPend;
+  if(last === null) return;                       // first look on this phone only sets the baseline
+  if(n > last){ remLs('saves', (remLs('saves') || 0) + 1); setTimeout(remMaybeAsk, 1600); }
+  if(n > last || reviewed) remActivity();
+}
+// The phone's starting point, set when the household opens (so the first save counts).
+function remBaseline(){ if(window.SAMPLE || typeof currentHid === 'undefined' || !currentHid) return; const key = 'count-' + currentHid; if(remLs(key) === null){ remLs(key, remEntryCount()); remLs('pend-' + key, (state.pendingImports || []).length); } }
+// Tells the server "logged just now" (at most every 10 minutes; kept and sent later when offline).
+function remActivity(){
+  if(window.SAMPLE || !remPrefs().on) return;
+  remLs('act-pending', Date.now());
+  remFlushActivity();
+  setTimeout(remFlushActivity, 10 * 60000 + 2000);
+}
+async function remFlushActivity(){
+  const at = remLs('act-pending'); if(!at || !authUser) return;
+  const last = remLs('act-sent') || 0; if(Date.now() - last < 10 * 60000) return;
+  try{
+    const r = await readerCall('reminders', {body:{action:'activity'}});
+    if(r.status === 200 && r.data && r.data.ok){ remLs('act-sent', Date.now()); remLs('act-pending', null); if(r.data.status) remLs('status', r.data.status); }
+  }catch(e){}
+}
+function remAnySheetOpen(){ return !!document.querySelector('.sheet-backdrop.open, .fullscreen-page.open') || (typeof mzBubbleOpen !== 'undefined' && mzBubbleOpen); }
+function remShouldAsk(now){
+  now = now || Date.now();
+  if(window.SAMPLE || !authUser) return false;
+  if(remPrefs().on) return false;
+  const s = remSupport(); if(s === 'no' || s === 'sample' || s === 'blocked' || s === 'nokey') return false;
+  if(s === 'ok' && Notification.permission === 'granted' && remLs('token')) return false;
+  if((remLs('saves') || 0) < 3) return false;
+  const a = remLs('ask') || {};
+  if(a.done || a.yes) return false;
+  if(!a.first) return true;                          // first time, after the 3rd entry
+  if(a.notNow && !a.second && now - a.notNow >= 7 * 864e5) return true; // once more after 7 days
+  return false;
+}
+let remCardTries = 0;
+function remMaybeAsk(){
+  if(!remShouldAsk()) return;
+  if(remAnySheetOpen()){ if(++remCardTries < 40) setTimeout(remMaybeAsk, 1500); return; }
+  remCardTries = 0;
+  remShowCard();
+}
+function remShowCard(){
+  const a = remLs('ask') || {};
+  if(!a.first) a.first = Date.now(); else a.second = Date.now();
+  remLs('ask', a);
+  const ios = remSupport() === 'ios-home';
+  const el = document.getElementById('rem-card');
+  el.innerHTML = `<img class="rem-face" src="munzo/munzo-happy.png" alt="" onerror="this.style.display='none'">
+    <div class="rem-body"><div class="mz-label">MUNZO</div>
+      <div class="rem-text">Want a 15-second nudge at 8:30 morning and night? I'll keep it short.</div>
+      ${ios ? `<div class="rem-ios">On iPhone, add The 25th to your Home Screen first to get reminders: tap <b>Share</b> <span class="rem-share">⬆︎</span>, then <b>Add to Home Screen</b>, and open it from there.</div>` : ''}
+      <div class="rem-btns">${ios ? `<button class="btn-primary" data-rem="ok">Got it</button>` : `<button class="btn-primary" data-rem="yes">Yes, remind me</button>`}<button class="btn-ghost" data-rem="later">Not now</button></div>
+    </div>`;
+  document.getElementById('rem-dim').classList.add('on'); el.classList.add('on');
+  el.querySelectorAll('[data-rem]').forEach(b=> b.addEventListener('click', ()=>{
+    const k = b.dataset.rem; remHideCard();
+    if(k === 'yes') remEnable(true);
+    else { const s = remLs('ask') || {}; if(k === 'later' || k === 'ok'){ if(s.second) s.done = true; s.notNow = Date.now(); } remLs('ask', s); }
+  }));
+}
+function remHideCard(){ document.getElementById('rem-card').classList.remove('on'); document.getElementById('rem-dim').classList.remove('on'); }
+document.getElementById('rem-dim').addEventListener('click', ()=>{ remHideCard(); const s = remLs('ask') || {}; if(s.second) s.done = true; s.notNow = Date.now(); remLs('ask', s); });
+
+// ---- turning on: permission → service worker → FCM token → server
+let remMessagingLoaded = null;
+function remLoadMessaging(){
+  if(window.firebase && firebase.messaging) return Promise.resolve();
+  if(!remMessagingLoaded) remMessagingLoaded = new Promise((ok, bad)=>{ const s = document.createElement('script'); s.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js'; s.onload = ok; s.onerror = bad; document.head.appendChild(s); });
+  return remMessagingLoaded;
+}
+async function remGetToken(){
+  if(!REM_VAPID) throw new Error('no-key');
+  const reg = await navigator.serviceWorker.register(REM_SW, {scope: './'});
+  await remLoadMessaging();
+  return firebase.messaging().getToken({vapidKey: REM_VAPID, serviceWorkerRegistration: reg});
+}
+async function remEnable(fromCard){
+  const s = remSupport();
+  if(s === 'nokey'){ showToast('Reminders are coming soon.', 3000); return false; }
+  if(s === 'ios-home'){ showToast('On iPhone: Share → Add to Home Screen, then open The 25th from there.', 4500); return false; }
+  if(s === 'blocked'){ showToast('Notifications are blocked for this site. Allow them in the browser\'s site settings first.', 4500); return false; }
+  if(s !== 'ok'){ showToast('This browser cannot show reminders.', 3500); return false; }
+  let perm = Notification.permission;
+  if(perm !== 'granted'){ try{ perm = await Notification.requestPermission(); }catch(e){ perm = 'denied'; } }
+  const a = remLs('ask') || {};
+  if(perm !== 'granted'){
+    a.notNow = Date.now(); if(a.second) a.done = true; remLs('ask', a);
+    remAnalytics('reminder_permission', {result: perm});
+    showToast('No problem. You can turn reminders on later in Settings.', 3500); renderReminderSettings(); return false;
+  }
+  remAnalytics('reminder_permission', {result: 'granted'});
+  let token = null;
+  try{ token = await remGetToken(); }catch(e){ console.warn('reminders token', e); }
+  if(!token){ showToast('Could not turn on reminders right now. Try again from Settings.', 4000); return false; }
+  const prefs = Object.assign(remPrefs(), {on: true});
+  const r = await readerCall('reminders', {body:{action:'register', token, platform: remPlatform(), appVersion: remAppVersion(), prefs, lang: mzPrefs().lang}}).catch(()=> null);
+  if(!(r && r.status === 200 && r.data && r.data.ok)){ showToast('Could not reach the server. Try again from Settings.', 4000); return false; }
+  remLs('token', token); remLs('prefs', prefs); a.yes = Date.now(); remLs('ask', a);
+  showToast(`Done ✓ I'll nudge you at ${remNice(prefs.morningTime)} and ${remNice(prefs.eveningTime)}.`, 3500);
+  if(typeof mzReact === 'function') mzReact('happy', 1800);
+  renderReminderSettings();
+  return true;
+}
+async function remSavePrefs(p){
+  remLs('prefs', p);
+  renderReminderSettings();
+  clearTimeout(remSavePrefs.t);
+  remSavePrefs.t = setTimeout(()=> readerCall('reminders', {body:{action:'prefs', prefs: p, lang: mzPrefs().lang}}).catch(()=>{}), 600);
+}
+// a token that changed (browser refreshed it) is sent again when the app opens
+async function remRefreshToken(){
+  remFlushActivity();
+  if(window.SAMPLE || !authUser || !remPrefs().on || remSupport() !== 'ok' || Notification.permission !== 'granted') return;
+  try{
+    const t = await remGetToken(); if(!t) return;
+    const r = await readerCall('reminders', {body:{action:'register', token: t, platform: remPlatform(), appVersion: remAppVersion(), prefs: remPrefs(), lang: mzPrefs().lang}});
+    if(r.status === 200 && r.data && r.data.ok){ remLs('token', t); if(r.data.status) { remLs('status', r.data.status); renderReminderSettings(); } }
+  }catch(e){}
+}
+function remNice(hhmm){ const [h, m] = String(hhmm || '00:00').split(':').map(Number); const ap = h >= 12 ? 'pm' : 'am'; const h12 = ((h + 11) % 12) + 1; return h12 + ':' + String(m).padStart(2, '0') + ' ' + ap; }
+function remAnalytics(name, props){ try{ if(window.posthog && posthog.capture) posthog.capture(name, props); }catch(e){} }
+
+// ---- Settings → Reminders
+function renderReminderSettings(){
+  const box = document.getElementById('reminder-settings-box'); if(!box) return;
+  const p = remPrefs(), s = remSupport(), st = remLs('status') || {};
+  const seg = `<div class="seg" id="rem-onoff" style="margin-bottom:8px;"><button data-v="on" class="${p.on ? 'on' : ''}">On</button><button data-v="off" class="${p.on ? '' : 'on'}">Off</button></div>`;
+  let note = '';
+  if(s === 'sample') note = 'Not in the sample household.';
+  else if(s === 'nokey') note = 'Reminders are coming soon.';
+  else if(s === 'ios-home') note = 'On iPhone, add The 25th to your Home Screen first (Share → Add to Home Screen), then open it from there to turn reminders on.';
+  else if(s === 'blocked') note = 'Notifications are blocked for this site. Allow them in the browser\'s site settings, then turn reminders on here.';
+  else if(s === 'no') note = 'This browser cannot show reminders. Use Chrome, or the app installed on your phone.';
+  const row = (k, tk, label)=> `<div class="rem-row"><label class="mz-tog" style="flex:1; border-top:none;"><span>${label}</span><input type="checkbox" data-remtog="${k}" ${p[k] ? 'checked' : ''}></label><input type="time" class="rem-time" data-remtime="${tk}" value="${p[tk]}" ${p[k] ? '' : 'disabled'}></div>`;
+  box.innerHTML = seg
+    + `<p class="section-sub" style="margin:-2px 0 10px;">A 15-second nudge to log your spends. Never shows amounts or names.</p>`
+    + (note ? `<p class="section-sub rem-note">${note}</p>` : '')
+    + (p.on ? `<div class="rem-rows">${row('morning', 'morningTime', '☀️ Morning · yesterday\'s spends')}${row('evening', 'eveningTime', '🌙 Evening · today\'s spends')}</div>`
+      + `<label class="mz-tog"><span>Only when something is waiting<br><small style="color:var(--ink-soft);">Just when bank alerts need a look</small></span><input type="checkbox" data-remtog="onlyWaiting" ${p.onlyWaiting ? 'checked' : ''}></label>`
+      + (st.eveningOnly ? `<p class="rem-status">🌙 Evening only for now: the last 5 went unopened. Open one and the morning one comes back.</p>` : '')
+      + (st.paused ? `<p class="rem-status">Paused: nothing added for 30 days. Add an entry and they start again.</p>` : '')
+      + `<button class="link-btn" id="rem-test" type="button" style="margin-top:8px;">Send me a test now</button>` : '');
+  box.querySelectorAll('#rem-onoff button').forEach(b=> b.addEventListener('click', async ()=>{
+    if(b.dataset.v === 'on'){ if(!remPrefs().on) await remEnable(false); }
+    else remSavePrefs(Object.assign(remPrefs(), {on: false}));
+  }));
+  box.querySelectorAll('[data-remtog]').forEach(c=> c.addEventListener('change', ()=>{ const q = remPrefs(); q[c.dataset.remtog] = c.checked; if(!q.morning && !q.evening) q[c.dataset.remtog === 'morning' ? 'evening' : 'morning'] = true; remSavePrefs(q); }));
+  box.querySelectorAll('[data-remtime]').forEach(i=> i.addEventListener('change', ()=>{ const v = i.value; if(!/^\d\d:\d\d$/.test(v)) return; const [h] = v.split(':').map(Number); if(h < 6 || h >= 23){ showToast('Pick a time between 6 am and 11 pm.'); renderReminderSettings(); return; } const q = remPrefs(); q[i.dataset.remtime] = v; remSavePrefs(q); }));
+  const t = document.getElementById('rem-test'); if(t) t.addEventListener('click', async ()=>{ const r = await readerCall('reminders', {body:{action:'test'}}).catch(()=> null); showToast(r && r.data && r.data.ok ? 'Sent. It should arrive in a few seconds.' : 'Could not send. Turn reminders off and on again.', 3500); });
+}
+
+// ---- a tap on a reminder: open Add (morning: yesterday) or the review list
+function remHandleOpen(q){
+  if(!q || !q.slot) return;
+  const go = ()=>{
+    if(q.kind === 'alerts' && (state.pendingImports || []).length){ try{ openFullscreen('review-page'); }catch(e){} }
+    else {
+      openAddTxSheet();
+      if(q.slot === 'morning'){ const y = new Date(); y.setDate(y.getDate() - 1); document.getElementById('tx-date').value = localDateIso(y); try{ renderTxChips(); }catch(e){} }
+    }
+    if(!window.SAMPLE) readerCall('reminders', {body:{action:'opened', slot: q.slot, kind: q.kind, rid: q.rid || null}}).then(r=>{ if(r && r.data && r.data.status){ remLs('status', r.data.status); } }).catch(()=>{});
+    remAnalytics('reminder_opened', {slot: q.slot, kind: q.kind});
+  };
+  // wait until the household has loaded and Home is drawn, then a moment more
+  const wait = (n)=>{ const ready = (authUser || window.SAMPLE) && typeof state !== 'undefined' && state.transactions && currentHid && (state.transactions.length || n > 8) && document.querySelector('#recent-list > *'); if(ready) setTimeout(go, 700); else if(n < 40) setTimeout(()=> wait(n + 1), 500); };
+  setTimeout(()=> wait(0), 0); // after the whole page script has run
+}
+(function remFromUrl(){
+  try{
+    const u = new URL(location.href), slot = u.searchParams.get('rem');
+    if(!slot) return;
+    const q = {slot, kind: u.searchParams.get('kind') || 'log', rid: u.searchParams.get('rid')};
+    ['rem', 'kind', 'rid'].forEach(k=> u.searchParams.delete(k));
+    history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+    remHandleOpen(q);
+  }catch(e){}
+})();
+if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', ev=>{ const d = ev.data || {}; if(d.type === 'rem-open') remHandleOpen(d); });
 
 // ---- Settings → Munzo
 function renderMunzoSettings(){
