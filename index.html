@@ -540,6 +540,23 @@ setTimeout(function(){
   .bp-footer #bp-totals b{color:var(--ink); font-weight:500;}
 
   /* ---- Pickers ---- */
+  .kp-hidden-note{display:none !important;}
+  .date-btn{width:100%; text-align:left; font:inherit; font-size:15px; color:var(--ink); background:var(--paper-dim); border:1px solid var(--line); border-radius:14px; padding:12px 14px; cursor:pointer;}
+  .cal-quick{display:flex; gap:8px; overflow-x:auto; padding:2px 0 10px; scrollbar-width:none;}
+  .cal-quick::-webkit-scrollbar{display:none;}
+  .cal-quick button{flex:none; border:1px solid var(--line); background:var(--paper-dim); color:var(--ink); border-radius:14px; padding:8px 12px; font:inherit; font-size:13.5px; cursor:pointer; text-align:center; line-height:1.15;}
+  .cal-quick button small{display:block; font-size:11px; color:var(--ink-soft);}
+  .cal-quick button.on, .cal-grid button.on{background:#4F7BF7; border-color:#4F7BF7; color:#fff;}
+  .cal-quick button.on small{color:rgba(255,255,255,.8);}
+  .cal-box{border:1px solid var(--line); border-radius:18px; padding:10px 10px 6px; margin-bottom:14px; background:var(--paper-dim);}
+  .cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; font-weight:600;}
+  .cal-head button{border:none; background:none; color:var(--ink); font-size:20px; width:36px; height:32px; cursor:pointer;}
+  .cal-head button:disabled{opacity:.25;}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:3px; text-align:center;}
+  .cal-grid .dw{font-size:11px; color:var(--ink-soft); padding:2px 0;}
+  .cal-grid button{border:none; background:none; color:var(--ink); font:inherit; font-size:14px; height:36px; border-radius:12px; cursor:pointer;}
+  .cal-grid button.today{box-shadow:inset 0 0 0 1px #6FB1FF;}
+  .cal-grid button:disabled{opacity:.25; cursor:default;}
   .cat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin-bottom:16px;}
   .cat-chip{display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 2px; border-radius:16px; border:1px solid transparent; background:none; cursor:pointer;}
   .cat-chip .em{width:44px; height:44px; border-radius:50%; background:var(--chip) !important; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:18px;}
@@ -1237,7 +1254,7 @@ setTimeout(function(){
     <div class="split-panel hide" id="tx-split-panel"></div>
     <div class="cat-grid hide" id="cat-grid"></div>
     <div class="pick-list hide" id="acct-row"></div>
-    <div class="field hide" id="tx-date-panel"><input id="tx-date" type="date"></div>
+    <div class="hide" id="tx-date-panel"><input id="tx-date" type="date" class="hide" tabindex="-1" aria-hidden="true"><div id="tx-cal"></div></div>
     <div class="tx-note-line" id="tx-note-line"><span>✎</span><input id="tx-note" placeholder="Note (optional)" aria-label="Note"></div>
     <div class="keypad" id="keypad"></div>
 
@@ -1765,6 +1782,7 @@ setTimeout(function(){
   </div>
   <div class="fs-body">
     <div id="pending-review-wrap"></div>
+    <div id="autoadded-wrap"></div>
     <div id="setaside-wrap"></div>
     <div class="bell-empty hide" id="review-empty">All caught up ✓</div>
   </div>
@@ -1875,7 +1893,7 @@ setTimeout(function(){
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-05 · v144-salary-month-ring-steps</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-16 · v145-date-keypad-auto-add</p>
   </div>
 </div>
 
@@ -2036,6 +2054,7 @@ const OTHER_EXPENSE_CAT = "Other / Uncategorized";
 const STARTER = {
   schemaVersion: 20,
   ringPrefs: {},
+  autoAddOff: {},
   accounts: [{id:'cash_wallet', name:'Cash', tag:'', opening:0, em:''}],
   cards: [],
   people: [],
@@ -3298,7 +3317,7 @@ const COLLECTION_FIELDS = {
   // and advances are the transactions that carry its claimId, so the claim cannot drift from them.
   claims: 'claim'
 };
-const META_FIELDS = ['budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','lastBudgetReviewMonth','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts','transferPairDeclined','noEmailOk','hiddenMailKinds','hideKindDeclined','gapsSeen','voiceWords','spokenMatchDeclined','paybackDeclined','claimPayers','claimWords','claimDeclined','ringPrefs'];
+const META_FIELDS = ['autoAddOff','budget','mutualFunds','equities','otherAssets','savingsGoals','planning','storyNotes','lastBudgetReviewMonth','commitments','payeeMemory','gmailConnectedEmails','lastGmailFetch','schemaVersion','emailAccountHistory','profilePhoto','dismissedPatternPrompts','transferPairDeclined','noEmailOk','hiddenMailKinds','hideKindDeclined','gapsSeen','voiceWords','spokenMatchDeclined','paybackDeclined','claimPayers','claimWords','claimDeclined','ringPrefs'];
 let previousArrays = { transactions:[], personLedger:[], pendingImports:[], dismissedImports:[], people:[], balanceAdjustments:[], accounts:[], cards:[], processedGmailIds:[], budgetMonths:[], importOutcomes:[], claims:[] };
 
 // ---- Outbox for cloud writes that haven't been confirmed yet ----
@@ -4884,22 +4903,106 @@ function renderHomeMood(isCurrent){
 // category. Account: the bank's own address said which one (not a guess, not a new address).
 // Category: this payee, on this same account, went to this category at least 95% of the time
 // (3 or more earlier entries in the last year). Patterns, look-alikes, paybacks and claims: never ✓.
-function quickSure(it){
-  if(it.possible || it.fromSpoken || it.unknownSender || it.status === 'duplicate' || it.broughtBack) return 0;
-  if(it.accountSure === false) return 0;
-  const acct = validatedAccountId(it.accountId, it.sourceEmail); if(!acct) return 0;
-  const g = readerGuess(it); if(!g.category || g.from === 'pattern' || g.unfit) return 0;
-  const norm = normalizePayee(it.payee || ''); if(!norm || norm === 'unknown') return 0;
+// v145 (Pravesh, 16 Nov): ✓ when 75% sure; after 5 in a row the same way, it is added by itself.
+// "Same payee" = the same name OR the same UPI id (names come in different spellings).
+function payeeKeyMatch(t, norm, vpa){ return (norm && normalizePayee(t.payee || '') === norm) || (vpa && t.vpa && String(t.vpa).toLowerCase() === vpa); }
+function payeeHistory(it){
+  const acct = validatedAccountId(it.accountId, it.sourceEmail); if(!acct) return null;
+  const norm = normalizePayee(it.payee || ''), vpa = String(it.vpa || '').toLowerCase();
+  if((!norm || norm === 'unknown') && !vpa) return null;
   const since = Date.now() - 365*86400000;
-  const hist = (state.transactions||[]).filter(t=> t.type === it.type && (t.account || t.from) === acct && t.category && new Date(t.ts).getTime() >= since && normalizePayee(t.payee || '') === norm);
-  if(hist.length < 3) return 0;
-  return hist.filter(t=> t.category === g.category).length / hist.length;
+  const hist = (state.transactions||[]).filter(t=> t.type === it.type && (t.account || t.from) === acct && t.category && new Date(t.ts).getTime() >= since && payeeKeyMatch(t, norm === 'unknown' ? '' : norm, vpa))
+    .sort((a,b)=> new Date(b.ts) - new Date(a.ts));
+  return {acct, norm, vpa, hist};
 }
+// What this payee on this account usually is. Entries of a similar amount (within 25%, or ₹30)
+// decide first: Blinkit at ₹150 may be Personal while Blinkit at ₹1,200 is Groceries. A payee
+// that goes two ways is "mixed": it gets ✓ only when the similar amounts agree 75% of the time.
+function historyPick(it){
+  if(it.fromSpoken || it.status === 'duplicate' || !(it.type === 'expense' || it.type === 'income')) return null;
+  const h = payeeHistory(it); if(!h || h.hist.length < 3) return null;
+  const near = h.hist.filter(t=> Math.abs((t.amount||0) - it.amount) <= Math.max(30, it.amount * 0.25));
+  const base = near.length >= 3 ? near : h.hist;
+  const count = list=>{ const c = {}; list.forEach(t=> c[t.category] = (c[t.category]||0) + 1); return Object.entries(c).sort((a,b)=> b[1] - a[1]); };
+  const top = count(base), all = count(h.hist);
+  const second = all.find(([c, n])=> c !== top[0][0] && n / h.hist.length >= 0.2);
+  return {category: top[0][0], sure: top[0][1] / base.length, n: base.length, byAmount: base === near, mixed: !!second, other: second ? second[0] : null, allShare: (all.find(([c])=> c === top[0][0]) || [0,0])[1] / h.hist.length, hist: h.hist, near};
+}
+function quickBlocked(it){ return it.possible || it.fromSpoken || it.unknownSender || it.status === 'duplicate' || it.broughtBack || it.accountSure === false || it.noAuto; }
+function quickSure(it){
+  if(quickBlocked(it)) return 0;
+  const hp = historyPick(it); if(!hp) return 0;
+  const g = readerGuess(it); if(!g.category || g.unfit || g.category !== hp.category) return 0;
+  return hp.sure;
+}
+const QUICK_SURE = 0.75, AUTO_RUN = 5;
 function quickOk(it){
   if(it.status === 'duplicate') return false; // a look-alike is always opened and checked
   if(paybackHint(it) || claimHint(it) || it.claimHint) return false;
-  return quickSure(it) >= 0.95;
+  return quickSure(it) >= QUICK_SURE;
 }
+// Added by itself: the last 5 entries for this payee on this account all went to the same category
+// as the guess, the amount is in line with them (at most twice the biggest), and it was never undone.
+function autoKey(acct, norm, vpa){ return acct + '|' + (vpa || norm); }
+function autoAddOk(it){
+  if(!quickOk(it) || it.type === 'transfer') return false;
+  const g = readerGuess(it); const hp = historyPick(it); const h = payeeHistory(it);
+  if(!hp || !h || hp.category !== g.category) return false;
+  const last = (hp.near.length >= AUTO_RUN ? hp.near : h.hist).slice(0, AUTO_RUN);
+  if(last.length < AUTO_RUN || !last.every(t=> t.category === g.category && !t.forWhom)) return false;
+  if(hp.allShare < 0.9) return false;  // a payee that goes two ways (Blinkit: Groceries / Personal) is never added by itself
+  if(it.amount > 2 * Math.max(...last.map(t=> t.amount || 0))) return false;
+  if((state.autoAddOff||{})[autoKey(h.acct, h.norm, h.vpa)]) return false;
+  return true;
+}
+let autoAddBusy = false;
+async function autoAddPass(){
+  if(autoAddBusy || window.SAMPLE_NO_AUTO) return; autoAddBusy = true;
+  try{
+    const list = (state.pendingImports||[]).filter(autoAddOk).slice(0, 20);
+    if(!list.length) return;
+    const quietToast = window.showToast; window.showToast = ()=>{};
+    const munzoOff = window.__mzQuiet; window.__mzQuiet = true;
+    let n = 0;
+    try{
+      for(const imp of list){
+        if(!(state.pendingImports||[]).some(p=> p.id === imp.id)) continue;
+        const n0 = state.transactions.length;
+        openReviewImport(imp.id, true);
+        await riApprove();
+        state.transactions.slice(n0).forEach(t=>{
+          // the same id on every phone, so two phones adding it at once still make one entry
+          t.id = 'tx_auto_' + String(imp.id).replace(/[^A-Za-z0-9_-]/g, '').slice(-60);
+          t.autoAdded = new Date().toISOString(); t.fromImport = imp.id;
+          t.remarks = [String(t.remarks||''), 'Added automatically'].filter(Boolean).join(' · ');
+          n++;
+        });
+      }
+    } finally { window.showToast = quietToast; window.__mzQuiet = munzoOff; }
+    if(n){ await saveState(); render(); showToast(`✨ ${n} added for you · See`, 3500, ()=> openFullscreen('review-page')); }
+  } catch(e){ console.warn('auto add', e); }
+  finally { autoAddBusy = false; }
+}
+// Undo of an automatic add: the entry goes back to the list to check, and this payee on this account is never added by itself again.
+async function undoAutoAdd(txId){
+  const t = state.transactions.find(x=> x.id === txId); if(!t) return;
+  const h = {acct: t.account, norm: normalizePayee(t.payee||''), vpa: String(t.vpa||'').toLowerCase()};
+  state.autoAddOff = {...(state.autoAddOff||{}), [autoKey(h.acct, h.norm, h.vpa)]: new Date().toISOString()};
+  state.transactions = state.transactions.filter(x=> x !== t);
+  const pid = t.fromImport || genId('imp');
+  if(!state.pendingImports.some(p=> p.id === pid)) state.pendingImports.push({id: pid, ts: t.ts, amount: t.amount, type: t.type, payee: t.payee || '', category: t.category, accountId: t.account, vpa: t.vpa || null, upiRef: t.upiRef || null, noAuto: true, broughtBack: true});
+  recomputeBudgetActuals(); await saveState(); render(); showToast('Back in the list. It won’t be added by itself again.', 3500);
+}
+function renderAutoAdded(){
+  const wrap = document.getElementById('autoadded-wrap'); if(!wrap) return;
+  const since = Date.now() - 7*86400000;
+  const list = (state.transactions||[]).filter(t=> t.autoAdded && new Date(t.autoAdded).getTime() >= since).sort((a,b)=> new Date(b.autoAdded) - new Date(a.autoAdded)).slice(0, 20);
+  if(!list.length){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `<div class="divider-label" style="margin-top:18px;">✨ Added for you in the last 7 days</div><div class="card">${list.map(t=> `<div class="tx-item"><div class="chip-icon">${catEmoji(t.category)}</div><div class="tx-body"><div class="tx-top"><span class="tx-title">${storyEsc(t.payee||'')}</span><span class="tx-amt maskable">${fmt(t.amount)}</span></div><div class="tx-meta">${new Date(t.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${storyEsc(targetName(t.account))} · ${storyEsc(txShortCat(t.category))}</div><button class="link-btn" data-undoauto="${t.id}" type="button" style="margin-top:2px;">Undo</button></div></div>`).join('')}</div>
+    <p class="section-sub" style="margin:6px 2px 0;">Added by itself: the last 5 from the same payee on the same account went to the same category. Undo puts it back to check and stops it for that payee.</p>`;
+  wrap.querySelectorAll('[data-undoauto]').forEach(b=> b.addEventListener('click', ()=> undoAutoAdd(b.dataset.undoauto)));
+}
+function autoAddedToday(){ const d = new Date(); d.setHours(0,0,0,0); return (state.transactions||[]).filter(t=> t.autoAdded && new Date(t.autoAdded) >= d).length; }
 function swipeTipHtml(){ return '<div class="hr-swipe-tip">← Swipe left to add · swipe right if it’s not a transaction →</div>'; }
 // v131: what the reader suggests for a fetched entry, from the household's own past entries.
 // (1) A category must fit the amount: if this category has never seen anything near it
@@ -4952,6 +5055,9 @@ function readerGuess(it){
   // becomes the twin.
   const acct = validatedAccountId(it.accountId, it.sourceEmail);
   if(out.category && acct){ const tw = accountTwin(out.category, acct, it.type); if(tw){ out.swapped = out.category; out.category = tw; } }
+  // v145: what this payee was on this account, when 75% sure, beats the reader's guess
+  const hp = historyPick(it);
+  if(hp){ out.hp = hp; if(hp.sure >= QUICK_SURE && hp.category !== out.category && amountFits(hp.category, it.amount, it.type)){ out.category = hp.category; out.from = 'history'; out.unfit = null; out.pattern = null; out.swapped = null; } }
   return out;
 }
 const catWords = c=> String(c||'').toLowerCase().replace(/\(.*?\)/g, m=> ' ' + m.slice(1, -1) + ' ').split(/[^a-z]+/).filter(w=> w.length > 1);
@@ -4980,7 +5086,7 @@ function reviewRowHtml(it){
   // a payback or claim explains a look-alike better than "already added"
   const hint = isDup && !extra ? (it.matchedTs ? `Looks like the ${fmt(it.amount)} of ${new Date(it.matchedTs).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})} — open to check` : 'Looks already added — open to check')
     : g.unfit ? 'Pick a category'
-    : [g.category && !it.fromSpoken ? catShort(g.category) : '', extra].filter(Boolean).join(' · ');
+    : [g.category && !it.fromSpoken ? catShort(g.category) + (g.hp && g.hp.mixed && g.hp.other && g.hp.other !== g.category ? ' · sometimes ' + catShort(g.hp.other) : '') : '', extra].filter(Boolean).join(' · ');
   const why = isDup ? '' : g.swapped ? `${acctObj ? acctObj.name : 'This account'} pays ${g.category}, not ${g.swapped}` : g.unfit ? `${fmt(it.amount)} is unusual for ${catShort(g.unfit)}` : g.pattern ? patternWords(g.pattern) : '';
   const ok = quickOk(it);
   return `<div class="hr-row" data-noswipe data-hrid="${it.id}"><div class="hr-under"></div><div class="hr-add ${ok ? '' : 'check'}">${ok ? 'Add ✓' : 'Check & add ›'}</div><div class="hr-not">Not a transaction</div><div class="hr-slide">
@@ -5004,8 +5110,9 @@ function renderHomeReview(items, otherCount, possibleCount){
   const empty = document.getElementById('review-empty'); if(empty) empty.classList.toggle('hide', n > 0);
   if(!n){
     const show = readerOn() || (state.importOutcomes||[]).length > 0;
-    wrap.innerHTML = show ? `<div class="home-card caught-card" id="caught-card" style="display:flex;"><div class="big">✅</div><div class="name">All caught up</div><div class="sub">Every bank alert is sorted. Nothing to do.</div></div>` : '';
-    if(document.getElementById('review-page').classList.contains('open')) closeFullscreen('review-page');
+    wrap.innerHTML = show ? `<div class="home-card caught-card" id="caught-card" style="display:flex;"><div class="big">✅</div><div class="name">All caught up</div><div class="sub">Every bank alert is sorted. Nothing to do.</div>${autoAddedToday() ? `<button class="link-btn" id="auto-line" type="button" style="margin-top:6px;">✨ ${autoAddedToday()} added for you today · See</button>` : ''}</div>` : '';
+    { const al = document.getElementById('auto-line'); if(al) al.addEventListener('click', ()=> openFullscreen('review-page')); }
+    if(document.getElementById('review-page').classList.contains('open') && !autoAddedToday()) closeFullscreen('review-page');
     return;
   }
   const rows = items.slice(0, 3).map(reviewRowHtml).join('');
@@ -5014,10 +5121,12 @@ function renderHomeReview(items, otherCount, possibleCount){
     <div class="hr-head"><span class="t">${n} to review · 30 sec ⏱</span><button class="link-btn" id="review-see-all">See all</button></div>
     ${rows}
     ${(lsGet('fa-swipes', 0) < 3 && items.length) ? swipeTipHtml() : ''}
+    ${autoAddedToday() ? `<button class="link-btn" id="auto-line" type="button" style="margin:6px 0 0;">✨ ${autoAddedToday()} added for you today · See</button>` : ''}
     ${rest > 0 ? `<div class="hr-more" id="review-more">+ ${rest} more${otherCount ? ' (transfers or matches to confirm)' : possibleCount ? ' (possible ones from other senders)' : ''}</div>` : ''}
   </div>`;
   document.getElementById('review-see-all').addEventListener('click', ()=> openFullscreen('review-page'));
   const more = document.getElementById('review-more'); if(more) more.addEventListener('click', ()=> openFullscreen('review-page'));
+  const al = document.getElementById('auto-line'); if(al) al.addEventListener('click', ()=> openFullscreen('review-page'));
   wireReviewRows(wrap);
 }
 async function quickAcceptImport(id){
@@ -5265,7 +5374,7 @@ document.getElementById('ri-amount').addEventListener('input', ()=> updateSlideR
 // C2: the jar fills a little after adding
 let jarPctBefore = {};
 // v141: the person's own note, without the app's own tags ("Imported from email", "Added by …")
-const SYS_NOTE = /^(Imported from email|Added by .+|Added from (SMS|statement.*)|Logged by .+|You gave|You got|Paid for you|Opening balance|Moved from People Ledger|Saved first from salary)$/i;
+const SYS_NOTE = /^(Imported from email|Added by .+|Added from (SMS|statement.*)|Logged by .+|You gave|You got|Paid for you|Opening balance|Moved from People Ledger|Saved first from salary|Added automatically)$/i;
 function userNote(r){ return String(r||'').split(' · ').map(x=> x.trim()).filter(x=> x && !SYS_NOTE.test(x)).join(' · '); }
 function sysNoteParts(r){ return String(r||'').split(' · ').map(x=> x.trim()).filter(x=> x && SYS_NOTE.test(x)); }
 function noteHtml(r, cls){ const n = userNote(r); return n ? `<div class="${cls||'tx-note'}">✎ ${storyEsc(n)}</div>` : ''; }
@@ -5876,6 +5985,7 @@ function renderTxFormLists(){
     `<div class="ps-icon" style="background:var(--paper-dim);">${acctGlyph(acctSel)}</div><div class="ps-name">${acctSel ? acctSel.name : ''}</div><div class="ps-change">${acctPickerOpen?'Cancel':'Change'}</div>`;
   document.getElementById('acct-summary').onclick = ()=>{ acctPickerOpen = !acctPickerOpen; renderTxFormLists(); };
   document.getElementById('acct-row').classList.toggle('hide', !acctPickerOpen);
+  try{ txSyncKeypad(); }catch(e){}
 
   if(!state.accounts.find(a=>a.id===txFrom)) txFrom = state.accounts.length ? state.accounts[0].id : null;
   document.getElementById('from-row').innerHTML = state.accounts.map(a=>
@@ -5969,6 +6079,7 @@ function rerenderSplitChips(ctx){
   else renderEditSplitChip();
 }
 function renderSplitPanel(ctx){
+  if(ctx === 'tx') setTimeout(()=>{ try{ txSyncKeypad(); }catch(e){} }, 0);
   const el = document.getElementById(ctx + '-split-panel');
   const st = splitSt[ctx];
   if(!st.open){ el.classList.add('hide'); el.innerHTML = ''; return; }
@@ -6386,6 +6497,75 @@ function applyTxGuess(type){
   if(!userTouchedCategory){ txSelectedCat = last.category; txGuessUsed = true; }
   if(!userTouchedAccount){ txSelectedAccount = last.account; txGuessUsed = true; }
 }
+// v145: the same one-tap date chooser on the People form and the edit screens (no phone dialog, no OK).
+const calOpen = {};
+function calLabel(v){ const t = localDateIso(), y = localDateIso(new Date(Date.now() - 864e5)); return !v || v === t ? 'Today' : v === y ? 'Yesterday' : new Date(v + 'T12:00:00').toLocaleDateString('en-IN', {day:'numeric', month:'short', year: new Date(v + 'T12:00:00').getFullYear() === new Date().getFullYear() ? undefined : 'numeric'}); }
+function attachDateChooser(id){
+  const input = document.getElementById(id); if(!input || input._cal) return;
+  input._cal = true; input.classList.add('hide'); input.tabIndex = -1;
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'date-btn'; btn.id = id + '-btn';
+  const box = document.createElement('div'); box.className = 'hide'; box.id = id + '-cal';
+  input.after(btn, box);
+  const draw = ()=>{
+    btn.textContent = calLabel(input.value) + ' ▾';
+    box.classList.toggle('hide', !calOpen[id]); if(!calOpen[id]) return;
+    const sel = input.value || localDateIso(); const today = new Date(); today.setHours(0,0,0,0);
+    const m0 = calOpen[id].month;
+    const y = m0.getFullYear(), m = m0.getMonth(), first = new Date(y, m, 1), days = new Date(y, m + 1, 0).getDate(), lead = (first.getDay() + 6) % 7;
+    const quick = []; for(let i = 0; i < 7; i++){ const d = new Date(today); d.setDate(today.getDate() - i); quick.push(d); }
+    const cells = []; for(let i = 0; i < lead; i++) cells.push('<span></span>');
+    for(let d = 1; d <= days; d++){ const dt = new Date(y, m, d), iso = localDateIso(dt); cells.push(`<button type="button" data-cd="${iso}" class="${iso === sel ? 'on' : ''} ${dt.getTime() === today.getTime() ? 'today' : ''}" ${dt > today ? 'disabled' : ''}>${d}</button>`); }
+    box.innerHTML = `<div class="cal-quick">${quick.map((d, i)=> `<button type="button" data-cd="${localDateIso(d)}" class="${localDateIso(d) === sel ? 'on' : ''}">${i === 0 ? 'Today' : i === 1 ? 'Yesterday' : d.toLocaleDateString('en-IN', {weekday:'short'})}<small>${d.getDate()} ${d.toLocaleDateString('en-IN', {month:'short'})}</small></button>`).join('')}</div>
+      <div class="cal-box"><div class="cal-head"><button type="button" data-cn="-1" aria-label="Earlier month">‹</button><span>${first.toLocaleDateString('en-IN', {month:'long', year:'numeric'})}</span><button type="button" data-cn="1" aria-label="Later month" ${new Date(y, m + 1, 1) <= today ? '' : 'disabled'}>›</button></div>
+      <div class="cal-grid">${['M','T','W','T','F','S','S'].map(x=> `<span class="dw">${x}</span>`).join('')}${cells.join('')}</div></div>`;
+    box.querySelectorAll('[data-cd]').forEach(b=> b.addEventListener('click', ()=>{ input.value = b.dataset.cd; calOpen[id] = null; draw(); input.dispatchEvent(new Event('change', {bubbles:true})); }));
+    box.querySelectorAll('[data-cn]').forEach(b=> b.addEventListener('click', ()=>{ calOpen[id].month = new Date(y, m + (+b.dataset.cn), 1); draw(); }));
+  };
+  btn.addEventListener('click', ()=>{ if(calOpen[id]) calOpen[id] = null; else { const d = new Date((input.value || localDateIso()) + 'T12:00:00'); calOpen[id] = {month: new Date(d.getFullYear(), d.getMonth(), 1)}; } draw(); });
+  input._calDraw = ()=>{ calOpen[id] = null; draw(); };
+  // the forms set the value in code when they open: keep the button's words in step
+  const desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+  Object.defineProperty(input, 'value', {get(){ return desc.get.call(this); }, set(v){ desc.set.call(this, v); try{ calOpen[id] = null; draw(); }catch(e){} }, configurable: true});
+  draw();
+}
+['person-date', 'editpe-date', 'edit-date'].forEach(attachDateChooser);
+// v145: our own date chooser for the Add form. One tap on a day sets it and closes, no OK
+// (the phone's own date dialog sometimes kept today's date on the first try).
+let txCalMonth = null;
+function renderTxCal(){
+  const box = document.getElementById('tx-cal'); if(!box) return;
+  const input = document.getElementById('tx-date');
+  const sel = input.value || localDateIso();
+  const today = new Date(); today.setHours(0,0,0,0);
+  if(!txCalMonth){ const d = new Date(sel + 'T12:00:00'); txCalMonth = new Date(d.getFullYear(), d.getMonth(), 1); }
+  const quick = [];
+  for(let i = 0; i < 7; i++){ const d = new Date(today); d.setDate(today.getDate() - i); quick.push(d); }
+  const qLabel = (d, i)=> i === 0 ? 'Today' : i === 1 ? 'Yesterday' : d.toLocaleDateString('en-IN', {weekday:'short'});
+  const y = txCalMonth.getFullYear(), m = txCalMonth.getMonth();
+  const first = new Date(y, m, 1), days = new Date(y, m + 1, 0).getDate(), lead = (first.getDay() + 6) % 7; // Monday first
+  const cells = [];
+  for(let i = 0; i < lead; i++) cells.push('<span></span>');
+  for(let d = 1; d <= days; d++){
+    const dt = new Date(y, m, d), iso = localDateIso(dt);
+    cells.push(`<button type="button" data-calday="${iso}" class="${iso === sel ? 'on' : ''} ${dt.getTime() === today.getTime() ? 'today' : ''}" ${dt > today ? 'disabled' : ''}>${d}</button>`);
+  }
+  const nextOk = new Date(y, m + 1, 1) <= today;
+  box.innerHTML = `<div class="cal-quick">${quick.map((d, i)=> `<button type="button" data-calday="${localDateIso(d)}" class="${localDateIso(d) === sel ? 'on' : ''}">${qLabel(d, i)}<small>${d.getDate()} ${d.toLocaleDateString('en-IN', {month:'short'})}</small></button>`).join('')}</div>
+    <div class="cal-box"><div class="cal-head"><button type="button" data-calnav="-1" aria-label="Earlier month">‹</button><span>${first.toLocaleDateString('en-IN', {month:'long', year:'numeric'})}</span><button type="button" data-calnav="1" aria-label="Later month" ${nextOk ? '' : 'disabled'}>›</button></div>
+    <div class="cal-grid">${['M','T','W','T','F','S','S'].map(x=> `<span class="dw">${x}</span>`).join('')}${cells.join('')}</div></div>`;
+  box.querySelectorAll('[data-calday]').forEach(b=> b.addEventListener('click', ()=>{
+    input.value = b.dataset.calday; txDatePickerOpen = false; txCalMonth = null; renderTxChips();
+  }));
+  box.querySelectorAll('[data-calnav]').forEach(b=> b.addEventListener('click', ()=>{ txCalMonth = new Date(y, m + (+b.dataset.calnav), 1); renderTxCal(); }));
+}
+// v145 rule (Pravesh): only one thing at a time under the amount. While a chooser is open
+// (category, account, date, who it was for) the keypad hides; tapping the amount brings it back.
+function txSyncKeypad(){
+  const kp = document.getElementById('keypad'); if(!kp) return;
+  const open = catPickerOpen || acctPickerOpen || txDatePickerOpen || !!(splitSt && splitSt.tx && splitSt.tx.open);
+  kp.classList.toggle('hide', open);
+  const nl = document.getElementById('tx-note-line'); if(nl && open) nl.classList.add('kp-hidden-note'); else if(nl) nl.classList.remove('kp-hidden-note');
+}
 function renderTxChips(){
   const type = txCurrentType();
   const chips = [];
@@ -6410,13 +6590,16 @@ function renderTxChips(){
     else if(k==='acct'){ acctPickerOpen = !acctPickerOpen; catPickerOpen = false; txDatePickerOpen = false; }
     else if(k==='date'){ txDatePickerOpen = !txDatePickerOpen; catPickerOpen = false; acctPickerOpen = false; }
     renderTxFormLists();
-    if(k==='date' && txDatePickerOpen){ const d = document.getElementById('tx-date'); try{ d.showPicker && d.showPicker(); }catch(e){} }
+    if(k==='date' && txDatePickerOpen){ txCalMonth = null; renderTxCal(); }
   }));
   document.getElementById('tx-chip-hint').classList.add('hide');
   document.getElementById('tx-date-panel').classList.toggle('hide', !txDatePickerOpen);
   if(type!=='expense' && type!=='income'){ document.getElementById('cat-grid').classList.add('hide'); document.getElementById('acct-row').classList.add('hide'); }
+  txSyncKeypad();
 }
 document.getElementById('tx-date').addEventListener('change', ()=>{ txDatePickerOpen = false; renderTxChips(); });
+document.querySelector('#tx-backdrop .amount-display').addEventListener('click', ()=>{ if(catPickerOpen || acctPickerOpen || txDatePickerOpen || (splitSt.tx && splitSt.tx.open)){ catPickerOpen = acctPickerOpen = txDatePickerOpen = false; if(splitSt.tx) splitSt.tx.open = false; renderTxFormLists(); renderTxChips(); renderSplitPanel('tx'); } });
+document.getElementById('tx-date').addEventListener('input', ()=>{ txDatePickerOpen = false; renderTxChips(); });
 document.getElementById('tx-more-link').addEventListener('click', ()=>{
   const more = document.getElementById('tx-more'); more.classList.toggle('hide');
   if(!more.classList.contains('hide')) document.getElementById('tx-payee').focus();
@@ -10410,7 +10593,8 @@ function renderSetAside(){
 }
 function renderPendingReview(){
   applyReaderLessons();
-  try{ renderSetAside(); }catch(e){ console.warn('set aside', e); }
+  try{ renderSetAside(); renderAutoAdded(); }catch(e){ console.warn('set aside', e); }
+  setTimeout(()=>{ try{ autoAddPass(); }catch(e){} }, 400);
   const kindWrap = document.getElementById('hide-kind-wrap');
   if(kindWrap){
     kindWrap.innerHTML = hideKindHtml();
@@ -12252,6 +12436,7 @@ function mzOpenEntryAs(tx, mode){
 }
 // After an expense is saved (Add form or the review sheet)
 function munzoAfterExpense(tx){
+  if(window.__mzQuiet) return;
   if(!tx || mzPrefs().mode === 'off') return;
   if(mzIsHealth(tx)){
     const canClaim = (state.claimPayers||[]).some(p=> /cghs|insur/i.test(p));
@@ -12282,6 +12467,7 @@ function munzoAfterExpense(tx){
 // A salary credit: the celebration, once per salary
 function mzIsSalary(t){ return t && t.type === 'income' && !t.claimRole && (/salary|payroll/i.test((t.category||'') + ' ' + (t.payee||'')) || /\bsal(ary)?\b.*\bcr/i.test(t.remarks||'')); }
 function munzoAfterIncome(tx){
+  if(window.__mzQuiet) return;
   if(!mzIsSalary(tx) || mzPrefs().mode === 'off') return;
   const seen = mzStore('salaries') || [];
   if(seen.includes(tx.id)) return;
