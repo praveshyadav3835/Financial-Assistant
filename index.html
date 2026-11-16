@@ -1893,7 +1893,7 @@ setTimeout(function(){
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-16 · v145-date-keypad-auto-add</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-16 · v146-safe-names</p>
   </div>
 </div>
 
@@ -2174,8 +2174,15 @@ function fillMissingLists(){
   });
 }
 const COLLECTION_FIELDS_LIST = {transactions:1, personLedger:1, pendingImports:1, dismissedImports:1, people:1, balanceAdjustments:1, accounts:1, cards:1, processedGmailIds:1, budgetMonths:1, importOutcomes:1, claims:1};
+// Text that came from a mail or a statement (a payer's name is chosen by whoever sends the money)
+// is shown on screen, so it never keeps < > " ` (v146, audit 1; the server strips them too).
+function noTagsIn(item){
+  if(item && typeof item === 'object') ['payee', 'subject', 'desc', 'merchant', 'sender', 'sourceEmail'].forEach(k=>{ if(typeof item[k] === 'string') item[k] = item[k].replace(/[<>"`]/g, ''); });
+  return item;
+}
 function normalizeState(){
   fillMissingLists();
+  Object.keys(COLLECTION_FIELDS).forEach(f=> (state[f] || []).forEach(noTagsIn));
   if(!Array.isArray(state.budgetMonths)) state.budgetMonths = [];
   if(!Array.isArray(state.importOutcomes)) state.importOutcomes = [];
   if(!Array.isArray(state.transferPairDeclined)) state.transferPairDeclined = [];
@@ -3408,7 +3415,7 @@ function attachAllListeners(){
   Object.entries(COLLECTION_FIELDS).forEach(([field, type])=>{
     firstSnapshotDone[field] = false;
     hcol().where('_type','==',type).onSnapshot(snap=>{
-      const remoteItems = snap.docs.map(d=>{ const data = d.data(); const {_type, ...rest} = data; return rest; });
+      const remoteItems = snap.docs.map(d=>{ const data = d.data(); const {_type, ...rest} = data; return noTagsIn(rest); });
       if(!firstSnapshotDone[field]){
         // Fresh page load: there's no valid baseline yet to tell "genuinely new local addition"
         // apart from "stale cached item that was already deleted." Trust the server completely
