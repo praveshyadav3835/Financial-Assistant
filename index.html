@@ -1875,6 +1875,7 @@ setTimeout(function(){
     <button class="btn-ghost admin-only hide" id="tools-ring-btn">Households and users (ring, delete)</button>
     <button class="btn-ghost admin-only hide" id="tools-preview-firstlook-btn">Preview the first look (as a new user)</button>
     <div class="admin-only hide eng-sub" id="server-version-line" style="margin:10px 0 0;"></div>
+    <div class="admin-only hide eng-sub" id="reads-today-line" style="margin:4px 0 0;"></div>
 
     <div class="divider-label">Name on downloaded PDFs</div>
     <div class="field" style="margin-bottom:6px;"><label>Printed under the title of the PDFs you download from Insights and People (optional)</label><input id="pdf-name-input" maxlength="90" autocomplete="off" placeholder="e.g. Sharma family, Pune"></div>
@@ -1893,7 +1894,7 @@ setTimeout(function(){
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-16 · v146-safe-names</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-17 · v148-steady-opening</p>
   </div>
 </div>
 
@@ -2923,6 +2924,7 @@ function listenToReaderStatus(){
   setTimeout(()=>{ try{ loadRingSwitch(); }catch(e){} }, 1500);
   hh('readerStatus').onSnapshot(snap=>{
     if(forHid !== currentHid) return;
+    countReads(snap);
     readerStatus = snap.exists ? snap.data() : null;
     if(!isLegacy() && !readerInboxes().length && authUser && !listenToReaderStatus._claimTried){ listenToReaderStatus._claimTried = true; claimInboxRetry().then(d=>{ if(d && Array.isArray(d.inboxes) && d.inboxes.length){ readerStatus = Object.assign(readerStatus || {}, {inboxes: d.inboxes}); applyHouseholdUI(); } }); }
     try{
@@ -2975,13 +2977,13 @@ async function disconnectInbox(email, btn){
 async function loadReaderSenders(){
   if(!currentHid || !db || !cloudReady) return;
   try{
-    const doc = await hh('readerSenders').get();
+    const doc = await hh('readerSenders').get(); countReads(doc);
     readerSenders = (doc.exists && doc.data().senders) || {};
     readerIgnored = (doc.exists && Array.isArray(doc.data().ignored)) ? doc.data().ignored : [];
     readerDeclined = (doc.exists && Array.isArray(doc.data().declined)) ? doc.data().declined : [];
     readerListsReady = true;
     try{ localStorage.setItem(readerListsKey(), JSON.stringify({senders: readerSenders, ignored: readerIgnored, declined: readerDeclined})); }catch(e){}
-    const learned = await hh('readerLearned').get();
+    const learned = await hh('readerLearned').get(); countReads(learned);
     readerLearned = learned.exists ? learned.data() : null;
   }catch(e){ console.error('Could not load the alert addresses', e); }
   renderReaderUI(true);
@@ -3390,7 +3392,7 @@ async function writeFullStateToCloud(fullState){
   const writes = [];
   Object.entries(COLLECTION_FIELDS).forEach(([field, type])=>{
     (fullState[field]||[]).forEach(item=>{
-      if(item && item.id) writes.push({ id:item.id, data:{...item, _type:type} });
+      if(item && item.id) writes.push({ id:item.id, data:stampU({...item, _type:type}) });
     });
   });
   for(let i=0;i<writes.length;i+=400){
@@ -3402,6 +3404,7 @@ async function writeFullStateToCloud(fullState){
 
 function attachAllListeners(){
   hh('meta').onSnapshot(snap=>{
+    countReads(snap);
     if(snap.exists){
       const d = snap.data();
       META_FIELDS.forEach(k=>{ if(d[k]!==undefined) state[k] = d[k]; });
@@ -3411,49 +3414,14 @@ function attachAllListeners(){
     }
   }, err=>{ console.error('meta listener error', err); if(isDeniedError(err)) noteCloudDenied(); });
 
-  const firstSnapshotDone = {};
-  Object.entries(COLLECTION_FIELDS).forEach(([field, type])=>{
-    firstSnapshotDone[field] = false;
-    hcol().where('_type','==',type).onSnapshot(snap=>{
-      const remoteItems = snap.docs.map(d=>{ const data = d.data(); const {_type, ...rest} = data; return noTagsIn(rest); });
-      if(!firstSnapshotDone[field]){
-        // Fresh page load: there's no valid baseline yet to tell "genuinely new local addition"
-        // apart from "stale cached item that was already deleted." Trust the server completely
-        // this one time — this is what actually fixes a deleted transaction reappearing after
-        // reloading with a stale local cache still holding it.
-        // Exception: any edit still sitting in the outbox never got server confirmation last
-        // session (e.g. app closed mid-write) — reapply it over the server's copy and retry
-        // the write now, otherwise "trust the server" here would silently revert it.
-        const ob = loadOutbox();
-        const pendingForField = ob[field] || {};
-        const pendingIds = Object.keys(pendingForField);
-        let merged = remoteItems;
-        if(pendingIds.length){
-          const m = mergeOutbox(remoteItems, pendingForField);
-          merged = m.merged;
-          if(m.dropped.length){ const ob1 = loadOutbox(); if(ob1[field]) m.dropped.forEach(id=> delete ob1[field][id]); saveOutbox(ob1); }
-          if(m.toWrite.length) Promise.all(m.toWrite.map(item=> hh(item.id).set({...item, _type:type})))
-            .then(()=>{ const ob2 = loadOutbox(); if(ob2[field]) m.toWrite.forEach(item=> delete ob2[field][item.id]); saveOutbox(ob2); })
-            .catch(e=> console.error('Outbox retry failed for '+field, e));
-        }
-        state[field] = merged;
-        previousArrays[field] = JSON.parse(JSON.stringify(merged));
-        firstSnapshotDone[field] = true;
-        saveLocalOnly();
-        render();
-        return;
-      }
-      const remoteIds = new Set(remoteItems.map(x=>x.id));
-      const lastSyncedIds = new Set((previousArrays[field]||[]).map(x=>x.id));
-      // From here on, previousArrays reflects a real baseline established during THIS session,
-      // so it's now safe to preserve genuinely new local items still in flight to the server.
-      const pendingLocalOnly = (state[field]||[]).filter(x=> x && x.id && !remoteIds.has(x.id) && !lastSyncedIds.has(x.id));
-      state[field] = [...remoteItems, ...pendingLocalOnly];
-      previousArrays[field] = JSON.parse(JSON.stringify(remoteItems));
-      saveLocalOnly();
-      render();
-    }, err=>{ console.error(field+' listener error', err); if(isDeniedError(err)) noteCloudDenied(); });
-  });
+  // v147 (D-16Nov-1): the phone already holds everything (saved on it), so on opening it reads
+  // only what changed since it last looked (every saved item carries _u, the time the cloud
+  // received it; a deleted one leaves a small "gone" marker). Everything is read again only on
+  // a phone with nothing saved, or once a week as a safety net. Before, every opening read every
+  // entry of the household (~2,750 for the first household).
+  const mark = readSyncMark();
+  if(!stateFromStorage || !mark || Date.now() - (mark.full || 0) > FULL_SYNC_DAYS * 864e5) fullSyncThenListen();
+  else { Object.keys(COLLECTION_FIELDS).forEach(f=>{ previousArrays[f] = JSON.parse(JSON.stringify(state[f] || [])); }); resendOutbox().finally(()=> listenForChanges(mark.at || 0)); }
 }
 
 async function initCloudSync(onFirstData){
@@ -3478,7 +3446,7 @@ async function initCloudSync(onFirstData){
 // changes, and from then on sends this device's changes.
 async function connectHousehold(){
   try{
-    const metaSnap = await hh('meta').get();
+    const metaSnap = await hh('meta').get(); countReads(metaSnap);
     if(!metaSnap.exists){
       // Nothing in the cloud for this household yet. Only a device holding a saved copy may
       // fill it in; one that started from the empty starting set must never do so.
@@ -3500,11 +3468,11 @@ async function connectHousehold(){
     // One-time backfill: accounts and cards used to live inside the shared meta document;
     // they now live as individual documents. If the cloud doesn't have them as documents yet
     // but this device has real saved data, push them now.
-    const acctCheck = await hcol().where('_type','==','account').get();
-    if(stateFromStorage && acctCheck.docs.length === 0 && state.accounts && state.accounts.length){
+    const acctCheck = readSyncMark() ? null : await hcol().where('_type','==','account').get(); // once per phone (v147)
+    if(acctCheck && stateFromStorage && acctCheck.docs.length === 0 && state.accounts && state.accounts.length){
       const batch = db.batch();
-      state.accounts.forEach(a=> batch.set(hh(a.id), {...a, _type:'account'}));
-      (state.cards||[]).forEach(c=> batch.set(hh(c.id), {...c, _type:'card'}));
+      state.accounts.forEach(a=> batch.set(hh(a.id), stampU({...a, _type:'account'})));
+      (state.cards||[]).forEach(c=> batch.set(hh(c.id), stampU({...c, _type:'card'})));
       await batch.commit();
     }
 
@@ -3518,6 +3486,147 @@ async function connectHousehold(){
   }
   renderAccountUI();
   if(!isLegacy()) loadHouseholdDoc();
+}
+
+// ---- Fewer reads (v147, D-16Nov-1) ----
+const FULL_SYNC_DAYS = 7;
+const TYPE_FIELD = Object.fromEntries(Object.entries(COLLECTION_FIELDS).map(([f, t])=> [t, f]));
+function stampU(data){ return {...data, _u: firebase.firestore.FieldValue.serverTimestamp()}; }
+function syncMarkKey(){ return 'fa-sync-' + currentHid; }
+function readSyncMark(){ try{ return JSON.parse(localStorage.getItem(syncMarkKey()) || 'null'); }catch(e){ return null; } }
+function writeSyncMark(m){ try{ localStorage.setItem(syncMarkKey(), JSON.stringify(m)); }catch(e){} }
+// An item as the app keeps it: without the cloud's own fields.
+function itemOf(d){ const {_type, _u, ...rest} = d.data(); return noTagsIn(rest); }
+function uOf(d){ const u = d.get('_u'); return u && typeof u.toMillis === 'function' && !d.metadata.hasPendingWrites ? u.toMillis() : 0; }
+// Reads today on this phone (owner's Settings → Diagnostics). Only answers from the cloud count;
+// an empty answer still costs one read.
+// A live listener's first answer from the cloud is billed in full (whole = true), later ones per change.
+function countReads(snap, whole){
+  if(!snap || !snap.metadata || snap.metadata.fromCache) return;
+  const n = typeof snap.docChanges === 'function' ? Math.max(1, whole ? snap.size : snap.docChanges().length) : 1;
+  const day = new Date().toDateString();
+  try{ const r = JSON.parse(localStorage.getItem('fa-reads') || '{}'); localStorage.setItem('fa-reads', JSON.stringify({d: day, n: (r.d === day ? r.n || 0 : 0) + n})); }catch(e){}
+}
+function readsToday(){ try{ const r = JSON.parse(localStorage.getItem('fa-reads') || '{}'); return r.d === new Date().toDateString() ? r.n || 0 : 0; }catch(e){ return 0; } }
+// The cloud's copy taken as it is, with this phone's unsent changes put back over it (as before v147).
+function takeCloudCopy(field, type, remoteItems){
+  const ob = loadOutbox();
+  const pendingForField = ob[field] || {};
+  let merged = remoteItems;
+  if(Object.keys(pendingForField).length){
+    const m = mergeOutbox(remoteItems, pendingForField);
+    merged = m.merged;
+    if(m.dropped.length){ const ob1 = loadOutbox(); if(ob1[field]) m.dropped.forEach(id=> delete ob1[field][id]); saveOutbox(ob1); }
+    if(m.toWrite.length) Promise.all(m.toWrite.map(item=> hh(item.id).set(stampU({...item, _type:type}))))
+      .then(()=>{ const ob2 = loadOutbox(); if(ob2[field]) m.toWrite.forEach(item=> delete ob2[field][item.id]); saveOutbox(ob2); })
+      .catch(e=> console.error('Outbox retry failed for '+field, e));
+  }
+  state[field] = merged;
+  previousArrays[field] = JSON.parse(JSON.stringify(merged));
+}
+async function fullSyncThenListen(){
+  const forHid = currentHid;
+  let at = 0;
+  try{
+    await Promise.all(Object.entries(COLLECTION_FIELDS).map(async ([field, type])=>{
+      const snap = await hcol().where('_type','==',type).get();
+      countReads(snap);
+      if(forHid !== currentHid) return;
+      snap.docs.forEach(d=>{ at = Math.max(at, uOf(d)); });
+      takeCloudCopy(field, type, snap.docs.map(itemOf));
+    }));
+  }catch(e){ console.error('Full read failed', e); if(isDeniedError(e)) noteCloudDenied(); return; }
+  if(forHid !== currentHid) return;
+  writeSyncMark({at, full: Date.now()});
+  saveLocalOnly(); render();
+  listenForChanges(at);
+}
+// This phone's unsent changes, checked against the cloud's copy of just those entries.
+async function resendOutbox(){
+  const ob = loadOutbox();
+  for(const [field, pending] of Object.entries(ob)){
+    const type = COLLECTION_FIELDS[field], ids = Object.keys(pending || {});
+    if(!type || !ids.length) continue;
+    try{
+      const docs = await Promise.all(ids.map(id=> hh(id).get()));
+      docs.forEach(countReads);
+      const m = mergeOutbox(docs.filter(d=> d.exists).map(itemOf), pending);
+      const byId = Object.fromEntries(m.merged.map(x=> [x.id, x]));
+      const keep = (state[field] || []).filter(x=> !ids.includes(x.id) || byId[x.id]).map(x=> byId[x.id] || x);
+      ids.forEach(id=>{ if(byId[id] && !keep.some(x=> x.id === id)) keep.push(byId[id]); });
+      state[field] = keep;
+      previousArrays[field] = JSON.parse(JSON.stringify(keep));
+      if(m.dropped.length){ const ob1 = loadOutbox(); if(ob1[field]) m.dropped.forEach(id=> delete ob1[field][id]); saveOutbox(ob1); }
+      if(m.toWrite.length){ await Promise.all(m.toWrite.map(item=> hh(item.id).set(stampU({...item, _type:type})))); const ob2 = loadOutbox(); if(ob2[field]) m.toWrite.forEach(item=> delete ob2[field][item.id]); saveOutbox(ob2); }
+    }catch(e){ console.error('Outbox resend failed for '+field, e); }
+  }
+}
+// Home shows the waiting list only once it is up to date (v148): after the cloud's first answer and
+// after the entries that add themselves are added, so nothing moves in front of the person. Without
+// an answer in 8 seconds (offline) the phone's own copy is shown, as before.
+var pendingFresh = !!window.SAMPLE;
+setTimeout(()=>{ if(!pendingFresh){ pendingFresh = true; try{ render(); }catch(e){} } }, 8000);
+// Entries found in mails, waiting to be checked: a short list, written mostly by the server, so it
+// keeps a plain listener of its own (correct even before the server stamps _u).
+function listenToPending(forHid){
+  let first = true;
+  let whole = true;
+  hcol().where('_type','==','pendingImport').onSnapshot(snap=>{
+    if(forHid !== currentHid) return;
+    countReads(snap, whole); if(!snap.metadata.fromCache) whole = false;
+    const remote = snap.docs.map(itemOf);
+    if(first){ first = false; takeCloudCopy('pendingImports', 'pendingImport', remote); }
+    else {
+      const ids = new Set(remote.map(x=> x.id)), last = new Set((previousArrays.pendingImports || []).map(x=> x.id));
+      const localOnly = (state.pendingImports || []).filter(x=> x && x.id && !ids.has(x.id) && !last.has(x.id));
+      state.pendingImports = [...remote, ...localOnly];
+      previousArrays.pendingImports = JSON.parse(JSON.stringify(remote));
+    }
+    saveLocalOnly();
+    if(!pendingFresh && !snap.metadata.fromCache){
+      dropAlreadyLogged();
+      (async()=>{ while(autoAddBusy) await new Promise(r=> setTimeout(r, 100)); await autoAddPass(); })().finally(()=>{ pendingFresh = true; render(); });
+      return;
+    }
+    render();
+  }, err=>{ console.error('pendingImports listener error', err); if(isDeniedError(err)) noteCloudDenied(); pendingFresh = true; render(); });
+}
+// One listener for the whole household, for the app's whole life: everything the cloud receives
+// after `since` (entries, edits, "gone" markers) arrives here, from this phone or any other.
+function listenForChanges(since){
+  if(listenForChanges.on === currentHid) return;
+  listenForChanges.on = currentHid;
+  const forHid = currentHid;
+  listenToPending(forHid);
+  let whole = true;
+  hcol().where('_u', '>', firebase.firestore.Timestamp.fromMillis(since || 0)).onSnapshot(snap=>{
+    if(forHid !== currentHid) return;
+    countReads(snap, whole); if(!snap.metadata.fromCache) whole = false;
+    const mark = readSyncMark() || {at: since || 0, full: Date.now()};
+    let at = mark.at || 0, touched = false;
+    const ob = loadOutbox();
+    snap.docChanges().forEach(ch=>{
+      const d = ch.doc, data = d.data() || {};
+      at = Math.max(at, uOf(d));
+      const isGone = data._type === 'gone';
+      const field = TYPE_FIELD[isGone ? data.of : data._type];
+      if(!field || field === 'pendingImports') return; // has its own listener (listenToPending)
+      const id = isGone ? data.id : d.id;
+      if(ob[field] && ob[field][id]) return; // this phone's own unsent change wins until it is sent
+      const without = list=> (list || []).filter(x=> x.id !== id);
+      if(isGone || ch.type === 'removed'){
+        if(!(state[field] || []).some(x=> x.id === id)) return;
+        state[field] = without(state[field]); previousArrays[field] = without(previousArrays[field]);
+      } else {
+        const item = itemOf(d);
+        state[field] = [...without(state[field]), item];
+        previousArrays[field] = [...without(previousArrays[field]), JSON.parse(JSON.stringify(item))];
+      }
+      touched = true;
+    });
+    if(at > (mark.at || 0)) writeSyncMark({...mark, at});
+    if(touched){ saveLocalOnly(); render(); }
+  }, err=>{ listenForChanges.on = null; console.error('changes listener error', err); if(isDeniedError(err)) noteCloudDenied(); });
 }
 
 function diffChangedItems(field, current){
@@ -3534,9 +3643,9 @@ async function syncCollectionDiff(field, type, currentOverride){
   const previous = previousArrays[field] || [];
   const currentIds = new Set(current.map(x=>x.id));
   const changedItems = diffChangedItems(field, current);
-  const ops = changedItems.map(item=> hh(item.id).set({...item, _type:type}));
+  const ops = changedItems.map(item=> hh(item.id).set(stampU({...item, _type:type})));
   previous.forEach(item=>{
-    if(item && item.id && !currentIds.has(item.id)) ops.push(hh(item.id).delete());
+    if(item && item.id && !currentIds.has(item.id)) ops.push(hh(item.id).delete(), hh('gone_' + item.id).set(stampU({_type:'gone', id:item.id, of:type})));
   });
   if(ops.length) await Promise.all(ops);
   // Writes confirmed — clear them from the outbox so a future reload can trust the server again.
@@ -3665,7 +3774,7 @@ function toggleMask(){
 }
 document.getElementById('mask-toggle-btn').addEventListener('click', toggleMask);
 // The owner sees whether the server has been deployed with what this app needs.
-const APP_NEEDS_SERVER = 'v138';
+const APP_NEEDS_SERVER = 'v142';
 function serverIsNewEnough(v){ const n = x=> parseInt(String(x||'').replace(/\D/g,''), 10) || 0; return n(v) >= n(APP_NEEDS_SERVER); }
 async function checkServerVersion(){
   const el = document.getElementById('server-version-line'); if(!el || !ownerView) return;
@@ -3676,7 +3785,7 @@ async function checkServerVersion(){
     el.innerHTML = serverIsNewEnough(v) ? `Server: ${storyEsc(v)} ✓ up to date for this app` : `<span style="color:var(--debt);">Server: ${v ? storyEsc(v) : 'older'}, this app needs ${APP_NEEDS_SERVER}. On the PC run: firebase deploy --only functions</span>`;
   }catch(e){ el.textContent = 'Server: could not check (offline?)'; }
 }
-document.getElementById('open-tools-btn').addEventListener('click', ()=> setTimeout(checkServerVersion, 50));
+document.getElementById('open-tools-btn').addEventListener('click', ()=> setTimeout(()=>{ checkServerVersion(); const r = document.getElementById('reads-today-line'); if(r) r.textContent = 'Reads today on this phone: ' + readsToday().toLocaleString('en-IN') + ' (free limit: 50,000 a day for everyone together)'; }, 50));
 // The owner can walk through the new-user screens without signing out (nothing is changed).
 let introPreview = false;
 document.getElementById('tools-preview-firstlook-btn').addEventListener('click', ()=>{ closeFullscreen('tools-page'); introPreview = true; showGate('welcome'); });
@@ -5113,6 +5222,10 @@ function wireReviewRows(box){
 }
 function renderHomeReview(items, otherCount, possibleCount){
   const wrap = document.getElementById('home-review-wrap'); if(!wrap) return;
+  if(!pendingFresh){ // v148: until the cloud has answered and entries were added by themselves
+    wrap.innerHTML = `<div class="home-card caught-card" id="checking-card" style="display:flex;"><div class="big">🔄</div><div class="name">Getting your latest entries…</div><div class="sub">Checking what came in since you last opened.</div></div>`;
+    return;
+  }
   const n = items.length + otherCount + possibleCount;
   const empty = document.getElementById('review-empty'); if(empty) empty.classList.toggle('hide', n > 0);
   if(!n){
@@ -6689,7 +6802,8 @@ function parseBankSMS(text, sourceEmail){
   const dtMatch = clean.match(/Date\s*&\s*Time:\s*(\d{2})-(\d{2})-(\d{2}),?\s*(\d{2}):(\d{2}):(\d{2})/i);
   if(dtMatch){
     const [, dd, mm, yy, hh, mi, ss] = dtMatch;
-    result.preciseTs = new Date(2000+parseInt(yy), parseInt(mm)-1, parseInt(dd), parseInt(hh), parseInt(mi), parseInt(ss)).toISOString();
+    // the bank writes India time; read as India time whatever the clock of the machine (v148: the server runs in UTC and put it 5½ h late)
+    result.preciseTs = new Date(Date.UTC(2000+parseInt(yy), parseInt(mm)-1, parseInt(dd), parseInt(hh), parseInt(mi), parseInt(ss)) - 330*60000).toISOString();
   }
 
   // Recognizing a real transaction is about structure, not memorizing bank phrasing — every
@@ -10598,7 +10712,17 @@ function renderSetAside(){
     await saveState(); render(); showToast('Back in the list to check');
   }));
 }
+// A waiting entry whose mail is already logged as an entry added by itself (another phone, or this
+// one a moment earlier, added it) leaves the list by itself (v148: two phones adding at the same
+// moment put it back as "Looks like the ₹190…").
+function dropAlreadyLogged(){
+  const added = new Set((state.transactions || []).map(t=> t.fromImport).filter(Boolean));
+  const before = (state.pendingImports || []).length;
+  state.pendingImports = (state.pendingImports || []).filter(p=> !added.has(p.id));
+  return state.pendingImports.length < before;
+}
 function renderPendingReview(){
+  if(dropAlreadyLogged()) saveState();
   applyReaderLessons();
   try{ renderSetAside(); renderAutoAdded(); }catch(e){ console.warn('set aside', e); }
   setTimeout(()=>{ try{ autoAddPass(); }catch(e){} }, 400);
