@@ -1894,7 +1894,7 @@ setTimeout(function(){
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-17 · v148-steady-opening</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-18 · v149-no-leak</p>
   </div>
 </div>
 
@@ -3577,14 +3577,23 @@ function listenToPending(forHid){
     const remote = snap.docs.map(itemOf);
     if(first){ first = false; takeCloudCopy('pendingImports', 'pendingImport', remote); }
     else {
-      const ids = new Set(remote.map(x=> x.id)), last = new Set((previousArrays.pendingImports || []).map(x=> x.id));
-      const localOnly = (state.pendingImports || []).filter(x=> x && x.id && !ids.has(x.id) && !last.has(x.id));
-      state.pendingImports = [...remote, ...localOnly];
-      previousArrays.pendingImports = JSON.parse(JSON.stringify(remote));
+      // Only what changed in the cloud is applied (v149). Taking the cloud's whole list here put
+      // back an entry approved a moment ago whose removal was still on its way (approve two
+      // quickly: the second came back as "Looks like the ₹500 of…").
+      const ob = loadOutbox().pendingImports || {};
+      snap.docChanges().forEach(ch=>{
+        const id = ch.doc.id, without = list=> (list || []).filter(x=> x.id !== id);
+        if(ch.type === 'removed'){ state.pendingImports = without(state.pendingImports); previousArrays.pendingImports = without(previousArrays.pendingImports); return; }
+        if(ob[id]) return;
+        const item = itemOf(ch.doc);
+        const gone = ch.type === 'modified' && !(state.pendingImports || []).some(x=> x.id === id); // removed here, removal not sent yet
+        if(!gone) state.pendingImports = [...without(state.pendingImports), item];
+        previousArrays.pendingImports = [...without(previousArrays.pendingImports), JSON.parse(JSON.stringify(item))];
+      });
     }
+    if(dropAlreadyLogged()) saveState();
     saveLocalOnly();
     if(!pendingFresh && !snap.metadata.fromCache){
-      dropAlreadyLogged();
       (async()=>{ while(autoAddBusy) await new Promise(r=> setTimeout(r, 100)); await autoAddPass(); })().finally(()=>{ pendingFresh = true; render(); });
       return;
     }
@@ -10716,9 +10725,17 @@ function renderSetAside(){
 // one a moment earlier, added it) leaves the list by itself (v148: two phones adding at the same
 // moment put it back as "Looks like the ₹190…").
 function dropAlreadyLogged(){
-  const added = new Set((state.transactions || []).map(t=> t.fromImport).filter(Boolean));
+  // No leak (v149): a waiting entry leaves by itself when its mail is already decided:
+  //  - added by itself (an entry carries fromImport),
+  //  - added by a person (an "added" outcome for that mail whose saved entry still exists),
+  //  - set aside (rejected / already logged: a dismissed copy of that mail exists).
+  // Undo and Bring back remove the entry / the dismissed copy first, so what they put back stays.
+  const auto = new Set((state.transactions || []).map(t=> t.fromImport).filter(Boolean));
+  const saved = new Set([...(state.transactions || []), ...(state.personLedger || [])].map(x=> x.id));
+  const decided = new Set((state.dismissedImports || []).map(d=> d.gmailMessageId).filter(Boolean));
+  (state.importOutcomes || []).forEach(o=>{ if(o.outcome === 'added' && o.gmailMessageId && o.savedId && saved.has(o.savedId)) decided.add(o.gmailMessageId); });
   const before = (state.pendingImports || []).length;
-  state.pendingImports = (state.pendingImports || []).filter(p=> !added.has(p.id));
+  state.pendingImports = (state.pendingImports || []).filter(p=> !auto.has(p.id) && !(p.gmailMessageId && decided.has(p.gmailMessageId)));
   return state.pendingImports.length < before;
 }
 function renderPendingReview(){
