@@ -1894,7 +1894,7 @@ setTimeout(function(){
     <button class="btn-ghost" id="clear-since-btn" style="border-color:var(--debt); color:var(--debt);">Delete transactions from a date</button>
     <p class="section-sub" style="margin-top:8px;">Deletes expenses, income and transfers from a chosen date onward, so you can add them again. Does not touch the People Ledger, account balances or budget settings.</p>
 
-    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-18 · v149-no-leak</p>
+    <p class="section-sub" style="margin-top:24px; text-align:center; opacity:0.5;">Build: 2026-11-19 · v150-people-list</p>
   </div>
 </div>
 
@@ -6691,7 +6691,7 @@ function renderTxCal(){
 // (category, account, date, who it was for) the keypad hides; tapping the amount brings it back.
 function txSyncKeypad(){
   const kp = document.getElementById('keypad'); if(!kp) return;
-  const open = catPickerOpen || acctPickerOpen || txDatePickerOpen || !!(splitSt && splitSt.tx && splitSt.tx.open);
+  const open = catPickerOpen || acctPickerOpen || txDatePickerOpen || (typeof txPersonPickerOpen !== 'undefined' && txPersonPickerOpen && txCurrentType() === 'person') || !!(splitSt && splitSt.tx && splitSt.tx.open);
   kp.classList.toggle('hide', open);
   const nl = document.getElementById('tx-note-line'); if(nl && open) nl.classList.add('kp-hidden-note'); else if(nl) nl.classList.remove('kp-hidden-note');
 }
@@ -7101,7 +7101,7 @@ wireSeg('tx-type', (v)=>{
   document.getElementById('tx-single-fields').classList.toggle('hide', isTransfer || isPerson);
   document.getElementById('tx-transfer-fields').classList.toggle('hide', !isTransfer);
   document.getElementById('tx-person-fields').classList.toggle('hide', !isPerson);
-  catPickerOpen = false; acctPickerOpen = false;
+  catPickerOpen = false; acctPickerOpen = false; if(typeof txPersonPickerOpen !== 'undefined') txPersonPickerOpen = false;
   if(!isTransfer && !isPerson) applyTxGuess(v);
   if(isPerson) renderTxPersonChips();
   renderTxFormLists();
@@ -7121,26 +7121,49 @@ let txSelectedPerson = null;
 let txSelectedPersonAcct = null;
 let txPersonSelectedCat = null;
 let txPersonCatPickerOpen = false;
+// The person chooser on the Add form and the review sheet (v150): the chosen person as one line with
+// "Change"; opened, a top-to-bottom list with what is owed, then the settled people (Reopen), then New.
+function personPicker(row, o){
+  const bal = p=>{ const b = personBalance(p.id); return Math.abs(b) < 0.5 ? 'Nothing owed' : (b > 0 ? "You'll get " : "You'll pay ") + `<span class="maskable">${fmt(Math.abs(b))}</span>`; };
+  const sel = activePeople().find(p=> p.id === o.selected);
+  row.className = 'pick-list'; row.style.cssText = 'display:flex; flex-direction:column; gap:8px; margin-bottom:14px;';
+  if(sel && !o.open){
+    row.innerHTML = `<div class="pick-summary" data-pp="toggle" style="margin:0;"><div class="ps-icon">👤</div><div class="ps-name">${storyEsc(sel.name)}<div style="font-size:12px; font-weight:400; color:var(--ink-soft);">${bal(sel)}</div></div><div class="ps-change">Change</div></div>`;
+  } else {
+    const line = (p, settled)=> `<div class="pli ${!settled && p.id === o.selected ? 'on' : ''}" data-pp="${settled ? 'reopen' : 'pick'}" data-id="${p.id}"><div class="pli-icon">👤</div><div class="pli-name">${storyEsc(p.name)}<div style="font-size:12px; color:var(--ink-soft);">${settled ? 'Settled · nothing owed' : bal(p)}</div></div>${settled ? '<div style="font-size:12.5px; font-weight:600; color:var(--peri);">Reopen</div>' : '<div class="pli-check">✓</div>'}</div>`;
+    const done = settledPeople();
+    row.innerHTML = activePeople().map(p=> line(p, false)).join('')
+      + (done.length ? '<div style="font-size:12px; font-weight:700; color:var(--ink-soft); margin:8px 2px 0;">Settled</div>' + done.map(p=> line(p, true)).join('') : '')
+      + '<div class="pli" data-pp="new"><div class="pli-icon">+</div><div class="pli-name">New person</div></div>';
+  }
+  row.querySelectorAll('[data-pp]').forEach(el=> el.addEventListener('click', async ()=>{
+    const k = el.dataset.pp;
+    if(k === 'toggle') return o.onToggle(true);
+    if(k === 'pick') return o.onPick(el.dataset.id);
+    let person = null;
+    if(k === 'reopen'){
+      person = state.people.find(x=> x.id === el.dataset.id); if(!person) return;
+      person.settled = false;
+      await saveState(); showToast(`${person.name} reopened. Ledger kept.`);
+    } else {
+      const name = prompt('Name?'); if(!name || !name.trim()) return;
+      const added = addOrReopenPerson(name); person = added.person;
+      await saveState();
+      if(added.status==='reopened') showToast(`${person.name} was settled earlier. Reopened, ledger kept.`);
+      else if(added.status==='exists') showToast(`${person.name} is already on your list. Selected.`);
+    }
+    o.onPick(person.id);
+  }));
+}
 let lastPersonSaveCountedSpend = null;
+let txPersonPickerOpen = false;
 function renderTxPersonChips(){
   const txPeople = activePeople();
   if(!txPeople.some(p=>p.id===txSelectedPerson)) txSelectedPerson = txPeople[0] ? txPeople[0].id : null;
-  document.getElementById('tx-person-row').innerHTML =
-    txPeople.map(p=>`<div class="acct-chip ${p.id===txSelectedPerson?'on':''}" data-txperson="${p.id}">${p.name}</div>`).join('') +
-    `<div class="acct-chip" id="tx-person-new-chip">+ New</div>`;
-  document.querySelectorAll('#tx-person-row [data-txperson]').forEach(el=>{
-    el.addEventListener('click', ()=>{ txSelectedPerson = el.dataset.txperson; renderTxPersonChips(); });
-  });
-  document.getElementById('tx-person-new-chip').addEventListener('click', async ()=>{
-    const name = prompt('Name?');
-    if(!name || !name.trim()) return;
-    const added = addOrReopenPerson(name);
-    txSelectedPerson = added.person.id;
-    await saveState();
-    renderTxPersonChips();
-    if(added.status==='reopened') showToast(`${added.person.name} was settled earlier. Reopened, ledger kept.`);
-    else if(added.status==='exists') showToast(`${added.person.name} is already on your list. Selected.`);
-  });
+  personPicker(document.getElementById('tx-person-row'), {selected: txSelectedPerson, open: txPersonPickerOpen,
+    onToggle: ()=>{ txPersonPickerOpen = true; renderTxPersonChips(); },
+    onPick: id=>{ txSelectedPerson = id; txPersonPickerOpen = false; renderTxPersonChips(); }});
+  txSyncKeypad();
   // A category here is optional — it's just for your own record of what money spent "for
   // someone" was actually for (e.g. "Parties"). It never counts toward budget actuals, same
   // as the rest of a People Ledger entry — that stays a receivable/payable, not spending,
@@ -7204,7 +7227,7 @@ function openAddTxSheet(presetAccountId){
   document.getElementById('tx-transfer-note').value='';
   document.getElementById('tx-date').value = localDateIso();
   userTouchedCategory = false; userTouchedAccount = false;
-  catPickerOpen = false; acctPickerOpen = false;
+  catPickerOpen = false; acctPickerOpen = false; if(typeof txPersonPickerOpen !== 'undefined') txPersonPickerOpen = false;
   txSelectedPerson = null; txSelectedPersonAcct = null;
   txPersonSelectedCat = null; txPersonCatPickerOpen = false;
   if(presetAccountId){
@@ -10819,7 +10842,7 @@ const reviewImportBackdrop = document.getElementById('reviewimport-backdrop');
 let activeImportId = null;
 let riSelectedType = 'expense'; // what the review sheet will save — starts as what the email reader said
 let riSelectedCat = null, riSelectedAccount = null, riSelectedPerson = null, riPersonSelectedCat = null, riTransferTarget = null;
-let riCatPickerOpen = false, riAcctPickerOpen = false, riPersonCatPickerOpen = false, riTransferPickerOpen = false;
+let riCatPickerOpen = false, riAcctPickerOpen = false, riPersonCatPickerOpen = false, riTransferPickerOpen = false, riPersonPickerOpen = false;
 function renderReviewChips(imp){
   try{ setTimeout(updateSlideReview, 0); }catch(e){}
   const mode = segValue('ri-mode');
@@ -10913,25 +10936,9 @@ function renderReviewChips(imp){
 
   const riPeople = activePeople();
   if(!riPeople.find(p=>p.id===riSelectedPerson)) riSelectedPerson = riPeople[0] ? riPeople[0].id : null;
-  document.getElementById('ri-person-row').innerHTML =
-    riPeople.map(p=>`<div class="acct-chip ${p.id===riSelectedPerson?'on':''}" data-riperson="${p.id}">${p.name}</div>`).join('') +
-    `<div class="acct-chip" data-riperson="__new">+ New</div>`;
-  document.querySelectorAll('#ri-person-row [data-riperson]').forEach(el=>{
-    el.addEventListener('click', async ()=>{
-      if(el.dataset.riperson==='__new'){
-        const name = prompt('Name?');
-        if(!name || !name.trim()) return;
-        const added = addOrReopenPerson(name);
-        riSelectedPerson = added.person.id;
-        await saveState();
-        if(added.status==='reopened') showToast(`${added.person.name} was settled earlier. Reopened, ledger kept.`);
-        else if(added.status==='exists') showToast(`${added.person.name} is already on your list. Selected.`);
-      } else {
-        riSelectedPerson = el.dataset.riperson;
-      }
-      renderReviewChips(imp);
-    });
-  });
+  personPicker(document.getElementById('ri-person-row'), {selected: riSelectedPerson, open: riPersonPickerOpen,
+    onToggle: ()=>{ riPersonPickerOpen = true; renderReviewChips(imp); },
+    onPick: id=>{ riSelectedPerson = id; riPersonPickerOpen = false; renderReviewChips(imp); }});
 
   // v132: no category until the household picks one. You got + no category = Borrowed (not
   // spending), as in the People form since v110; the reader's expense guess is never carried over.
@@ -11008,7 +11015,7 @@ function openReviewImport(id, silent){
   riSelectedAccount = validatedAccountId(imp.accountId, imp.sourceEmail);
   riSelectedPerson = null;
   riCatPickerOpen = !!guess.unfit; riAcctPickerOpen = false;
-  riPersonSelectedCat = null; riPersonCatPickerOpen = false;
+  riPersonSelectedCat = null; riPersonCatPickerOpen = false; riPersonPickerOpen = false;
   riTransferTarget = null; riTransferPickerOpen = false;
   { const pr = findTransferPairs().find(x=> x.kind==='both' && (x.out.id===imp.id || x.inn.id===imp.id));
     if(pr) riTransferTarget = imp.type==='income' ? pr.from : pr.to; }
